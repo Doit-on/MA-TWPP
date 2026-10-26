@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>FMMS Enterprise | ทวพ. FM - ระบบบริหารงานซ่อมบำรุงและควบคุมอาคาร (Data MA TWPP)</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: IBM Plex Sans Thai, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- QR Code Generator & QR Scanner Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="arch-workspace-bg text-slate-900 min-h-screen flex flex-col">
+
+  <!-- ========================================================================
+       0. FRONT LANDING PAGE WITH CENTERED TWPP 3 INTERLOCKING RINGS + "FM"
+       ======================================================================== -->
+  <div id="landingOverlay" class="fixed inset-0 z-50 arch-login-bg flex flex-col justify-between p-6 sm:p-10 overflow-y-auto no-print text-white">
+    <!-- Top Bar on Landing Page -->
+    <div class="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
+      <div class="flex items-center gap-2 text-xs font-mono-code text-slate-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 status-dot-live"></span>
+        <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.5.0-ENT</strong></span>
+        <span class="text-slate-600">|</span>
+        <span>ISO 41001 FACILITY MANAGEMENT STANDARD</span>
+      </div>
+      <div class="flex items-center gap-3 text-xs font-mono-code">
+        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition">
+          สแกน QR ตั้งค่าเครื่องใหม่
+        </button>
+        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-1.5 rounded-md transition">
+          เข้าสู่ระบบ (Sign In) →
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Emblem: 3 Pure Interlocking Rings (No Text Inside Rings) + "FM" -->
+    <div class="my-auto py-10 max-w-4xl w-full mx-auto text-center space-y-6 relative z-10">
+      <div class="flex flex-col items-center justify-center">
+        <!-- Pure 3 Interlocking Rings SVG Emblem (No text inside the rings) -->
+        <div class="p-6 rounded-full bg-slate-950/70 border border-slate-700/80 shadow-2xl inline-flex items-center justify-center mb-5">
+          <svg class="w-36 h-24 sm:w-44 sm:h-28" viewBox="0 0 220 130" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="TWPP Three Interlocking Rings">
+            <!-- Left Ring -->
+            <circle cx="66" cy="65" r="36" stroke="#2DD4BF" stroke-width="7.5" />
+            <!-- Right Ring -->
+            <circle cx="154" cy="65" r="36" stroke="#38BDF8" stroke-width="7.5" />
+            <!-- Center Top/Interlocking Ring -->
+            <circle cx="110" cy="65" r="36" stroke="#F8FAFC" stroke-width="7.5" />
+            <!-- Subtle Interlock Overlaps for Authentic Chain Visual -->
+            <path d="M 88 36 A 36 36 0 0 1 102 65" stroke="#2DD4BF" stroke-width="7.5" stroke-linecap="round"/>
+            <path d="M 118 65 A 36 36 0 0 1 132 36" stroke="#F8FAFC" stroke-width="7.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <!-- Followed immediately by "FM" -->
+        <div class="tracking-widest font-mono-code text-4xl sm:text-5xl font-bold text-white">
+          FM
+        </div>
+        <div class="mt-2 text-xs sm:text-sm font-mono-code uppercase tracking-widest text-teal-400">
+          FACILITY MAINTENANCE MANAGEMENT SYSTEM • DATA MA TWPP
+        </div>
+      </div>
+
+      <h1 class="text-xl sm:text-3xl font-bold text-white max-w-2xl mx-auto leading-snug">
+        ระบบบริหารงานซ่อมบำรุงและควบคุมมาตรฐานวิศวกรรมอาคาร
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto leading-relaxed">
+        เชื่อมโยงฐานข้อมูล Google Sheets (<span class="font-mono-code text-teal-300">Data MA TWPP</span>) และคลังภาพ Google Drive แบบเรียลไทม์ พร้อมระบบควบคุมเวอร์ชันเอกสารทุกครั้งที่สร้างหรือแก้ไขโดยผู้ควบคุมงาน (Supervisor) และส่งออกรายงานสู่ไฟล์ <span class="font-mono-code text-white">.xls</span> / <span class="font-mono-code text-white">Google Sheets</span> มาตรฐานสากล
+      </p>
+
+      <!-- Action Buttons -->
+      <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-7 py-3 rounded-md text-sm transition shadow-lg flex items-center gap-2 touch-target">
+          <span>เข้าสู่ระบบปฏิบัติการ (Enter FM Portal)</span>
+          <span class="font-mono-code">→</span>
+        </button>
+        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-600 text-slate-100 font-medium px-5 py-3 rounded-md text-sm transition flex items-center gap-2 touch-target">
+          <span>📷 สแกน QR Code เปิดเครื่องใหม่</span>
+        </button>
+      </div>
+
+      <!-- Feature Highlights Strip -->
+      <div class="pt-8 grid grid-cols-1 sm:grid-cols-4 gap-3 text-left max-w-4xl mx-auto">
+        <div class="bg-slate-950/75 border border-slate-800 rounded-md p-3.5">
+          <div class="text-[11px] font-mono-code text-teal-400 uppercase">01 / DOCUMENT VERSIONING</div>
+          <div class="text-xs font-semibold text-white mt-1">แสดง Version เอกสารทุกครั้ง</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">บันทึกประวัติการแก้ไข (v1.0 → v1.1) ในชีต Document_Revisions</div>
+        </div>
+        <div class="bg-slate-950/75 border border-slate-800 rounded-md p-3.5">
+          <div class="text-[11px] font-mono-code text-teal-400 uppercase">02 / COST REFERENCE DB</div>
+          <div class="text-xs font-semibold text-white mt-1">ชีตอ้างอิงราคามาตรฐาน</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">ดึงราคากลางวัสดุและค่าแรงจากชีต Cost_References อัตโนมัติ</div>
+        </div>
+        <div class="bg-slate-950/75 border border-slate-800 rounded-md p-3.5">
+          <div class="text-[11px] font-mono-code text-teal-400 uppercase">03 / SUPERVISOR CONTROL</div>
+          <div class="text-xs font-semibold text-white mt-1">สิทธิ์แก้ไขเฉพาะระดับ 2</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">ล็อกสิทธิ์การแก้ไขเอกสารที่สร้างแล้วให้เฉพาะ Supervisor เท่านั้น</div>
+        </div>
+        <div class="bg-slate-950/75 border border-slate-800 rounded-md p-3.5">
+          <div class="text-[11px] font-mono-code text-teal-400 uppercase">04 / XLS & GOOGLE SHEET</div>
+          <div class="text-xs font-semibold text-white mt-1">ส่งออก .xls & Google Sheet</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">ออกไฟล์ Excel หลายแท็บและสร้างไฟล์ Google Sheet ใหม่เข้า Drive ทันที</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Resource Verification Strip -->
+    <div class="max-w-6xl w-full mx-auto border-t border-slate-800/80 pt-4 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono-code text-slate-400 relative z-10">
+      <div>GOOGLE SHEET ID: <strong class="text-slate-200">1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ</strong></div>
+      <div>GOOGLE DRIVE ID: <strong class="text-slate-200">1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx</strong></div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       1. LOGIN & ZERO-TOUCH QR DEVICE PROVISIONING OVERLAY
+       ======================================================================== -->
+  <div id="authOverlay" class="hidden fixed inset-0 z-40 arch-login-bg flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 bg-slate-950/90 border border-slate-700 rounded-md overflow-hidden shadow-2xl relative z-10">
+
+      <!-- Left Architectural Brand & Resource Binding Panel -->
+      <div class="lg:col-span-5 p-6 sm:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between bg-slate-900/60">
+        <div>
+          <div class="flex items-center gap-3 mb-6">
+            <!-- Mini 3 Rings + FM Emblem -->
+            <div class="px-2.5 py-1.5 rounded-md bg-slate-950 border border-slate-700 flex items-center gap-2">
+              <svg class="w-9 h-6" viewBox="0 0 220 130" fill="none">
+                <circle cx="66" cy="65" r="36" stroke="#2DD4BF" stroke-width="12" />
+                <circle cx="154" cy="65" r="36" stroke="#38BDF8" stroke-width="12" />
+                <circle cx="110" cy="65" r="36" stroke="#F8FAFC" stroke-width="12" />
+              </svg>
+              <span class="font-mono-code font-bold text-white text-sm">FM</span>
+            </div>
+            <div>
+              <div class="text-[11px] font-mono-code uppercase tracking-widest text-teal-400">BUILD v2.5.0-ENT</div>
+              <h1 class="text-base font-bold text-white tracking-tight">FMMS ENTERPRISE</h1>
+            </div>
+          </div>
+
+          <h2 class="text-lg font-semibold text-white leading-snug mb-2">
+            เข้าสู่ระบบบริหารงานซ่อมบำรุงอาคาร
+          </h2>
+          <p class="text-xs text-slate-300 leading-relaxed mb-5">
+            รองรับการควบคุมเลขเอกสารไม่ซ้ำ (Mutex Lock), แสดงเลข Version เอกสารทุกครั้งที่สร้าง/แก้ไข และจำกัดสิทธิ์การแก้ไขเอกสารเฉพาะระดับ Supervisor
+          </p>
+
+          <!-- Verified Resource Connection Card -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-md p-3.5 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-2">
+              <span class="font-medium text-slate-200">ฐานข้อมูล 8 แท็บ (Data MA TWPP)</span>
+              <span id="loginPingBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono-code text-[11px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot-live"></span>
+                READY
+              </span>
+            </div>
+            <div class="space-y-1">
+              <div class="text-slate-400 flex items-center justify-between">
+                <span>Google Sheet:</span>
+                <a href="https://docs.google.com/spreadsheets/d/1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ/edit?gid=0#gid=0" target="_blank" rel="noopener" class="text-teal-400 hover:underline font-mono-code">เปิดดูชีต ↗</a>
+              </div>
+              <div class="font-mono-code text-[11px] text-slate-300 truncate bg-slate-900 px-2 py-1 rounded border border-slate-800" id="loginSheetIdDisplay">
+                1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
+              </div>
+            </div>
+            <div class="space-y-1">
+              <div class="text-slate-400 flex items-center justify-between">
+                <span>Google Drive:</span>
+                <a href="https://drive.google.com/drive/u/0/folders/1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx" target="_blank" rel="noopener" class="text-teal-400 hover:underline font-mono-code">เปิดโฟลเดอร์ ↗</a>
+              </div>
+              <div class="font-mono-code text-[11px] text-slate-300 truncate bg-slate-900 px-2 py-1 rounded border border-slate-800" id="loginDriveIdDisplay">
+                1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono-code">
+          <button type="button" onclick="FMMS.showLandingPage()" class="text-teal-400 hover:underline">← กลับหน้า Landing Page</button>
+          <span>DEVICE: <strong id="loginDeviceId" class="text-slate-200">DEV-INIT</strong></span>
+        </div>
+      </div>
+
+      <!-- Right Authentication & Device Onboarding Form -->
+      <div class="lg:col-span-7 p-6 sm:p-8 bg-white text-slate-900 flex flex-col justify-between">
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-200">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">ลงชื่อเข้าใช้งานระบบ (Operator Sign-In)</h3>
+              <p class="text-xs text-slate-500">เลือกบัญชีตามระดับสิทธิ์เพื่อเข้าสู่หน้าจอปฏิบัติงาน</p>
+            </div>
+            <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium px-3 py-2 rounded-md flex items-center gap-1.5 transition touch-target">
+              <span>📷 สแกน QR ตั้งค่าเครื่องใหม่</span>
+            </button>
+          </div>
+
+          <!-- Login Form -->
+          <form id="loginForm" onsubmit="FMMS.handleLoginSubmit(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">ชื่อผู้ใช้งาน (Username)</label>
+              <input type="text" id="loginUsername" required placeholder="เช่น supervisor, admin, tech01" value="supervisor"
+                class="w-full border border-slate-300 rounded-md px-3.5 py-2.5 text-sm focus:outline-none focus:border-slate-900 font-mono-code">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">รหัสผ่าน (Password)</label>
+              <input type="password" id="loginPassword" required placeholder="••••••••" value="sup123"
+                class="w-full border border-slate-300 rounded-md px-3.5 py-2.5 text-sm focus:outline-none focus:border-slate-900 font-mono-code">
+            </div>
+
+            <!-- Quick Role Selection Presets -->
+            <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+              <div class="text-[11px] font-semibold text-slate-500 uppercase mb-2">คลิกเลือกสลับบัญชีทดสอบแต่ละระดับสิทธิ์:</div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button type="button" onclick="FMMS.fillLoginPreset('tech01','tech123')" class="text-left p-2 rounded border border-slate-200 bg-white hover:border-slate-900 transition">
+                  <div class="text-xs font-bold text-slate-900">ระดับ 1: ช่างหน้างาน</div>
+                  <div class="text-[10px] text-slate-500">สร้างใบงานใหม่ (ห้ามแก้เอกสารเดิม)</div>
+                </button>
+                <button type="button" onclick="FMMS.fillLoginPreset('supervisor','sup123')" class="text-left p-2 rounded border border-blue-400 bg-blue-50/40 hover:border-blue-700 transition">
+                  <div class="text-xs font-bold text-blue-700">ระดับ 2: Supervisor ★</div>
+                  <div class="text-[10px] text-slate-600">มีสิทธิ์แก้ไขเอกสาร & ราคากลาง</div>
+                </button>
+                <button type="button" onclick="FMMS.fillLoginPreset('admin','admin123')" class="text-left p-2 rounded border border-slate-200 bg-white hover:border-slate-900 transition">
+                  <div class="text-xs font-bold text-teal-700">ระดับ 3: ผู้บริหาร/Admin</div>
+                  <div class="text-[10px] text-slate-500">อนุมัติงบ & จัดการผู้ใช้</div>
+                </button>
+              </div>
+            </div>
+
+            <div id="loginErrorBox" class="hidden bg-red-50 border border-red-300 text-red-800 text-xs px-3 py-2 rounded-md"></div>
+
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 rounded-md text-sm transition touch-target flex items-center justify-center gap-2">
+              <span>เข้าสู่ระบบและซิงค์ฐานข้อมูล</span>
+              <span class="font-mono-code text-xs text-teal-400">→</span>
+            </button>
+          </form>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <div>เวอร์ชันระบบ: <strong class="font-mono-code text-slate-800">v2.5.0-ENT</strong></div>
+          <button type="button" onclick="FMMS.openConnectionConfigModal()" class="text-blue-700 hover:underline font-medium">
+            ตั้งค่า URL เชื่อมต่อ Apps Script (GAS)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       2. TOP ENTERPRISE NAVIGATION & REAL-TIME CONNECTION BAR
+       ======================================================================== -->
+  <header class="arch-banner-bg text-white border-b border-slate-800 sticky top-0 z-30 no-print">
+    <!-- Top System Telemetry Strip -->
+    <div class="bg-slate-950/90 border-b border-slate-800/80 px-4 sm:px-6 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="inline-flex items-center gap-1.5 font-mono-code text-slate-300">
+          <span id="connStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 status-dot-live"></span>
+          <strong id="connStatusText" class="text-emerald-400">CONNECTED</strong>
+        </span>
+        <span class="text-slate-600">|</span>
+        <span class="font-mono-code text-slate-400">
+          LATENCY: <strong id="connLatencyText" class="text-slate-200">20 ms</strong>
+        </span>
+        <span class="text-slate-600">|</span>
+        <span class="font-mono-code text-teal-300">
+          SYS VER: <strong id="headerSysVersion">v2.5.0-ENT</strong>
+        </span>
+        <span class="text-slate-600 hidden sm:inline">|</span>
+        <span class="font-mono-code text-slate-400 hidden sm:inline">
+          SHEET: <a href="https://docs.google.com/spreadsheets/d/1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ/edit?gid=0#gid=0" target="_blank" rel="noopener" class="text-teal-400 hover:underline">Data MA TWPP ↗</a>
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2 font-mono-code">
+        <span id="liveClockDisplay" class="text-slate-300">26/10/2026 22:45:00</span>
+        <button type="button" onclick="FMMS.showLandingPage()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[11px] transition">
+          หน้าแรก (Landing)
+        </button>
+        <button type="button" onclick="FMMS.pingConnection(true)" class="bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 px-2 py-0.5 rounded text-[11px] transition">
+          Ping ตรวจระบบ
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Header Bar with 3 Interlocking Rings + FM Brand -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="FMMS.showLandingPage()" title="คลิกเพื่อเปิดหน้า Landing Page">
+        <!-- 3 Interlocking Rings Emblem (No text inside rings) + FM -->
+        <div class="px-2.5 py-1.5 rounded-md bg-slate-950/90 border border-slate-700 flex items-center gap-2">
+          <svg class="w-10 h-6" viewBox="0 0 220 130" fill="none">
+            <circle cx="66" cy="65" r="36" stroke="#2DD4BF" stroke-width="11" />
+            <circle cx="154" cy="65" r="36" stroke="#38BDF8" stroke-width="11" />
+            <circle cx="110" cy="65" r="36" stroke="#F8FAFC" stroke-width="11" />
+          </svg>
+          <span class="font-mono-code font-bold text-white text-base tracking-wider">FM</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-bold tracking-wide text-white">FACILITY MAINTENANCE MANAGEMENT</h1>
+            <span class="hidden sm:inline-block text-[10px] font-mono-code uppercase bg-teal-950 border border-teal-700 text-teal-300 px-2 py-0.5 rounded">DOC VERSION CONTROL</span>
+          </div>
+          <p class="text-xs text-slate-300">ระบบบริหารงานซ่อมบำรุงและควบคุมเอกสารมาตรฐานวิศวกรรม (Data MA TWPP)</p>
+        </div>
+      </div>
+
+      <!-- Current Operator & Role Switcher -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div class="flex items-center bg-slate-900/90 border border-slate-700 rounded-md p-0.5 text-xs">
+          <button type="button" id="navBtnRole1" onclick="FMMS.switchView('role1')" class="px-2.5 py-1.5 rounded font-medium transition">
+            1: ช่างหน้างาน
+          </button>
+          <button type="button" id="navBtnRole2" onclick="FMMS.switchView('role2')" class="px-2.5 py-1.5 rounded font-medium transition">
+            2: ผู้ควบคุมงาน (แก้ไขเอกสาร)
+          </button>
+          <button type="button" id="navBtnRole3" onclick="FMMS.switchView('role3')" class="px-2.5 py-1.5 rounded font-medium transition">
+            3: ผู้บริหาร
+          </button>
+          <button type="button" id="navBtnAdmin" onclick="FMMS.switchView('admin')" class="px-2.5 py-1.5 rounded font-medium transition">
+            ตั้งค่าระบบ / QR
+          </button>
+        </div>
+
+        <!-- Logged-in User Pill -->
+        <div class="bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-md text-xs flex items-center gap-2">
+          <div>
+            <div class="font-semibold text-white leading-tight" id="headerUserName">วิศวกร พรเทพ ใจดี</div>
+            <div class="text-[10px] text-teal-400 font-mono-code" id="headerUserRole">ROLE 2 | USR-2026-0002</div>
+          </div>
+          <button type="button" onclick="FMMS.logout()" class="ml-2 text-slate-400 hover:text-red-400 border-l border-slate-700 pl-2 py-0.5 text-xs">
+            เปลี่ยนผู้ใช้
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       3. SYSTEM DIAGNOSTICS, VERSIONING & EXPORT (.XLS / GOOGLE SHEET) BAR
+       ======================================================================== -->
+  <div class="bg-white border-b border-slate-200 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="inline-flex items-center gap-1.5 text-slate-700">
+          <span class="w-2 h-2 rounded-full bg-teal-600"></span>
+          <span>สิทธิ์แก้ไขเอกสาร: <strong id="editPermissionIndicator" class="font-mono-code text-blue-700">เฉพาะระดับ 2 (Supervisor Only)</strong></span>
+        </span>
+        <span class="hidden md:inline text-slate-300">|</span>
+        <span class="hidden md:inline text-slate-600">
+          เลขใบงานถัดไป: <strong id="nextTaskIdPreview" class="font-mono-code text-slate-900">CM-202610-0045 (v1.0)</strong>
+        </span>
+      </div>
+
+      <!-- Universal Export & Backup Toolbar -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button type="button" onclick="FMMS.exportFullWorkbookXLS()" class="text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded transition flex items-center gap-1">
+          <span>📊 ส่งออกไฟล์ Excel (.xls)</span>
+        </button>
+        <button type="button" onclick="FMMS.exportToGoogleSheetCloud()" class="text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-2.5 py-1 rounded transition flex items-center gap-1">
+          <span>☁ ส่งออกไปยัง Google Sheet</span>
+        </button>
+        <button type="button" onclick="FMMS.verifyDocumentIntegrity()" class="text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-2.5 py-1 rounded transition">
+          ตรวจรหัสซ้ำ
+        </button>
+        <button type="button" onclick="FMMS.triggerSystemBackup()" class="text-xs font-medium text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-300 px-2.5 py-1 rounded transition">
+          Backup ลง Drive
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       4. MAIN APPLICATION WORKSPACE (ROLE VIEWS 1, 2, 3, ADMIN)
+       ======================================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 no-print">
+
+    <!-- ======================================================================
+         VIEW 1: LEVEL 1 - FIELD CONTRACTOR / TECHNICIAN (CREATE NEW WORK ONLY)
+         ====================================================================== -->
+    <section id="viewRole1" class="hidden space-y-6">
+      <div class="enterprise-card p-4 sm:p-5 bg-slate-900 text-white border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-mono-code uppercase px-2 py-0.5 rounded bg-teal-800 text-teal-200">LEVEL 1 : FIELD OPERATIONS</span>
+            <span class="text-[11px] font-mono-code uppercase px-2 py-0.5 rounded bg-slate-800 border border-slate-600 text-amber-300">สร้างเอกสารใหม่ v1.0 เท่านั้น (แก้ไขเอกสารเดิมต้องให้ Supervisor ระดับ 2)</span>
+          </div>
+          <h2 class="text-lg font-bold mt-1">ระบบปฏิบัติงานช่างและผู้รับเหมาหน้างาน (Mobile Field Terminal)</h2>
+          <p class="text-xs text-slate-300">เปิดใบงานซ่อมใหม่ (สร้างเป็น <span class="font-mono-code text-white">v1.0</span> อัตโนมัติ), เลือกอ้างอิงราคาวัสดุเบื้องต้น และถ่ายภาพ Before/After</p>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 px-3 py-2 rounded-md text-right">
+          <div class="text-[10px] text-slate-400 uppercase">งานในระบบทั้งหมด</div>
+          <div class="text-lg font-bold font-mono-code text-teal-400" id="r1AssignedCount">0 รายการ</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left: 3-Step Mobile-First Creation Form (Creates v1.0) -->
+        <div class="lg:col-span-6 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">ฟอร์มเปิดใบงานซ่อมใหม่ (Create New Task Document)</h3>
+              <p class="text-xs text-slate-500">ระบบจะประทับเลขที่เอกสารและกำหนดเวอร์ชันเริ่มต้นเป็น <code class="font-mono-code font-bold text-teal-700">v1.0</code></p>
+            </div>
+            <span class="font-mono-code text-xs bg-teal-50 text-teal-800 border border-teal-300 px-2.5 py-0.5 rounded font-bold" id="r1FormModeBadge">CREATE v1.0</span>
+          </div>
+
+          <form id="contractorTaskForm" onsubmit="FMMS.handleContractorSubmit(event)" class="p-5 space-y-5">
+            <!-- STEP 1 -->
+            <div class="space-y-3 border-b border-slate-200 pb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-mono-code font-bold flex items-center justify-center">1</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">ข้อมูลสถานที่และประเภทงานซ่อม</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">ประเภทงาน *</label>
+                  <select id="r1TaskType" required class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-sm bg-white touch-target">
+                    <option value="CM">CM - ซ่อมบำรุงเฉพาะจุด (เร่งด่วน)</option>
+                    <option value="PM">PM - บำรุงรักษาตามแผนป้องกัน</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่ระบบอาคาร *</label>
+                  <select id="r1Category" required class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-sm bg-white touch-target">
+                    <option value="แอร์/เครื่องกล">ระบบปรับอากาศ / Chiller (HVAC)</option>
+                    <option value="ไฟฟ้า">ระบบไฟฟ้าและแสงสว่าง (Electrical)</option>
+                    <option value="ประปา/สุขาภิบาล">ระบบปั๊มน้ำและสุขาภิบาล (Plumbing)</option>
+                    <option value="โครงสร้าง/สถาปัตย์">โครงสร้างและสถาปัตยกรรมอาคาร</option>
+                    <option value="ความปลอดภัย/ดับเพลิง">ระบบแจ้งเหตุเพลิงไหม้ / Fire Pump</option>
+                    <option value="อื่นๆ">อื่นๆ</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">หัวข้ออาการเสีย / ชื่อเครื่องจักร *</label>
+                <input type="text" id="r1Title" required placeholder="เช่น แอร์ห้องประชุมชั้น 2 ไม่เย็น / ปั๊มน้ำ Booster ดังผิดปกติ"
+                  class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-sm touch-target">
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">สถานที่ / อาคาร / ชั้น *</label>
+                  <input type="text" id="r1Location" required placeholder="เช่น อาคาร A ชั้น 3 ห้องเครื่อง AHU-03"
+                    class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-sm touch-target">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">ระดับความเร่งด่วน (SLA Priority)</label>
+                  <select id="r1Priority" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-sm bg-white touch-target">
+                    <option value="Normal">ปกติ (Normal SLA 48 ชม.)</option>
+                    <option value="High">ด่วน (High SLA 12 ชม.)</option>
+                    <option value="Critical">ฉุกเฉินวิกฤต (Critical SLA 4 ชม.)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="space-y-3 border-b border-slate-200 pb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-mono-code font-bold flex items-center justify-center">2</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">การวิเคราะห์สาเหตุและดึงข้อมูลอ้างอิงค่าใช้จ่าย (Cost Reference)</span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">เลือกอ้างอิงราคามาตรฐานจากชีต Cost_References (ถ้ามี)</label>
+                <select id="r1CostRefSelect" onchange="FMMS.applyCostRefToContractorForm()" class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs bg-slate-50 font-mono-code">
+                  <!-- Populated by app.js -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">รายละเอียดปัญหาที่ตรวจพบหน้างาน *</label>
+                <textarea id="r1Description" rows="2" required placeholder="ระบุอาการที่ตรวจพบ ค่ากระแสไฟ หรือแรงดันที่วัดได้..."
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">สาเหตุเบื้องต้น (Initial Root Cause)</label>
+                  <input type="text" id="r1Analysis" placeholder="เช่น แมกเนติกคอนแทคเตอร์ไหม้ / ซีลยางเสื่อม"
+                    class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">อะไหล่ที่ต้องใช้ & ประมาณการงบ (บาท)</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="r1Materials" placeholder="รายการอะไหล่..." class="w-2/3 border border-slate-300 rounded-md px-3 py-2 text-sm">
+                    <input type="number" id="r1EstCost" placeholder="งบ (฿)" min="0" step="1" class="w-1/3 border border-slate-300 rounded-md px-2.5 py-2 text-sm font-mono-code">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-mono-code font-bold flex items-center justify-center">3</span>
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-700">ภาพถ่ายหน้างาน Before / After (ย่อขนาดอัตโนมัติ < 1MB)</span>
+                </div>
+                <span class="text-[11px] font-mono-code text-teal-700">Auto-Compress Engine</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="border border-dashed border-slate-300 rounded-md p-3 bg-slate-50 text-center">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">ภาพก่อนซ่อม (BEFORE)</label>
+                  <input type="file" id="r1BeforeFile" accept="image/*" capture="environment" onchange="FMMS.handleImageUploadPreview(event, 'before')" class="hidden">
+                  <button type="button" onclick="document.getElementById('r1BeforeFile').click()" class="w-full bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-xs font-medium py-2.5 px-3 rounded-md transition touch-target">
+                    📷 ถ่ายภาพ / เลือกรูปก่อนซ่อม
+                  </button>
+                  <div id="r1BeforeMeta" class="text-[11px] font-mono-code text-slate-500 mt-1.5">ยังไม่ได้เลือกรูป</div>
+                  <img id="r1BeforePreview" src="" alt="Before Preview" class="hidden mt-2 w-full h-32 object-cover rounded border border-slate-200">
+                </div>
+
+                <div class="border border-dashed border-slate-300 rounded-md p-3 bg-slate-50 text-center">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">ภาพหลังซ่อม (AFTER)</label>
+                  <input type="file" id="r1AfterFile" accept="image/*" capture="environment" onchange="FMMS.handleImageUploadPreview(event, 'after')" class="hidden">
+                  <button type="button" onclick="document.getElementById('r1AfterFile').click()" class="w-full bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-xs font-medium py-2.5 px-3 rounded-md transition touch-target">
+                    📷 ถ่ายภาพ / เลือกรูปหลังซ่อม
+                  </button>
+                  <div id="r1AfterMeta" class="text-[11px] font-mono-code text-slate-500 mt-1.5">ยังไม่ได้เลือกรูป</div>
+                  <img id="r1AfterPreview" src="" alt="After Preview" class="hidden mt-2 w-full h-32 object-cover rounded border border-slate-200">
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-3 flex items-center gap-3">
+              <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-4 rounded-md text-sm transition touch-target">
+                สร้างเอกสารใบงานใหม่ (Create Document v1.0)
+              </button>
+              <button type="button" onclick="FMMS.resetContractorForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-md text-xs transition touch-target">
+                ล้างฟอร์ม
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right: Assigned Tasks List (Read-Only for Level 1; Redirects edits to Supervisor Level 2) -->
+        <div class="lg:col-span-6 enterprise-card overflow-hidden flex flex-col">
+          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">รายการเอกสารใบงานและเลข Version ปัจจุบัน</h3>
+              <p class="text-xs text-slate-500">การแก้ไขเอกสารที่สร้างแล้วสงวนสิทธิ์เฉพาะระดับ 2 (Supervisor) เท่านั้น</p>
+            </div>
+            <select id="r1FilterStatus" onchange="FMMS.renderRole1Tasks()" class="border border-slate-300 rounded px-2.5 py-1 text-xs bg-white">
+              <option value="ALL">ทุกสถานะ</option>
+              <option value="In Progress">กำลังซ่อม</option>
+              <option value="Pending Approval">รออนุมัติงบ</option>
+              <option value="Completed">ส่งมอบแล้ว</option>
+            </select>
+          </div>
+
+          <div id="r1TaskListContainer" class="p-4 space-y-3 overflow-y-auto max-h-[680px]">
+            <!-- Populated by app.js -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         VIEW 2: LEVEL 2 - SUPERVISOR WORKBENCH (EXCLUSIVE DOCUMENT EDITOR, COST_REFS & REVISIONS)
+         ====================================================================== -->
+    <section id="viewRole2" class="hidden space-y-6">
+      <!-- Supervisor Sub-navigation Tabs (4 Tabs) -->
+      <div class="enterprise-card p-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button type="button" id="supTabTasksBtn" onclick="FMMS.switchSupervisorSubTab('tasks')" class="px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition">
+            1. ตารางควบคุม & แก้ไขเอกสารใบงาน (Tasks & Memo Editor)
+          </button>
+          <button type="button" id="supTabCostsBtn" onclick="FMMS.switchSupervisorSubTab('costs')" class="px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            2. ชีตข้อมูลอ้างอิงค่าใช้จ่าย (Cost_References)
+          </button>
+          <button type="button" id="supTabRevisionsBtn" onclick="FMMS.switchSupervisorSubTab('revisions')" class="px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            3. ชีตประวัติการแก้ไขเอกสาร & Version (Document_Revisions)
+          </button>
+          <button type="button" id="supTabPmBtn" onclick="FMMS.switchSupervisorSubTab('pm')" class="px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            4. แผนบำรุงรักษาเชิงป้องกัน (PM Schedules)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="FMMS.exportFullWorkbookXLS()" class="border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-semibold px-3 py-1.5 rounded-md transition">
+            📊 ส่งออก .xls (Excel)
+          </button>
+          <button type="button" onclick="FMMS.exportToGoogleSheetCloud()" class="border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-semibold px-3 py-1.5 rounded-md transition">
+            ☁ ส่งออก Google Sheet
+          </button>
+        </div>
+      </div>
+
+      <!-- Supervisor Tab 1: Split-Screen Task Grid + Supervisor-Exclusive Document Editor Drawer -->
+      <div id="supSubTabTasks" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Left 7 Cols: High-Density Task Data Grid with DocVersion -->
+        <div class="lg:col-span-7 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header p-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+              <input type="text" id="supSearchInput" oninput="FMMS.renderSupervisorGrid()" placeholder="ค้นหารหัสเอกสาร, Version, สถานที่, อาการ..."
+                class="w-full border border-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:border-slate-900">
+            </div>
+            <div class="flex items-center gap-2">
+              <select id="supTypeFilter" onchange="FMMS.renderSupervisorGrid()" class="border border-slate-300 rounded-md px-2.5 py-1.5 text-xs bg-white">
+                <option value="ALL">ทุกประเภท (PM+CM)</option>
+                <option value="CM">เฉพาะ CM</option>
+                <option value="PM">เฉพาะ PM</option>
+              </select>
+              <select id="supStatusFilter" onchange="FMMS.renderSupervisorGrid()" class="border border-slate-300 rounded-md px-2.5 py-1.5 text-xs bg-white">
+                <option value="ALL">ทุกสถานะ</option>
+                <option value="Pending Approval">รออนุมัติงบ</option>
+                <option value="In Progress">กำลังดำเนินการ</option>
+                <option value="Completed">รอตรวจรับ</option>
+                <option value="Closed">ปิดงานแล้ว</option>
+                <option value="Rejected">ตีกลับ</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 font-semibold uppercase">
+                  <th class="py-3 px-3.5">เลขที่เอกสาร / Version</th>
+                  <th class="py-3 px-2.5">ประเภท</th>
+                  <th class="py-3 px-3.5">รายการซ่อม / อ้างอิงค่าใช้จ่าย</th>
+                  <th class="py-3 px-3 text-right">งบประเมิน (฿)</th>
+                  <th class="py-3 px-3">สถานะ</th>
+                  <th class="py-3 px-3.5 text-right">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="supervisorTableBody" class="divide-y divide-slate-200 text-slate-800">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Supervisor Inspection & Exclusive Document Revision Drawer -->
+        <div class="lg:col-span-5 enterprise-card overflow-hidden sticky top-20">
+          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">แผงแก้ไขเอกสารและออกบันทึกขออนุมัติ (Supervisor Only)</h3>
+              <p class="text-xs text-slate-500">ทุกครั้งที่กดบันทึกการแก้ไข ระบบจะอัปเดตเลข Version และบันทึกลงชีต <code class="font-mono-code">Document_Revisions</code></p>
+            </div>
+            <span id="supDrawerTaskId" class="font-mono-code text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded">
+              เลือกใบงาน
+            </span>
+          </div>
+
+          <div id="supDrawerContent" class="p-5 space-y-4">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Supervisor Tab 2: Cost_References Sheet Manager (Standard Rate Card) -->
+      <div id="supSubTabCosts" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-4 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5">
+            <h3 class="text-sm font-bold text-slate-900" id="costFormTitle">เพิ่ม / แก้ไขข้อมูลอ้างอิงค่าใช้จ่าย (Cost_References)</h3>
+            <p class="text-xs text-slate-500">เฉพาะระดับ 2 (Supervisor) เท่านั้นที่ปรับปรุงราคากลางและอัปเดต Version ได้</p>
+          </div>
+          <form id="costReferenceForm" onsubmit="FMMS.handleSaveCostRefSubmit(event)" class="p-5 space-y-3 text-xs">
+            <input type="hidden" id="costEditId" value="">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">รหัสวัสดุ/งาน (ItemCode) *</label>
+                <input type="text" id="costItemCode" required placeholder="เช่น MAT-HVAC-005" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">หมวดระบบ *</label>
+                <select id="costCategory" class="w-full border border-slate-300 rounded px-3 py-2 bg-white">
+                  <option value="แอร์/เครื่องกล">แอร์/เครื่องกล</option>
+                  <option value="ไฟฟ้า">ไฟฟ้า</option>
+                  <option value="ประปา/สุขาภิบาล">ประปา/สุขาภิบาล</option>
+                  <option value="โครงสร้าง/สถาปัตย์">โครงสร้าง/สถาปัตย์</option>
+                  <option value="ความปลอดภัย/ดับเพลิง">ความปลอดภัย/ดับเพลิง</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ชื่อรายการวัสดุ / งานบริการซ่อมบำรุง *</label>
+              <input type="text" id="costItemName" required placeholder="เช่น เปลี่ยนแมกเนติกคอนแทคเตอร์ 3P 40A" class="w-full border border-slate-300 rounded px-3 py-2">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">รุ่น / มาตรฐานวิศวกรรม</label>
+                <input type="text" id="costSpec" placeholder="เช่น Schneider / Mitsubishi" class="w-full border border-slate-300 rounded px-3 py-2">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">หน่วยนับ *</label>
+                <input type="text" id="costUnit" required placeholder="ชุด / ตัว / งาน" value="ชุด" class="w-full border border-slate-300 rounded px-3 py-2">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">ราคาอะไหล่มาตรฐาน (฿) *</label>
+                <input type="number" id="costUnitPrice" required min="0" step="1" placeholder="0" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">ค่าแรงมาตรฐาน (฿) *</label>
+                <input type="number" id="costLaborRate" required min="0" step="1" placeholder="0" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ผู้จำหน่าย/ผู้รับเหมาอ้างอิง (Preferred Vendor)</label>
+              <input type="text" id="costVendor" placeholder="ชื่อบริษัทคู่ค้ามาตรฐาน..." class="w-full border border-slate-300 rounded px-3 py-2">
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-md transition">
+                บันทึกลงชีต Cost_References
+              </button>
+              <button type="button" onclick="FMMS.resetCostRefForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2.5 rounded-md transition">
+                ล้างค่า
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="lg:col-span-8 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">ตารางฐานข้อมูลอ้างอิงค่าใช้จ่ายมาตรฐาน (Sheet: Cost_References)</h3>
+              <p class="text-xs text-slate-500">ใช้สำหรับดึงไปอ้างอิงในใบงานและบันทึกข้อความขออนุมัติงบประมาณ</p>
+            </div>
+            <button type="button" onclick="FMMS.exportSingleSheetXLS('Cost_References')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium px-3 py-1.5 rounded-md transition">
+              ⬇ ส่งออกชีต Cost_References (.xls)
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase">
+                  <th class="py-2.5 px-3">รหัสอ้างอิง / Version</th>
+                  <th class="py-2.5 px-3">รายการวัสดุ / มาตรฐาน</th>
+                  <th class="py-2.5 px-3 text-right">ค่าของ (฿)</th>
+                  <th class="py-2.5 px-3 text-right">ค่าแรง (฿)</th>
+                  <th class="py-2.5 px-3 text-right">ราคารวมมาตรฐาน</th>
+                  <th class="py-2.5 px-3">ผู้บันทึก & เวลา</th>
+                  <th class="py-2.5 px-3 text-right">แก้ไข</th>
+                </tr>
+              </thead>
+              <tbody id="costRefsTableBody" class="divide-y divide-slate-200">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supervisor Tab 3: Document_Revisions Sheet Viewer (Full Version History) -->
+      <div id="supSubTabRevisions" class="hidden enterprise-card overflow-hidden">
+        <div class="enterprise-panel-header px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">ทะเบียนประวัติการสร้างและแก้ไขเอกสารทุก Version (Sheet: Document_Revisions)</h3>
+            <p class="text-xs text-slate-500">บันทึกทุกการสร้างเอกสารใหม่ (<code class="font-mono-code">v1.0</code>) และทุกครั้งที่ Supervisor แก้ไขเอกสาร (<code class="font-mono-code">v1.1, v1.2, ...</code>) พร้อมข้อมูลเปรียบเทียบก่อน-หลัง</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="FMMS.exportSingleSheetXLS('Document_Revisions')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium px-3 py-1.5 rounded-md transition">
+              ⬇ ส่งออกชีต Document_Revisions (.xls)
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase">
+                <th class="py-2.5 px-3">รหัส Revision / เวลา</th>
+                <th class="py-2.5 px-3">เลขที่เอกสาร</th>
+                <th class="py-2.5 px-3">ประเภท</th>
+                <th class="py-2.5 px-3">Version ที่สร้าง/แก้ไข</th>
+                <th class="py-2.5 px-3">เหตุผลการแก้ไข</th>
+                <th class="py-2.5 px-3">ผู้ดำเนินการ (Supervisor)</th>
+                <th class="py-2.5 px-3">ข้อมูลเปลี่ยนแปลง (Before → After)</th>
+              </tr>
+            </thead>
+            <tbody id="docRevisionsTableBody" class="divide-y divide-slate-200 font-mono-code text-[11px]">
+              <!-- Populated by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Supervisor Tab 4: Preventive Maintenance (PM) Schedules -->
+      <div id="supSubTabPm" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-5 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5">
+            <h3 class="text-sm font-bold text-slate-900">สร้างแผนบำรุงรักษาเชิงป้องกัน (PM Schedule v1.0)</h3>
+            <p class="text-xs text-slate-500">กำหนดรอบตรวจเช็กเครื่องจักรตามมาตรฐานวิศวกรรมอาคาร</p>
+          </div>
+          <form id="pmScheduleForm" onsubmit="FMMS.handleCreateScheduleSubmit(event)" class="p-5 space-y-3.5 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">รหัสเครื่องจักร (Asset Tag) *</label>
+                <input type="text" id="pmEquipCode" required placeholder="เช่น AHU-B1-02" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">ความถี่ในการตรวจ (Frequency) *</label>
+                <select id="pmFrequency" class="w-full border border-slate-300 rounded px-3 py-2 bg-white">
+                  <option value="Weekly">รายสัปดาห์ (Weekly)</option>
+                  <option value="Monthly" selected>รายเดือน (Monthly)</option>
+                  <option value="Quarterly">รายไตรมาส (Quarterly)</option>
+                  <option value="Yearly">ประจำปี (Yearly)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ชื่อเครื่องจักร / ระบบอุปกรณ์ *</label>
+              <input type="text" id="pmEquipName" required placeholder="เช่น เครื่องส่งลมเย็น AHU อาคาร B ชั้น 1" class="w-full border border-slate-300 rounded px-3 py-2">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">สถานที่ติดตั้ง *</label>
+                <input type="text" id="pmLocation" required placeholder="ห้องเครื่องชั้น 1 อาคาร B" class="w-full border border-slate-300 rounded px-3 py-2">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">กำหนดตรวจครั้งถัดไป *</label>
+                <input type="date" id="pmNextDue" required class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">รายการ Checklist มาตรฐาน</label>
+              <textarea id="pmChecklist" rows="3" class="w-full border border-slate-300 rounded px-3 py-2">ล้างแผ่นกรองอากาศ, วัดกระแสไฟมอเตอร์, ตรวจเช็กสายพาน, ตรวจสอบท่อระบายน้ำทิ้ง</textarea>
+            </div>
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-md transition">
+              + บันทึกแผน PM (v1.0) ลงฐานข้อมูล Google Sheets
+            </button>
+          </form>
+        </div>
+
+        <div class="lg:col-span-7 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">ตารางแผนงาน Preventive Maintenance ทั้งหมด</h3>
+              <p class="text-xs text-slate-500">แสดงเลข Version ของแผนงานและปุ่มแปลงเป็นใบงาน PM</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase">
+                  <th class="py-2.5 px-4">รหัสแผน / Version</th>
+                  <th class="py-2.5 px-3">เครื่องจักร / สถานที่</th>
+                  <th class="py-2.5 px-3">ความถี่</th>
+                  <th class="py-2.5 px-3">ครบกำหนดถัดไป</th>
+                  <th class="py-2.5 px-4 text-right">การดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="pmSchedulesTableBody" class="divide-y divide-slate-200">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         VIEW 3: LEVEL 3 - EXECUTIVE DASHBOARD, ONE-CLICK APPROVAL & XLS/GSHEET EXPORT
+         ====================================================================== -->
+    <section id="viewRole3" class="hidden space-y-6">
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="enterprise-card p-4 border-l-4 border-l-slate-900">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase">ใบงานทั้งหมด / สัดส่วน PM:CM</span>
+            <span class="text-[10px] font-mono-code bg-slate-100 px-2 py-0.5 rounded text-slate-700">ISO-METRIC-01</span>
+          </div>
+          <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1.5" id="kpiTotalTasks">0</div>
+          <div class="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden flex">
+            <div id="kpiPmBar" class="bg-teal-600 h-full" style="width: 60%"></div>
+            <div id="kpiCmBar" class="bg-amber-500 h-full" style="width: 40%"></div>
+          </div>
+          <div class="text-[11px] text-slate-600 mt-1.5 flex justify-between font-mono-code">
+            <span id="kpiPmRatioText">PM: 60%</span>
+            <span id="kpiCmRatioText">CM: 40%</span>
+          </div>
+        </div>
+
+        <div class="enterprise-card p-4 border-l-4 border-l-blue-700">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-blue-700 uppercase">รออนุมัติบันทึกข้อความ</span>
+            <span class="text-[10px] font-mono-code bg-blue-50 text-blue-700 px-2 py-0.5 rounded">PENDING MEMO</span>
+          </div>
+          <div class="text-2xl font-bold font-mono-code text-blue-700 mt-1.5" id="kpiPendingMemos">0</div>
+          <div class="text-xs text-slate-600 mt-2">
+            วงเงินรออนุมัติรวม: <strong id="kpiPendingBudget" class="font-mono-code text-slate-900">฿0</strong>
+          </div>
+        </div>
+
+        <div class="enterprise-card p-4 border-l-4 border-l-teal-700">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-teal-800 uppercase">งบประมาณประเมิน vs จ่ายจริง</span>
+            <span class="text-[10px] font-mono-code bg-teal-50 text-teal-800 px-2 py-0.5 rounded">BUDGET CONTROL</span>
+          </div>
+          <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1.5" id="kpiActualBudget">฿0</div>
+          <div class="text-xs text-slate-600 mt-2">
+            จากงบประเมินรวม: <strong id="kpiEstimatedBudget" class="font-mono-code text-slate-800">฿0</strong>
+          </div>
+        </div>
+
+        <div class="enterprise-card p-4 border-l-4 border-l-emerald-600">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-emerald-700 uppercase">ประวัติแก้ไขเอกสารทั้งหมด</span>
+            <span class="text-[10px] font-mono-code bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded">VERSION AUDIT</span>
+          </div>
+          <div class="text-2xl font-bold font-mono-code text-emerald-700 mt-1.5" id="kpiCompletionRate">0 Revs</div>
+          <div class="text-xs text-slate-600 mt-2" id="kpiCompletedCountText">
+            ตรวจรับและปิดงานแล้ว 0 รายการ
+          </div>
+        </div>
+      </div>
+
+      <!-- Executive Approval Queue & Memo Table -->
+      <div class="enterprise-card overflow-hidden">
+        <div class="enterprise-panel-header px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">คิวบันทึกข้อความขออนุมัติงบประมาณซ่อมบำรุง (พร้อมเลข Version เอกสาร)</h3>
+            <p class="text-xs text-slate-500">ผู้บริหารตรวจสอบเลข Version ของเอกสาร กดอนุมัติในคลิกเดียว หรือส่งออกข้อมูลเป็นไฟล์ .xls และ Google Sheet</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" onclick="FMMS.exportFullWorkbookXLS()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition">
+              📊 ดาวน์โหลดรายงานรวมทุกชีต (.xls)
+            </button>
+            <button type="button" onclick="FMMS.exportToGoogleSheetCloud()" class="bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition">
+              ☁ ส่งออกเป็นไฟล์ Google Sheet ใหม่
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase font-semibold">
+                <th class="py-3 px-4">เลขที่บันทึก / Version</th>
+                <th class="py-3 px-3">อ้างอิงใบงาน</th>
+                <th class="py-3 px-4">เรื่อง / อ้างอิงราคามาตรฐาน</th>
+                <th class="py-3 px-3 text-right">งบประมาณขออนุมัติ</th>
+                <th class="py-3 px-3">ผู้เสนอ / เวลา</th>
+                <th class="py-3 px-3">สถานะอนุมัติ</th>
+                <th class="py-3 px-4 text-right">การพิจารณาอนุมัติ (ระดับ 3)</th>
+              </tr>
+            </thead>
+            <tbody id="executiveMemosTableBody" class="divide-y divide-slate-200">
+              <!-- Populated by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Executive Summary Matrix -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900">สรุปงบประมาณและปริมาณงานแยกตามหมวดวิศวกรรม (MEP Breakdown)</h3>
+            <span class="text-[11px] font-mono-code text-slate-500">ISO 41001 Clause 9.1</span>
+          </div>
+          <div class="p-4 overflow-x-auto">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-slate-500 uppercase">
+                  <th class="py-2">หมวดหมู่ระบบ</th>
+                  <th class="py-2 text-center">จำนวนงาน</th>
+                  <th class="py-2 text-right">งบประเมิน (฿)</th>
+                  <th class="py-2 text-right">ใช้จริง (฿)</th>
+                </tr>
+              </thead>
+              <tbody id="execCategoryBreakdownBody" class="divide-y divide-slate-100">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900">ประวัติการสร้างและแก้ไข Version เอกสารล่าสุด</h3>
+            <button type="button" onclick="FMMS.switchView('role2'); FMMS.switchSupervisorSubTab('revisions');" class="text-xs text-blue-700 hover:underline">ดูตาราง Revision ทั้งหมด →</button>
+          </div>
+          <div id="execRecentLogsContainer" class="p-4 space-y-2.5 max-h-64 overflow-y-auto text-xs">
+            <!-- Populated by app.js -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         VIEW 4: ADMIN BACKEND SETTINGS, USER GOVERNANCE, QR PROVISIONING & LOGS
+         ====================================================================== -->
+    <section id="viewAdmin" class="hidden space-y-6">
+      <div class="enterprise-card p-5 bg-slate-900 text-white border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-mono-code uppercase px-2 py-0.5 rounded bg-teal-800 text-teal-200">ADMINISTRATION & SECURITY GOVERNANCE</span>
+          <h2 class="text-lg font-bold mt-1">ตั้งค่าระบบหลังบ้าน, กำหนดสิทธิ์ผู้ใช้ และ QR Code เปิดเครื่องใหม่</h2>
+          <p class="text-xs text-slate-300">บันทึกวันเวลา (Timestamp) และตัวตนผู้ดำเนินการ (Admin Identity) ลงใน Google Sheets อัตโนมัติ</p>
+        </div>
+        <div class="bg-slate-950 border border-slate-700 rounded-md px-4 py-2.5 text-xs font-mono-code">
+          <div class="text-slate-400">ผู้ดำเนินการปัจจุบัน (Active Operator):</div>
+          <div class="text-teal-400 font-bold" id="adminActiveOperatorStamp">USR-2026-0001 | คุณนิพนธ์</div>
+          <div class="text-slate-300 text-[11px]" id="adminActiveTimestampStamp">Timestamp: -</div>
+        </div>
+      </div>
+
+      <!-- Section A: Zero-Touch QR Code Device Provisioning & Resource Binding -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">การเชื่อมต่อทรัพยากร Google Sheets (8 แท็บ) & Google Drive</h3>
+              <p class="text-xs text-slate-500">ตรวจสอบพารามิเตอร์หลักที่นำไปสร้าง QR Code สำหรับเปิดเครื่องใหม่</p>
+            </div>
+            <span class="text-[11px] font-mono-code bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded">8 SHEETS BOUND</span>
+          </div>
+
+          <form id="adminConfigForm" onsubmit="FMMS.saveSystemConfigAndRegenerateQR(event)" class="p-5 space-y-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Google Apps Script Web App URL (API Endpoint)</label>
+              <input type="url" id="cfgGasUrl" placeholder="https://script.google.com/macros/s/.../exec"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Google Sheet ID (Data MA TWPP) *</label>
+                <input type="text" id="cfgSheetId" required value="1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ"
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs bg-slate-50">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Google Drive Folder ID (Root Storage) *</label>
+                <input type="text" id="cfgDriveId" required value="1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx"
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs bg-slate-50">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">ชื่อหน่วยงาน / โครงการสำหรับพิมพ์หัวกระดาษรายงาน</label>
+                <input type="text" id="cfgOrgName" required value="ฝ่ายบริหารงานวิศวกรรมและซ่อมบำรุงอาคาร (ทวพ. FM - Data MA TWPP)"
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">บัญชีเริ่มต้นสำหรับเครื่องที่สแกน (Optional Preset)</label>
+                <select id="cfgDefaultRoleUser" class="w-full border border-slate-300 rounded-md px-3 py-2 bg-white text-xs">
+                  <option value="">ไม่ระบุ (ให้ผู้ใช้กรอกรหัสเอง)</option>
+                  <option value="tech01">ระดับ 1 - ช่างหน้างาน (tech01)</option>
+                  <option value="supervisor">ระดับ 2 - ผู้ควบคุมงาน (supervisor)</option>
+                  <option value="admin">ระดับ 3 - ผู้บริหาร/Admin (admin)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-md p-3 flex flex-wrap items-center justify-between gap-2">
+              <div class="text-[11px] text-slate-600">
+                <div>บันทึกการตั้งค่าล่าสุดโดย: <strong id="cfgLastSavedBy" class="font-mono-code text-slate-900">USR-2026-0001 (คุณนิพนธ์)</strong></div>
+                <div>เมื่อเวลา: <strong id="cfgLastSavedAt" class="font-mono-code text-slate-900">-</strong></div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="FMMS.pingConnection(true)" class="bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-medium px-3 py-2 rounded-md transition">
+                  ทดสอบการเชื่อมต่อ
+                </button>
+                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-md transition">
+                  บันทึกค่า & สร้าง QR Code ใหม่
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right 5 Cols: Instant QR Code Provisioning Card -->
+        <div class="lg:col-span-5 enterprise-card overflow-hidden flex flex-col justify-between">
+          <div class="enterprise-panel-header px-5 py-3.5">
+            <h3 class="text-sm font-bold text-slate-900">QR Code สำหรับเปิดเครื่องใหม่ (Device Provisioning)</h3>
+            <p class="text-xs text-slate-500">สแกนเพื่อดึงค่า Google Sheet & Drive ไปเชื่อมต่อทันที</p>
+          </div>
+
+          <div class="p-5 flex flex-col items-center text-center space-y-3">
+            <div id="qrcodeContainer" class="p-3 bg-white border-2 border-slate-900 rounded-md inline-block"></div>
+            <div class="w-full bg-slate-100 border border-slate-200 rounded p-2 text-[11px] font-mono-code text-slate-600 break-all text-left" id="qrProvisioningLinkBox">
+              Loading provisioning link...
+            </div>
+            <div class="w-full flex items-center gap-2 pt-1">
+              <button type="button" onclick="FMMS.copyProvisioningLink()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium py-2 px-3 rounded-md transition">
+                คัดลอกลิงก์ตั้งค่าเครื่องใหม่
+              </button>
+              <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-medium py-2 px-3 rounded-md transition">
+                เปิดกล้องสแกน QR
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section B: Admin-Only User Management -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-4 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5">
+            <h3 class="text-sm font-bold text-slate-900" id="adminUserFormTitle">เพิ่ม / แก้ไขผู้ใช้งานระบบ (โดย Admin)</h3>
+            <p class="text-xs text-slate-500">ระบบจะประทับชื่อ Admin และเวลาที่ดำเนินการลงในทะเบียนผู้ใช้</p>
+          </div>
+
+          <form id="adminUserForm" onsubmit="FMMS.handleAdminSaveUser(event)" class="p-5 space-y-3.5 text-xs">
+            <input type="hidden" id="usrEditId" value="">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Username *</label>
+                <input type="text" id="usrUsername" required placeholder="เช่น tech02" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">รหัสผ่าน (Password) *</label>
+                <input type="text" id="usrPassword" placeholder="กำหนดรหัสผ่าน" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ชื่อ-นามสกุล และตำแหน่ง *</label>
+              <input type="text" id="usrFullName" required placeholder="เช่น นายช่าง วีระพล (ไฟฟ้า)" class="w-full border border-slate-300 rounded px-3 py-2">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">ระดับสิทธิ์ (Role Level) *</label>
+                <select id="usrRoleLevel" class="w-full border border-slate-300 rounded px-3 py-2 bg-white">
+                  <option value="1">ระดับ 1: ช่าง/ผู้รับเหมา (สร้างเอกสารใหม่)</option>
+                  <option value="2">ระดับ 2: Supervisor (มีสิทธิ์แก้ไขเอกสาร)</option>
+                  <option value="3">ระดับ 3: ผู้บริหาร & Admin</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">สถานะบัญชี *</label>
+                <select id="usrStatus" class="w-full border border-slate-300 rounded px-3 py-2 bg-white">
+                  <option value="Active">Active (ใช้งานปกติ)</option>
+                  <option value="Inactive">Inactive (ระงับสิทธิ์)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">แผนก / ทีมรับผิดชอบ</label>
+                <input type="text" id="usrDept" placeholder="เช่น ทีมวิศวกรรมอาคาร" class="w-full border border-slate-300 rounded px-3 py-2">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                <input type="text" id="usrPhone" placeholder="081-xxx-xxxx" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code">
+              </div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded p-2.5 text-[11px] text-slate-600 font-mono-code">
+              ผู้บันทึกข้อมูล: <strong id="usrFormAdminStamp" class="text-slate-900">USR-2026-0001 (คุณนิพนธ์)</strong>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+              <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-md transition">
+                บันทึกข้อมูลผู้ใช้งาน
+              </button>
+              <button type="button" onclick="FMMS.resetAdminUserForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2.5 rounded-md transition">
+                ล้างค่า
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="lg:col-span-8 enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-3.5">
+            <h3 class="text-sm font-bold text-slate-900">ทะเบียนผู้ใช้งานและประวัติผู้กำหนดสิทธิ์ (Sheet: Users)</h3>
+            <p class="text-xs text-slate-500">แสดงชัดเจนว่าผู้ใช้งานแต่ละรายถูกสร้างหรือแก้ไขล่าสุดโดยใครและเมื่อใด</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase">
+                  <th class="py-2.5 px-3">รหัสผู้ใช้ / Username</th>
+                  <th class="py-2.5 px-3">ชื่อ-สกุล / แผนก</th>
+                  <th class="py-2.5 px-3">ระดับสิทธิ์</th>
+                  <th class="py-2.5 px-3">สถานะ</th>
+                  <th class="py-2.5 px-3">ผู้ดำเนินการตั้งค่า & วันเวลา</th>
+                  <th class="py-2.5 px-3 text-right">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersTableBody" class="divide-y divide-slate-200">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section C: System Audit Logs Viewer -->
+      <div class="enterprise-card overflow-hidden">
+        <div class="enterprise-panel-header px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">บันทึกประวัติการทำงานของระบบ (Sheet: System_Logs)</h3>
+            <p class="text-xs text-slate-500">บันทึกทุกการกระทำพร้อมเลข Version ของเอกสารที่เกี่ยวข้อง</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="logSearchInput" oninput="FMMS.renderSystemLogs()" placeholder="ค้นหาผู้ดำเนินการ, รหัสเอกสาร, Action..."
+              class="border border-slate-300 rounded px-3 py-1.5 text-xs w-60">
+            <button type="button" onclick="FMMS.exportSingleSheetXLS('System_Logs')" class="border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-medium px-3 py-1.5 rounded-md transition">
+              ⬇ Export Logs (.xls)
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-96">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 uppercase">
+              <tr>
+                <th class="py-2.5 px-3">รหัส Log / วัน-เวลา</th>
+                <th class="py-2.5 px-3">ผู้ดำเนินการ (Operator)</th>
+                <th class="py-2.5 px-3">Action</th>
+                <th class="py-2.5 px-3">เอกสาร / Version</th>
+                <th class="py-2.5 px-3">รายละเอียด & การเปลี่ยนแปลง (Before → After)</th>
+                <th class="py-2.5 px-3">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="systemLogsTableBody" class="divide-y divide-slate-200 font-mono-code text-[11px]">
+              <!-- Populated by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================
+       5. VIEW 5: A4 OFFICIAL APPROVAL MEMO PRINT PREVIEW MODAL (@media print)
+       ======================================================================== -->
+  <div id="memoPrintModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 overflow-y-auto p-4 sm:p-8">
+    <div class="max-w-[210mm] mx-auto mb-4 bg-slate-900 text-white border border-slate-700 rounded-md p-3 flex flex-wrap items-center justify-between gap-3 no-print">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono-code bg-teal-800 text-teal-200 px-2 py-0.5 rounded">A4 STANDARD DOCUMENT</span>
+        <span class="text-xs text-slate-300">พรีวิวบันทึกข้อความขออนุมัติงบประมาณซ่อมบำรุง (แสดงเลข Version เอกสารชัดเจน)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="window.print()" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2 rounded-md transition">
+          🖨 สั่งพิมพ์เอกสาร A4 / Save as PDF
+        </button>
+        <button type="button" onclick="FMMS.closeMemoPrintModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-2 rounded-md transition">
+          ปิดหน้าต่าง ✕
+        </button>
+      </div>
+    </div>
+
+    <div id="a4PaperContainer" class="a4-paper-sheet"></div>
+  </div>
+
+  <!-- ========================================================================
+       6. QR CODE SCANNER & DEVICE PROVISIONING MODAL
+       ======================================================================== -->
+  <div id="qrScannerModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 no-print">
+    <div class="bg-white border border-slate-300 rounded-md max-w-lg w-full overflow-hidden shadow-xl">
+      <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">สแกน QR Code เพื่อตั้งค่าเครื่องใหม่ (Zero-Touch Provisioning)</h3>
+          <p class="text-xs text-slate-500">ดึงข้อมูลการเชื่อมต่อ Google Sheet (Data MA TWPP) และ Google Drive อัตโนมัติ</p>
+        </div>
+        <button type="button" onclick="FMMS.closeQrScannerModal()" class="text-slate-500 hover:text-slate-900 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4 text-xs">
+        <div id="qrReaderViewport" class="w-full bg-slate-900 rounded-md overflow-hidden min-h-[220px] flex items-center justify-center text-slate-400">
+          กดปุ่ม "เปิดกล้องสแกน QR Code" ด้านล่าง หรืออัปโหลดภาพ QR
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="FMMS.startCameraQrScanner()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-3 rounded-md transition">
+            📷 เปิดกล้องสแกน QR Code
+          </button>
+          <label class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-medium py-2.5 px-3 rounded-md text-center cursor-pointer transition">
+            🖼 เลือกไฟล์ภาพ QR Code
+            <input type="file" accept="image/*" onchange="FMMS.scanQrFromImageFile(event)" class="hidden">
+          </label>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3">
+          <label class="block font-semibold text-slate-700 mb-1">หรือวางรหัส/ลิงก์ Provisioning Payload จากผู้ดูแลระบบ:</label>
+          <div class="flex gap-2">
+            <input type="text" id="manualProvisionInput" placeholder="วางลิงก์หรือโค้ดตั้งค่าเครื่องใหม่..." class="flex-1 border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+            <button type="button" onclick="FMMS.applyManualProvisionPayload()" class="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-4 py-2 rounded-md transition">
+              เชื่อมต่อ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       7. TOAST NOTIFICATION CONTAINER
+       ======================================================================== -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 max-w-md w-full px-4 pointer-events-none no-print"></div>
+
+  <!-- Main Application Controller -->
+  <script src="app.js"></script>
+</body>
+</html>
