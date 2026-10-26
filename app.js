@@ -122,6 +122,155 @@ const FMMS = (function() {
     setText('loginDriveIdDisplay', state.config.driveFolderId);
   }
 
+  function ensureDefaultUsers() {
+    if (!state.db) state.db = {};
+    if (!Array.isArray(state.db.users)) state.db.users = [];
+    const defaults = [
+      {
+        UserID: 'USR-2026-0001',
+        Username: 'admin',
+        PasswordPlain: 'admin123',
+        FullName: 'คุณนิพนธ์ (Executive & System Admin)',
+        RoleLevel: 3,
+        Department: 'บริหารจัดการอาคารและวิศวกรรม',
+        Phone: '081-900-1001',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T08:30:00+07:00',
+        CreatedBy: 'SYSTEM_INIT (Root)',
+        UpdatedAt: '2026-10-01T08:30:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-01T08:30:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0002',
+        Username: 'supervisor',
+        PasswordPlain: 'sup123',
+        FullName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+        RoleLevel: 2,
+        Department: 'วิศวกรรมซ่อมบำรุง (MEP Control)',
+        Phone: '081-900-1002',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T09:00:00+07:00',
+        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        UpdatedAt: '2026-10-01T09:00:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-01T09:00:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0003',
+        Username: 'tech01',
+        PasswordPlain: 'tech123',
+        FullName: 'นายช่าง สมชาย สายลุย (Contractor)',
+        RoleLevel: 1,
+        Department: 'ทีมปฏิบัติการภาคสนาม ชุดที่ 1',
+        Phone: '089-455-2211',
+        Status: 'Active',
+        CreatedAt: '2026-10-02T10:15:00+07:00',
+        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        UpdatedAt: '2026-10-02T10:15:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-02T10:15:00+07:00'
+      }
+    ];
+
+    defaults.forEach(function(def) {
+      const idx = state.db.users.findIndex(function(u) {
+        return String(u.Username || '').toLowerCase() === def.Username.toLowerCase();
+      });
+      if (idx === -1) {
+        state.db.users.push(def);
+      } else {
+        if (!state.db.users[idx].PasswordPlain) {
+          state.db.users[idx].PasswordPlain = def.PasswordPlain;
+        }
+      }
+    });
+  }
+
+  function ensureCostRefsAndDocRevisions() {
+    if (!state.db) state.db = {};
+    if (!Array.isArray(state.db.costRefs) || state.db.costRefs.length === 0) {
+      state.db.costRefs = [
+        {
+          CostID: 'COST-2026-0001',
+          Version: 'v1.0',
+          Category: 'แอร์/เครื่องกล',
+          ItemCode: 'MAT-HVAC-001',
+          ItemName: 'คอยล์โซลินอยด์วาล์วน้ำเย็น 24VAC + ล้างสเตรนเนอร์',
+          StandardDesc: 'Danfoss / Honeywell Standard',
+          Unit: 'ชุด',
+          MaterialCost: 9500,
+          LaborCost: 5000,
+          TotalCost: 14500,
+          VendorRef: 'หจก. ไทยคูลลิ่ง เอ็นจิเนียริ่ง',
+          EffectiveDate: '2026-01-01',
+          Status: 'Active',
+          UpdatedAt: '2026-10-01T09:00:00+07:00',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        },
+        {
+          CostID: 'COST-2026-0002',
+          Version: 'v1.0',
+          Category: 'ประปา/สุขาภิบาล',
+          ItemCode: 'MAT-PLB-002',
+          ItemName: 'ชุด Mechanical Seal SIC/SIC + ลูกปืน SKF 6306 (โอเวอร์ฮอลปั๊ม)',
+          StandardDesc: 'Grundfos CR Series Compatible',
+          Unit: 'ชุด',
+          MaterialCost: 28500,
+          LaborCost: 10000,
+          TotalCost: 38500,
+          VendorRef: 'บจก. สยามเมคคานิคอล ซัพพลาย',
+          EffectiveDate: '2026-01-01',
+          Status: 'Active',
+          UpdatedAt: '2026-10-01T09:00:00+07:00',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        },
+        {
+          CostID: 'COST-2026-0003',
+          Version: 'v1.0',
+          Category: 'ไฟฟ้า',
+          ItemCode: 'MAT-ELE-003',
+          ItemName: 'งานส่องกล้องความร้อน Thermoscan ตู้ MDB และทำความสะอาดจุดต่อ',
+          StandardDesc: 'มาตรฐานวิศวกรรมสถาน (วสท.)',
+          Unit: 'งาน',
+          MaterialCost: 4000,
+          LaborCost: 8000,
+          TotalCost: 12000,
+          VendorRef: 'บจก. พาวเวอร์เทค เซอร์วิส',
+          EffectiveDate: '2026-01-01',
+          Status: 'Active',
+          UpdatedAt: '2026-10-01T09:00:00+07:00',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        }
+      ];
+    }
+
+    if (!Array.isArray(state.db.docRevisions) || state.db.docRevisions.length === 0) {
+      state.db.docRevisions = [
+        {
+          RevisionID: 'REV-2026-0001',
+          Timestamp: '2026-10-25T14:10:00+07:00',
+          DocID: 'CM-202610-0041',
+          DocType: 'Task (CM)',
+          Version: 'v1.1',
+          Reason: 'ปรับยอดค่าใช้จ่ายจริงหลังตรวจรับงานซ่อม AHU-03',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
+          ChangesSummary: 'ActualCost: 0 -> 13,800, Status: Completed -> Closed'
+        },
+        {
+          RevisionID: 'REV-2026-0002',
+          Timestamp: '2026-10-26T10:30:00+07:00',
+          DocID: 'CM-202610-0042',
+          DocType: 'Task (CM)',
+          Version: 'v1.1',
+          Reason: 'ผูกเอกสารขออนุมัติงบซ่อมปั๊มน้ำ Booster Pump',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
+          ChangesSummary: 'Status: In Progress -> Pending Approval, EstCost: 38,500'
+        }
+      ];
+    }
+  }
+
   function loadOrSeedDatabase() {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.DB_STATE);
@@ -129,6 +278,8 @@ const FMMS = (function() {
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
           state.db = parsed;
+          ensureDefaultUsers();
+          ensureCostRefsAndDocRevisions();
           return;
         }
       }
@@ -425,6 +576,8 @@ const FMMS = (function() {
       ]
     };
 
+    ensureCostRefsAndDocRevisions();
+    ensureDefaultUsers();
     persistDatabase();
   }
 
@@ -620,27 +773,65 @@ const FMMS = (function() {
     setVal('loginPassword', password);
   }
 
+  function enterLoginFromLanding() {
+    const landing = document.getElementById('landingOverlay');
+    if (landing) landing.classList.add('hidden');
+
+    if (state.session && state.session.userId) {
+      applySessionToUI();
+      return;
+    }
+
+    const auth = document.getElementById('authOverlay');
+    if (auth) auth.classList.remove('hidden');
+
+    const usernameInput = document.getElementById('loginUsername');
+    if (usernameInput) {
+      if (!usernameInput.value) {
+        usernameInput.value = state.config.defaultRoleUser || 'supervisor';
+      }
+      setTimeout(function() {
+        try { usernameInput.focus(); } catch (_) {}
+      }, 100);
+    }
+  }
+
+  function showLandingPage() {
+    const landing = document.getElementById('landingOverlay');
+    if (landing) landing.classList.remove('hidden');
+    const auth = document.getElementById('authOverlay');
+    if (auth) auth.classList.add('hidden');
+  }
+
   function handleLoginSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const username = String(getVal('loginUsername') || '').trim().toLowerCase();
     const password = String(getVal('loginPassword') || '').trim();
     const errBox = document.getElementById('loginErrorBox');
     if (errBox) errBox.classList.add('hidden');
 
-    const user = state.db.users.find(function(u) {
+    ensureDefaultUsers();
+
+    let user = state.db.users.find(function(u) {
       return String(u.Username || '').toLowerCase() === username;
     });
 
-    if (!user || (user.PasswordPlain && user.PasswordPlain !== password && password !== 'admin123' && password !== 'sup123' && password !== 'tech123')) {
+    const isMatchPreset = (username === 'admin' && password === 'admin123') ||
+                          (username === 'supervisor' && password === 'sup123') ||
+                          (username === 'tech01' && password === 'tech123');
+
+    const isPasswordValid = user && (user.PasswordPlain === password || isMatchPreset || (!user.PasswordPlain && password.length > 0));
+
+    if (!user || !isPasswordValid) {
       if (errBox) {
-        errBox.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+        errBox.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง (ทดสอบด้วย admin / admin123, supervisor / sup123 หรือ tech01 / tech123)';
         errBox.classList.remove('hidden');
       }
       recordAuditLog('LOGIN_FAILED', username || 'UNKNOWN', 'พยายามเข้าสู่ระบบไม่สำเร็จ', '-', 'Denied', 'DENIED');
       return;
     }
 
-    if (user.Status !== 'Active') {
+    if (user.Status && user.Status !== 'Active') {
       if (errBox) {
         errBox.textContent = 'บัญชีผู้ใช้นี้ถูกระงับสิทธิ์ (Inactive) กรุณาติดต่อ Admin';
         errBox.classList.remove('hidden');
@@ -667,13 +858,16 @@ const FMMS = (function() {
   }
 
   function restoreSessionOrShowLogin() {
+    ensureDefaultUsers();
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
       if (raw) {
         state.session = JSON.parse(raw);
         if (state.session && state.session.userId) {
-          applySessionToUI();
-          return;
+          if (window.location.hash !== '#landing') {
+            applySessionToUI();
+            return;
+          }
         }
       }
     } catch (_) {}
@@ -681,11 +875,11 @@ const FMMS = (function() {
     if (state.config.defaultRoleUser) {
       setVal('loginUsername', state.config.defaultRoleUser);
     }
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.classList.remove('hidden');
   }
 
   function applySessionToUI() {
+    const landing = document.getElementById('landingOverlay');
+    if (landing) landing.classList.add('hidden');
     const overlay = document.getElementById('authOverlay');
     if (overlay) overlay.classList.add('hidden');
 
@@ -710,8 +904,11 @@ const FMMS = (function() {
     }
     state.session = null;
     localStorage.removeItem(STORAGE_KEYS.SESSION);
+    const landing = document.getElementById('landingOverlay');
+    if (landing) landing.classList.add('hidden');
     const overlay = document.getElementById('authOverlay');
     if (overlay) overlay.classList.remove('hidden');
+    showToast('ออกจากระบบแล้ว', 'ท่านสามารถเข้าสู่ระบบใหม่ได้ตลอดเวลา', 'info');
   }
 
   function switchView(viewKey) {
@@ -1035,21 +1232,40 @@ const FMMS = (function() {
 
   function switchSupervisorSubTab(tab) {
     const tTasks = document.getElementById('supSubTabTasks');
+    const tCosts = document.getElementById('supSubTabCosts');
+    const tRevisions = document.getElementById('supSubTabRevisions');
     const tPm = document.getElementById('supSubTabPm');
+
     const bTasks = document.getElementById('supTabTasksBtn');
+    const bCosts = document.getElementById('supTabCostsBtn');
+    const bRevisions = document.getElementById('supTabRevisionsBtn');
     const bPm = document.getElementById('supTabPmBtn');
 
-    if (tab === 'pm') {
-      tTasks.classList.add('hidden');
-      tPm.classList.remove('hidden');
-      bPm.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition';
-      bTasks.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+    const activeCls = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition';
+    const inactiveCls = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+
+    [tTasks, tCosts, tRevisions, tPm].forEach(function(t) {
+      if (t) t.classList.add('hidden');
+    });
+    [bTasks, bCosts, bRevisions, bPm].forEach(function(b) {
+      if (b) b.className = inactiveCls;
+    });
+
+    if (tab === 'costs') {
+      if (tCosts) tCosts.classList.remove('hidden');
+      if (bCosts) bCosts.className = activeCls;
+      renderCostRefs();
+    } else if (tab === 'revisions') {
+      if (tRevisions) tRevisions.classList.remove('hidden');
+      if (bRevisions) bRevisions.className = activeCls;
+      renderDocRevisions();
+    } else if (tab === 'pm') {
+      if (tPm) tPm.classList.remove('hidden');
+      if (bPm) bPm.className = activeCls;
       renderPmSchedulesTable();
     } else {
-      tPm.classList.add('hidden');
-      tTasks.classList.remove('hidden');
-      bTasks.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition';
-      bPm.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+      if (tTasks) tTasks.classList.remove('hidden');
+      if (bTasks) bTasks.className = activeCls;
       renderSupervisorGrid();
     }
   }
@@ -2338,9 +2554,283 @@ const FMMS = (function() {
     renderRole1Tasks();
     renderSupervisorGrid();
     renderPmSchedulesTable();
+    renderCostRefs();
+    renderDocRevisions();
     renderExecutiveDashboard();
     renderAdminUsersTable();
     renderSystemLogs();
+  }
+
+  function renderCostRefs() {
+    ensureCostRefsAndDocRevisions();
+    const select = document.getElementById('r1CostRefSelect');
+    if (select) {
+      const curVal = select.value;
+      let optHtml = '<option value="">-- เลือกรายการอ้างอิงราคากลาง (หรือเว้นว่างเพื่อกรอกเอง) --</option>';
+      state.db.costRefs.forEach(function(item) {
+        optHtml += `<option value="${escapeHtml(item.CostID)}">[${escapeHtml(item.ItemCode)}] ${escapeHtml(item.ItemName)} - ฿${formatCurrency(item.TotalCost)}</option>`;
+      });
+      select.innerHTML = optHtml;
+      if (curVal) select.value = curVal;
+    }
+
+    const tbody = document.getElementById('costRefsTableBody');
+    if (tbody) {
+      tbody.innerHTML = state.db.costRefs.map(function(c) {
+        return `<tr class="hover:bg-slate-50">
+          <td class="py-2.5 px-3 font-mono-code font-bold text-slate-900">${escapeHtml(c.ItemCode)} <span class="text-[10px] text-teal-600 bg-teal-50 px-1 py-0.5 rounded border border-teal-200">${escapeHtml(c.Version || 'v1.0')}</span></td>
+          <td class="py-2.5 px-3">
+            <div class="font-semibold text-slate-800">${escapeHtml(c.ItemName)}</div>
+            <div class="text-[10px] text-slate-500">${escapeHtml(c.StandardDesc || '')} • ${escapeHtml(c.VendorRef || '')}</div>
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono-code text-slate-700">${formatCurrency(c.MaterialCost)}</td>
+          <td class="py-2.5 px-3 text-right font-mono-code text-slate-700">${formatCurrency(c.LaborCost)}</td>
+          <td class="py-2.5 px-3 text-right font-mono-code font-bold text-blue-700">${formatCurrency(c.TotalCost)}</td>
+          <td class="py-2.5 px-3 text-[11px] text-slate-500">${escapeHtml(c.UpdatedBy || '-')}</td>
+          <td class="py-2.5 px-3 text-right">
+            <button type="button" onclick="FMMS.editCostRef('${c.CostID}')" class="text-blue-600 hover:underline font-semibold">แก้ไข</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  function applyCostRefToContractorForm() {
+    const selId = getVal('r1CostRefSelect');
+    if (!selId) return;
+    ensureCostRefsAndDocRevisions();
+    const ref = (state.db.costRefs || []).find(function(c) { return c.CostID === selId; });
+    if (!ref) return;
+
+    if (ref.Category) setVal('r1Category', ref.Category);
+    setVal('r1Title', ref.ItemName);
+    setVal('r1Materials', (ref.StandardDesc ? ref.StandardDesc + ' ' : '') + '(รหัสวัสดุ: ' + ref.ItemCode + ', ร้าน: ' + (ref.VendorRef || '-') + ')');
+    setVal('r1EstCost', ref.TotalCost);
+    showToast('ดึงข้อมูลราคากลางสำเร็จ', ref.ItemName + ' (ประเมิน ' + formatCurrency(ref.TotalCost) + ' บาท)', 'info');
+  }
+
+  function handleSaveCostRefSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    ensureCostRefsAndDocRevisions();
+    const editId = getVal('costEditId');
+    const itemCode = String(getVal('costItemCode') || '').trim();
+    const category = getVal('costCategory');
+    const itemName = String(getVal('costItemName') || '').trim();
+    const stdDesc = String(getVal('costStandardDesc') || '').trim();
+    const unit = String(getVal('costUnit') || 'ชุด').trim();
+    const matCost = Number(getVal('costMaterialCost') || 0);
+    const labCost = Number(getVal('costLaborCost') || 0);
+    const total = matCost + labCost;
+    const vendor = String(getVal('costVendorRef') || '').trim();
+
+    const actor = getCurrentActor();
+    const actorStr = actor.userId + ' (' + actor.fullName + ')';
+    const now = getIsoNow();
+
+    if (editId) {
+      const idx = state.db.costRefs.findIndex(function(c) { return c.CostID === editId; });
+      if (idx !== -1) {
+        const old = state.db.costRefs[idx];
+        const nextVer = 'v' + (parseFloat((old.Version || 'v1.0').replace('v', '')) + 0.1).toFixed(1);
+        state.db.costRefs[idx] = {
+          ...old,
+          Version: nextVer,
+          ItemCode: itemCode,
+          Category: category,
+          ItemName: itemName,
+          StandardDesc: stdDesc,
+          Unit: unit,
+          MaterialCost: matCost,
+          LaborCost: labCost,
+          TotalCost: total,
+          VendorRef: vendor,
+          UpdatedAt: now,
+          UpdatedBy: actorStr
+        };
+        recordAuditLog('UPDATE_COST_REF', editId, 'ปรับปรุงข้อมูลราคากลาง ' + itemCode, old.Version || 'v1.0', nextVer, 'SUCCESS');
+        showToast('อัปเดตข้อมูลราคากลางสำเร็จ', itemCode + ' ปรับเป็น ' + nextVer, 'success');
+      }
+    } else {
+      const newId = 'COST-' + getYearMonthStr().slice(0, 4) + '-' + ('000' + (state.db.costRefs.length + 1)).slice(-4);
+      const newRef = {
+        CostID: newId,
+        Version: 'v1.0',
+        ItemCode: itemCode,
+        Category: category,
+        ItemName: itemName,
+        StandardDesc: stdDesc,
+        Unit: unit,
+        MaterialCost: matCost,
+        LaborCost: labCost,
+        TotalCost: total,
+        VendorRef: vendor,
+        EffectiveDate: now.slice(0, 10),
+        Status: 'Active',
+        UpdatedAt: now,
+        UpdatedBy: actorStr
+      };
+      state.db.costRefs.push(newRef);
+      recordAuditLog('CREATE_COST_REF', newId, 'เพิ่มรายการราคากลางใหม่ ' + itemCode, '-', 'v1.0', 'SUCCESS');
+      showToast('เพิ่มรายการราคากลางสำเร็จ', itemCode + ' บันทึกเรียบร้อย', 'success');
+    }
+
+    persistDatabase();
+    resetCostRefForm();
+    renderCostRefs();
+  }
+
+  function editCostRef(costId) {
+    ensureCostRefsAndDocRevisions();
+    const item = (state.db.costRefs || []).find(function(c) { return c.CostID === costId; });
+    if (!item) return;
+    setVal('costEditId', item.CostID);
+    setVal('costItemCode', item.ItemCode);
+    setVal('costCategory', item.Category);
+    setVal('costItemName', item.ItemName);
+    setVal('costStandardDesc', item.StandardDesc || '');
+    setVal('costUnit', item.Unit || 'ชุด');
+    setVal('costMaterialCost', item.MaterialCost);
+    setVal('costLaborCost', item.LaborCost);
+    setVal('costVendorRef', item.VendorRef || '');
+    const title = document.getElementById('costFormTitle');
+    if (title) title.textContent = 'แก้ไขข้อมูลอ้างอิง: ' + item.ItemCode + ' (' + (item.Version || 'v1.0') + ')';
+    window.scrollTo({ top: 300, behavior: 'smooth' });
+  }
+
+  function resetCostRefForm() {
+    setVal('costEditId', '');
+    setVal('costItemCode', '');
+    setVal('costItemName', '');
+    setVal('costStandardDesc', '');
+    setVal('costUnit', 'ชุด');
+    setVal('costMaterialCost', '');
+    setVal('costLaborCost', '');
+    setVal('costVendorRef', '');
+    const title = document.getElementById('costFormTitle');
+    if (title) title.textContent = 'เพิ่ม / แก้ไขข้อมูลอ้างอิงค่าใช้จ่าย (Cost_References)';
+  }
+
+  function renderDocRevisions() {
+    ensureCostRefsAndDocRevisions();
+    const tbody = document.getElementById('docRevisionsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = (state.db.docRevisions || []).map(function(r) {
+      return `<tr class="hover:bg-slate-50">
+        <td class="py-2.5 px-3 font-semibold text-slate-900">${escapeHtml(r.RevisionID)}<br><span class="text-[10px] text-slate-500 font-normal">${formatThaiDateTime(r.Timestamp)}</span></td>
+        <td class="py-2.5 px-3 font-bold text-blue-700">${escapeHtml(r.DocID)}</td>
+        <td class="py-2.5 px-3 text-slate-600">${escapeHtml(r.DocType)}</td>
+        <td class="py-2.5 px-3 font-bold text-teal-700">${escapeHtml(r.Version || 'v1.0')}</td>
+        <td class="py-2.5 px-3 text-slate-700">${escapeHtml(r.Reason || '-')}</td>
+        <td class="py-2.5 px-3 text-slate-600">${escapeHtml(r.UpdatedBy || '-')}</td>
+        <td class="py-2.5 px-3 text-slate-500 font-mono-code text-[10px]">${escapeHtml(r.ChangesSummary || '-')}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function exportSingleSheetXLS(sheetName) {
+    let rows = [];
+    const filename = (sheetName || 'Data') + '_' + getYearMonthStr() + '.xls';
+
+    if (sheetName === 'Cost_References') {
+      ensureCostRefsAndDocRevisions();
+      rows = [
+        ['CostID', 'Version', 'Category', 'ItemCode', 'ItemName', 'StandardDesc', 'Unit', 'MaterialCost', 'LaborCost', 'TotalCost', 'VendorRef', 'EffectiveDate', 'Status', 'UpdatedAt', 'UpdatedBy']
+      ];
+      state.db.costRefs.forEach(function(c) {
+        rows.push([c.CostID, c.Version, c.Category, c.ItemCode, c.ItemName, c.StandardDesc, c.Unit, c.MaterialCost, c.LaborCost, c.TotalCost, c.VendorRef, c.EffectiveDate, c.Status, c.UpdatedAt, c.UpdatedBy]);
+      });
+    } else if (sheetName === 'Document_Revisions') {
+      ensureCostRefsAndDocRevisions();
+      rows = [
+        ['RevisionID', 'Timestamp', 'DocID', 'DocType', 'Version', 'Reason', 'UpdatedBy', 'ChangesSummary']
+      ];
+      state.db.docRevisions.forEach(function(r) {
+        rows.push([r.RevisionID, r.Timestamp, r.DocID, r.DocType, r.Version, r.Reason, r.UpdatedBy, r.ChangesSummary]);
+      });
+    } else if (sheetName === 'System_Logs') {
+      rows = [
+        ['LogID', 'Timestamp', 'UserID', 'OperatorName', 'RoleLevel', 'Action', 'TargetID', 'Details', 'BeforeState', 'AfterState', 'ClientInfo', 'Status']
+      ];
+      state.db.logs.forEach(function(l) {
+        rows.push([l.LogID, l.Timestamp, l.UserID, l.OperatorName, l.RoleLevel, l.Action, l.TargetID, l.Details, l.BeforeState, l.AfterState, l.ClientInfo, l.Status]);
+      });
+    } else {
+      rows = [
+        ['TaskID', 'Type', 'Category', 'Title', 'Location', 'Priority', 'Status', 'EstCost', 'ActualCost', 'CreatedAt', 'CreatedBy', 'UpdatedAt', 'UpdatedBy']
+      ];
+      state.db.tasks.forEach(function(t) {
+        rows.push([t.TaskID, t.Type, t.Category, t.Title, t.Location, t.Priority, t.Status, t.EstCost, t.ActualCost, t.CreatedAt, t.CreatedBy, t.UpdatedAt, t.UpdatedBy]);
+      });
+    }
+
+    const csvContent = '\uFEFF' + rows.map(function(row) {
+      return row.map(function(cell) {
+        const str = String(cell !== undefined && cell !== null ? cell : '');
+        return '"' + str.replace(/"/g, '""') + '"';
+      }).join('\t');
+    }).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('ส่งออกไฟล์สำเร็จ', filename, 'success');
+  }
+
+  function exportFullWorkbookXLS() {
+    ensureCostRefsAndDocRevisions();
+    const sheets = [
+      { name: 'Tasks', list: state.db.tasks },
+      { name: 'Cost_References', list: state.db.costRefs },
+      { name: 'Document_Revisions', list: state.db.docRevisions },
+      { name: 'Preventive_Schedules', list: state.db.schedules },
+      { name: 'Approval_Memos', list: state.db.memos },
+      { name: 'Users', list: state.db.users },
+      { name: 'System_Logs', list: state.db.logs }
+    ];
+
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>';
+    sheets.forEach(function(s) {
+      html += '<x:ExcelWorksheet><x:Name>' + s.name + '</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
+    });
+    html += '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
+
+    sheets.forEach(function(s) {
+      html += '<h3>' + s.name + '</h3><table border="1">';
+      if (s.list && s.list.length > 0) {
+        const keys = Object.keys(s.list[0]);
+        html += '<tr style="background:#0f172a;color:#ffffff;">' + keys.map(k => '<th>' + k + '</th>').join('') + '</tr>';
+        s.list.forEach(function(item) {
+          html += '<tr>' + keys.map(k => '<td>' + escapeHtml(item[k]) + '</td>').join('') + '</tr>';
+        });
+      }
+      html += '</table><br/>';
+    });
+    html += '</body></html>';
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const filename = 'FMMS_FullWorkbook_' + getYearMonthStr() + '.xls';
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('ส่งออก Excel ครบทุกชีตสำเร็จ', filename, 'success');
+  }
+
+  function exportToGoogleSheetCloud() {
+    if (state.config.spreadsheetId) {
+      const url = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(state.config.spreadsheetId) + '/edit';
+      window.open(url, '_blank');
+      showToast('เปิด Google Sheets สำเร็จ', 'เปิดแผ่นงาน Data MA TWPP บน Cloud', 'success');
+    } else {
+      showToast('ไม่พบ Spreadsheet ID', 'กรุณาระบุ Spreadsheet ID ในหน้าตั้งค่าระบบ', 'error');
+    }
   }
 
   function renderStatusBadge(status) {
@@ -2500,6 +2990,8 @@ const FMMS = (function() {
   return {
     fillLoginPreset: fillLoginPreset,
     handleLoginSubmit: handleLoginSubmit,
+    enterLoginFromLanding: enterLoginFromLanding,
+    showLandingPage: showLandingPage,
     logout: logout,
     switchView: switchView,
     pingConnection: pingConnection,
@@ -2535,6 +3027,13 @@ const FMMS = (function() {
     renderSystemLogs: renderSystemLogs,
     exportTasksToCSV: exportTasksToCSV,
     exportMemosToCSV: exportMemosToCSV,
-    exportLogsToCSV: exportLogsToCSV
+    exportLogsToCSV: exportLogsToCSV,
+    applyCostRefToContractorForm: applyCostRefToContractorForm,
+    handleSaveCostRefSubmit: handleSaveCostRefSubmit,
+    editCostRef: editCostRef,
+    resetCostRefForm: resetCostRefForm,
+    exportSingleSheetXLS: exportSingleSheetXLS,
+    exportFullWorkbookXLS: exportFullWorkbookXLS,
+    exportToGoogleSheetCloud: exportToGoogleSheetCloud
   };
 })();
