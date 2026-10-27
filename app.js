@@ -197,6 +197,30 @@ const FMMS = (function() {
       ],
       tasks: [
         {
+          TaskID: 'CM-202610-0045',
+          Type: 'CM',
+          Category: 'ประปา/สุขาภิบาล',
+          Title: 'ท่อน้ำดีแตก รั่วซึมเข้าฝ้าเพดานห้องประชุมชั้น 3',
+          Location: 'อาคาร B ชั้น 3 ห้องประชุมย่อย 2',
+          Description: 'ท่อ PPR ขนาด 1 นิ้วแตก ทำให้น้ำรั่วซึมหยดลงฝ้าทีบาร์และพรมห้องประชุม',
+          InitialAnalysis: 'ต้องตัดต่อท่อ PPR 1 นิ้วใหม่ และเปลี่ยนแผ่นฝ้าทีบาร์ 4 แผ่น',
+          MaterialsRequired: 'ท่อ PPR 1 นิ้ว 1 เส้น, ข้อต่อตรง PPR 2 ตัว, แผ่นฝ้า Gyproc 4 แผ่น',
+          Priority: 'High',
+          Status: 'Pending Level 2 Approval',
+          AssignedContractorID: 'USR-2026-0003',
+          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          SupervisorID: 'USR-2026-0002',
+          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          EstCost: 8500,
+          ActualCost: 0,
+          BeforeImgURL: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=800&q=75',
+          AfterImgURL: '',
+          CreatedAt: '2026-10-27T08:00:00+07:00',
+          CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
+          UpdatedAt: '2026-10-27T08:00:00+07:00',
+          UpdatedBy: 'USR-2026-0003 (นายช่าง สมชาย)'
+        },
+        {
           TaskID: 'CM-202610-0041',
           Type: 'CM',
           Category: 'แอร์/เครื่องกล',
@@ -230,7 +254,7 @@ const FMMS = (function() {
           InitialAnalysis: 'Mechanical Seal สึกหรอและลูกปืนเพลาหลักชำรุด ต้องถอดโอเวอร์ฮอล',
           MaterialsRequired: 'ชุด Mechanical Seal SIC/SIC 1 ชุด, ตลับลูกปืน SKF 6306 จำนวน 2 ตลับ',
           Priority: 'Critical',
-          Status: 'Pending Approval',
+          Status: 'Pending Level 3 Approval',
           AssignedContractorID: 'USR-2026-0003',
           AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
           SupervisorID: 'USR-2026-0002',
@@ -875,6 +899,7 @@ const FMMS = (function() {
         navBtnAdmin.title = 'ล็อก: สิทธิ์เฉพาะผู้ดูแลระบบ';
       }
       switchView('role2');
+      setTimeout(function() { checkAndShowApprovalAlert(false); }, 300);
     } else if (role === 3) {
       // Level 3 sees and inspects ALL views without restriction
       if (navBtnRole1) {
@@ -898,6 +923,7 @@ const FMMS = (function() {
         navBtnAdmin.title = 'การตั้งค่าระบบและ QR Code';
       }
       switchView('role3');
+      setTimeout(function() { checkAndShowApprovalAlert(false); }, 300);
     }
   }
 
@@ -1058,6 +1084,7 @@ const FMMS = (function() {
     }
 
     renderAllViews();
+    updateApprovalAlertBadge();
   }
 
   /**
@@ -1198,7 +1225,7 @@ const FMMS = (function() {
       InitialAnalysis: analysis,
       MaterialsRequired: materials,
       Priority: priority,
-      Status: state.compressedImages.afterBase64 ? 'Completed' : 'In Progress',
+      Status: state.compressedImages.afterBase64 ? 'Completed' : 'Pending Level 2 Approval',
       AssignedContractorID: actor.userId,
       AssignedContractorName: actor.fullName,
       SupervisorID: 'USR-2026-0002',
@@ -1236,14 +1263,15 @@ const FMMS = (function() {
     persistDatabase();
     resetContractorForm();
     renderAllViews();
-    showToast('ออกเลขที่ใบงาน ' + newTaskId + ' สำเร็จ', 'บันทึกข้อมูลลงฐานข้อมูลและผูกโฟลเดอร์ Google Drive เรียบร้อย', 'success');
+    showToast('ออกเลขที่ใบงาน ' + newTaskId + ' สำเร็จ', 'ส่งขออนุมัติต่อผู้ควบคุมงาน (ระดับ 2) เรียบร้อยแล้ว', 'success');
     showCloudSyncConfirmation({
       docId: newTaskId,
       docType: 'ใบงานซ่อมบำรุง (' + type + ')',
-      actionTitle: 'บันทึกเปิดใบงานใหม่พร้อมรูปภาพหน้างาน',
-      version: 'v1.0 (ร่างเอกสารเริ่มต้น / Initial Draft)',
-      details: 'บันทึกข้อมูลใบงาน ' + newTaskId + ' และภาพถ่ายสำรวจหน้างาน เข้า Google Drive และบันทึกลง Google Sheet Data MA TWPP 8 Tabs เรียบร้อย พร้อมตรวจสอบการยืนยันข้อมูลทุกเครื่อง (Multi-Device Synced)'
+      actionTitle: 'ส่งคำขออนุมัติดำเนินการซ่อมบำรุงไปยังผู้ควบคุมงาน (ระดับ 2)',
+      version: 'v1.0 (ร่างเสนอขออนุมัติระดับ 2)',
+      details: 'บันทึกข้อมูลใบงาน ' + newTaskId + ' และภาพถ่ายสำรวจหน้างาน เข้า Google Drive และส่งเข้าคิวรอผู้ควบคุมงาน (ระดับ 2) พิจารณาอนุมัติเรียบร้อย'
     });
+    updateApprovalAlertBadge();
   }
 
   function loadTaskIntoContractorForm(taskId) {
@@ -1481,6 +1509,46 @@ const FMMS = (function() {
           </div>
         </div>
 
+        <!-- Sequential Approval Action Box for Supervisor (Level 2) -->
+        ${task.Status === 'Pending Level 2 Approval' ? `
+          <div class="p-4 bg-amber-50 border-2 border-amber-400 rounded-lg space-y-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="font-bold text-amber-950 text-xs flex items-center gap-1.5">
+                <span class="text-base animate-pulse">⚠️</span>
+                <span>คำขออนุมัติดำเนินการจากช่างหน้างาน (ลำดับ 1)</span>
+              </div>
+              <span class="text-[10px] font-mono-code bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">รอ ผค.งาน อนุมัติ</span>
+            </div>
+            <p class="text-[11px] text-slate-700 leading-relaxed">
+              ช่างหน้างานได้สำรวจและเปิดใบงานนี้เข้ามา กรุณาตรวจสอบราคา รายการอะไหล่ และทำการอนุมัติเพื่อส่งขออนุมัติต่อผู้บริหารระดับ 3:
+            </p>
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button type="button" onclick="FMMS.handleSupervisorApproveAndForward('${task.TaskID}')"
+                class="flex-1 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white font-semibold py-2.5 px-3 rounded text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>✓ อนุมัติ & ส่งขออนุมัติงบต่อผู้บริหาร (ระดับ 3)</span>
+              </button>
+              <button type="button" onclick="FMMS.handleSupervisorRejectToLevel1('${task.TaskID}')"
+                class="bg-red-700 hover:bg-red-600 active:bg-red-800 text-white font-semibold py-2.5 px-3 rounded text-xs transition cursor-pointer">
+                <span>✕ ตีกลับช่าง</span>
+              </button>
+            </div>
+          </div>
+        ` : task.Status === 'Pending Level 3 Approval' ? `
+          <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs space-y-1">
+            <div class="font-bold text-blue-900 flex items-center gap-1">
+              <span>⏳ ผู้ควบคุมงานอนุมัติแล้ว</span>
+            </div>
+            <div class="text-blue-800 text-[11px]">ส่งเรื่องเสนอขออนุมัติงบประมาณไปยังผู้บริหารระดับ 3 เรียบร้อยแล้ว (รอลงนามอนุมัติงบประมาณ)</div>
+          </div>
+        ` : task.Status === 'Approved' ? `
+          <div class="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-xs space-y-1">
+            <div class="font-bold text-emerald-900 flex items-center gap-1">
+              <span>✓ ผู้บริหารระดับ 3 อนุมัติงบประมาณแล้ว</span>
+            </div>
+            <div class="text-emerald-800 text-[11px]">งบประมาณได้รับการอนุมัติสมบูรณ์ ช่างหน้างานสามารถเข้าดำเนินการได้ทันที</div>
+          </div>
+        ` : ''}
+
         <!-- Supervisor Edit & Inspection Form -->
         <form onsubmit="FMMS.handleSupervisorUpdateTask(event, '${task.TaskID}')" class="space-y-3 border-t border-slate-200 pt-3">
           <div>
@@ -1500,11 +1568,13 @@ const FMMS = (function() {
             <div>
               <label class="block font-semibold text-slate-700 mb-1">สถานะใบงาน</label>
               <select id="supEditStatus" class="w-full border border-slate-300 rounded px-2 py-1.5 bg-white">
+                <option value="Pending Level 2 Approval" ${task.Status === 'Pending Level 2 Approval' ? 'selected' : ''}>1. รอ ผค.งาน (ระดับ 2) อนุมัติ</option>
+                <option value="Pending Level 3 Approval" ${task.Status === 'Pending Level 3 Approval' ? 'selected' : ''}>2. รอ ผู้บริหาร (ระดับ 3) อนุมัติงบ</option>
+                <option value="Approved" ${task.Status === 'Approved' ? 'selected' : ''}>อนุมัติแล้ว (Approved)</option>
                 <option value="In Progress" ${task.Status === 'In Progress' ? 'selected' : ''}>กำลังดำเนินการ</option>
-                <option value="Pending Approval" ${task.Status === 'Pending Approval' ? 'selected' : ''}>รออนุมัติงบ</option>
                 <option value="Completed" ${task.Status === 'Completed' ? 'selected' : ''}>ซ่อมเสร็จ (รอตรวจ)</option>
                 <option value="Closed" ${task.Status === 'Closed' ? 'selected' : ''}>ตรวจรับ/ปิดงาน (Closed)</option>
-                <option value="Rejected" ${task.Status === 'Rejected' ? 'selected' : ''}>ตีกลับแก้ไข</option>
+                <option value="Rejected to Level 1" ${task.Status === 'Rejected to Level 1' ? 'selected' : ''}>ตีกลับช่างแก้ไข</option>
               </select>
             </div>
           </div>
@@ -1894,7 +1964,7 @@ const FMMS = (function() {
 
     const linkedTask = state.db.tasks.find(function(t) { return t.TaskID === memo.TaskID; });
     if (linkedTask) {
-      linkedTask.Status = decision === 'Approved' ? 'In Progress' : 'Rejected';
+      linkedTask.Status = decision === 'Approved' ? 'Approved' : 'Rejected to Level 2';
       linkedTask.UpdatedAt = now;
       linkedTask.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
     }
@@ -3370,6 +3440,318 @@ const FMMS = (function() {
     setText('costFormTitle', 'แก้ไขราคากลาง: ' + cost.ItemCode);
   }
 
+
+  async function handleSupervisorApproveAndForward(taskId) {
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    if (!task) return;
+
+    const actor = getCurrentActor();
+    const now = getIsoNow();
+    const estCost = Number(getVal('supEditEstCost') || task.EstCost || 0);
+    const vendor = getVal('supMemoVendor') || 'บริษัทคู่ค้าตามมาตรฐานวิศวกรรม';
+    const reason = getVal('supMemoReason') || ('เพื่อซ่อมบำรุง ' + task.Title + ' ให้กลับมาใช้งานได้ตามเกณฑ์มาตรฐานความปลอดภัย');
+
+    task.EstCost = estCost;
+    task.Status = 'Pending Level 3 Approval';
+    task.SupervisorID = actor.userId;
+    task.SupervisorName = actor.fullName;
+    task.UpdatedAt = now;
+    task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
+
+    let memo = state.db.memos.find(function(m) { return m.TaskID === taskId; });
+    if (!memo) {
+      const newMemoId = generateUniqueId(state.db.memos, 'MemoID', 'MEMO-2026');
+      memo = {
+        MemoID: newMemoId,
+        TaskID: task.TaskID,
+        DocReference: 'ทวพ./ซบร./2569/' + newMemoId.split('-').pop(),
+        Subject: 'ขออนุมัติงบประมาณดำเนินงานซ่อมบำรุง: ' + task.Title,
+        EstimatedBudget: estCost,
+        ReasonRationale: reason,
+        VendorName: vendor,
+        VendorQuotationURL: 'QT-' + task.TaskID,
+        SupervisorRemark: 'ผู้ควบคุมงานตรวจสอบทางวิศวกรรมและอนุมัติแล้ว เห็นควรให้ผู้บริหารระดับ 3 อนุมัติงบดำเนินการ',
+        RequestedBy: actor.userId + ' (' + actor.fullName + ')',
+        RequestedAt: now,
+        ApprovedBy: '-',
+        ApproverName: '-',
+        ApprovalDate: '-',
+        ApprovalStatus: 'Pending Approval',
+        ExecutiveComment: '-'
+      };
+      state.db.memos.unshift(memo);
+    } else {
+      memo.EstimatedBudget = estCost;
+      memo.VendorName = vendor;
+      memo.ReasonRationale = reason;
+      memo.RequestedAt = now;
+      memo.ApprovalStatus = 'Pending Approval';
+      memo.SupervisorRemark = 'ผู้ควบคุมงานตรวจสอบทางวิศวกรรมและอนุมัติแล้ว เห็นควรให้ผู้บริหารระดับ 3 อนุมัติงบดำเนินการ';
+    }
+
+    recordAuditLog(
+      'SUPERVISOR_APPROVE_AND_FORWARD',
+      task.TaskID,
+      'ผู้ควบคุมงาน (' + actor.fullName + ') อนุมัติงาน ' + task.TaskID + ' และสร้างบันทึกข้อความ ' + memo.MemoID + ' ส่งต่อผู้บริหารระดับ 3',
+      'Pending Level 2 Approval',
+      'Pending Level 3 Approval (฿' + formatCurrency(estCost) + ')',
+      'SUCCESS'
+    );
+
+    await postToGasBackend('supervisorApproveAndForward', {
+      taskId: task.TaskID,
+      memoId: memo.MemoID,
+      taskData: task,
+      memoData: memo
+    });
+
+    persistDatabase();
+    renderAllViews();
+    updateApprovalAlertBadge();
+
+    showCloudSyncConfirmation({
+      docId: task.TaskID,
+      docType: 'ใบงานซ่อมบำรุง (ผ่านการอนุมัติระดับ 2)',
+      actionTitle: 'ผู้ควบคุมงาน (ระดับ 2) อนุมัติ & เสนอขออนุมัติงบต่อผู้บริหาร (ระดับ 3)',
+      version: 'v1.1 (Supervisor Approved & Forwarded)',
+      details: 'ใบงาน ' + task.TaskID + ' ได้รับการอนุมัติจากผู้ควบคุมงาน และออกบันทึกข้อความ ' + memo.MemoID + ' วงเงิน ฿' + formatCurrency(estCost) + ' ส่งเข้าคิวผู้บริหารระดับ 3 เรียบร้อยแล้ว'
+    });
+
+    showToast('ผู้ควบคุมงานอนุมัติเรียบร้อย', 'ส่งเรื่องขออนุมัติงบประมาณต่อผู้บริหาร (ระดับ 3) แล้ว', 'success');
+  }
+
+  async function handleSupervisorRejectToLevel1(taskId) {
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    if (!task) return;
+
+    const actor = getCurrentActor();
+    const now = getIsoNow();
+
+    task.Status = 'Rejected to Level 1';
+    task.UpdatedAt = now;
+    task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
+
+    recordAuditLog(
+      'SUPERVISOR_REJECT_TO_TECH',
+      task.TaskID,
+      'ผู้ควบคุมงาน (' + actor.fullName + ') ตีกลับใบงาน ' + task.TaskID + ' ให้ช่างแก้ไข',
+      'Pending Level 2 Approval',
+      'Rejected to Level 1',
+      'WARNING'
+    );
+
+    await postToGasBackend('supervisorReject', { taskId: task.TaskID });
+    persistDatabase();
+    renderAllViews();
+    updateApprovalAlertBadge();
+
+    showCloudSyncConfirmation({
+      docId: task.TaskID,
+      docType: 'ใบงานซ่อมบำรุง (ตีกลับแก้ไข)',
+      actionTitle: 'ผู้ควบคุมงาน (ระดับ 2) ตีกลับใบงานให้ช่างหน้างานแก้ไข',
+      version: 'v1.0.1 (Rejected to Level 1)',
+      details: 'ส่งแจ้งเตือนกลับไปยังช่างหน้างานเพื่อแก้ไขรายละเอียดหน้างานหรือรูปภาพเพิ่มเติม'
+    });
+
+    showToast('ตีกลับใบงานสำเร็จ', 'ส่งเรื่องกลับไปยังช่างหน้างานเรียบร้อยแล้ว', 'warning');
+  }
+
+  function updateApprovalAlertBadge() {
+    const role = state.session ? Number(state.session.roleLevel) : 0;
+    const badge = document.getElementById('headerAlertBadge');
+    const label = document.getElementById('headerAlertLabel');
+    const btn = document.getElementById('headerApprovalAlertBtn');
+    if (!badge || !label || !btn) return;
+
+    let pendingCount = 0;
+    let labelText = 'รออนุมัติ';
+
+    if (role === 2) {
+      // Level 2: Supervisor looks for tasks waiting for Level 2 approval
+      const tasks = (state.db && state.db.tasks) || [];
+      pendingCount = tasks.filter(function(t) { return t.Status === 'Pending Level 2 Approval'; }).length;
+      labelText = 'รอ ผค.งาน อนุมัติ';
+    } else if (role === 3) {
+      // Level 3: Executive looks for memos waiting for Level 3 budget approval
+      const memos = (state.db && state.db.memos) || [];
+      const tasks = (state.db && state.db.tasks) || [];
+      const pendingMemos = memos.filter(function(m) { return m.ApprovalStatus === 'Pending Approval'; });
+      const pendingTasks = tasks.filter(function(t) { return t.Status === 'Pending Level 3 Approval'; });
+      pendingCount = Math.max(pendingMemos.length, pendingTasks.length);
+      labelText = 'รอ ผู้บริหาร อนุมัติ';
+    } else {
+      btn.style.display = 'none';
+      return;
+    }
+
+    btn.style.display = 'flex';
+    badge.textContent = pendingCount;
+    label.textContent = labelText;
+
+    if (pendingCount > 0) {
+      badge.classList.remove('hidden');
+      btn.classList.add('ring-2', 'ring-amber-400');
+    } else {
+      badge.classList.add('hidden');
+      btn.classList.remove('ring-2', 'ring-amber-400');
+    }
+  }
+
+  let sessionAlertDismissed = {
+    role2: false,
+    role3: false
+  };
+
+  function checkAndShowApprovalAlert(forceModal) {
+    const role = state.session ? Number(state.session.roleLevel) : 0;
+    updateApprovalAlertBadge();
+
+    if (role !== 2 && role !== 3) return;
+
+    if (!forceModal && sessionAlertDismissed['role' + role]) return;
+
+    const modal = document.getElementById('approvalAlertModal');
+    if (!modal) return;
+
+    const tbody = document.getElementById('alertPendingItemsTableBody');
+    const countBadge = document.getElementById('alertModalCountBadge');
+    const titleEl = document.getElementById('alertModalTitle');
+    const noticeEl = document.getElementById('alertModalNoticeText');
+    const step2Badge = document.getElementById('step2Indicator');
+    const step3Badge = document.getElementById('step3Indicator');
+
+    if (role === 2) {
+      // Supervisor Alert
+      const tasks = ((state.db && state.db.tasks) || []).filter(function(t) {
+        return t.Status === 'Pending Level 2 Approval';
+      });
+
+      if (tasks.length === 0 && !forceModal) return;
+
+      if (titleEl) titleEl.textContent = 'แจ้งเตือน: มีใบงานรอผู้ควบคุมงาน (ระดับ 2) พิจารณาอนุมัติ';
+      if (noticeEl) noticeEl.textContent = 'มีใบงานที่ช่างหน้างาน (ลำดับ 1) ส่งเข้ามาเพื่อขออนุมัติดำเนินการ';
+      if (countBadge) countBadge.textContent = tasks.length + ' รายการ';
+
+      if (step2Badge) step2Badge.className = 'p-2 rounded bg-amber-500 text-white font-bold ring-2 ring-amber-300 animate-pulse';
+      if (step3Badge) step3Badge.className = 'p-2 rounded bg-slate-100 text-slate-400';
+
+      if (tbody) {
+        if (tasks.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">ไม่มีรายการค้างอนุมัติสำหรับระดับ 2 ในขณะนี้</td></tr>';
+        } else {
+          tbody.innerHTML = tasks.map(function(t) {
+            return `
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-3 font-mono-code font-bold text-slate-900">${escapeHtml(t.TaskID)}</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-semibold text-slate-900">${escapeHtml(t.Title)}</div>
+                  <div class="text-[11px] text-slate-500">📍 ${escapeHtml(t.Location)}</div>
+                </td>
+                <td class="py-2.5 px-3 text-right font-mono-code font-semibold text-slate-900">฿${formatCurrency(t.EstCost)}</td>
+                <td class="py-2.5 px-3 text-slate-700">${escapeHtml(t.AssignedContractorName || 'ช่างหน้างาน')}</td>
+                <td class="py-2.5 px-3 text-center">
+                  <button type="button" onclick="FMMS.selectTaskFromAlert('${t.TaskID}')"
+                    class="bg-teal-700 hover:bg-teal-600 text-white text-[11px] font-semibold px-3 py-1 rounded transition shadow cursor-pointer">
+                    ตรวจงาน & อนุมัติ →
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+
+    } else if (role === 3) {
+      // Executive Alert
+      const memos = ((state.db && state.db.memos) || []).filter(function(m) {
+        return m.ApprovalStatus === 'Pending Approval';
+      });
+
+      if (memos.length === 0 && !forceModal) return;
+
+      if (titleEl) titleEl.textContent = 'แจ้งเตือน: มีบันทึกข้อความขออนุมัติงบประมาณรอผู้บริหาร (ระดับ 3) พิจารณา';
+      if (noticeEl) noticeEl.textContent = 'มีบันทึกข้อความที่ผู้ควบคุมงาน (ลำดับ 2) ตรวจสอบและเสนอขออนุมัติงบประมาณ';
+      if (countBadge) countBadge.textContent = memos.length + ' ฉบับ';
+
+      if (step2Badge) step2Badge.className = 'p-2 rounded bg-teal-50 border border-teal-200 text-teal-800';
+      if (step3Badge) step3Badge.className = 'p-2 rounded bg-blue-600 text-white font-bold ring-2 ring-blue-300 animate-pulse';
+
+      if (tbody) {
+        if (memos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">ไม่มีรายการรออนุมัติงบประมาณสำหรับผู้บริหารในขณะนี้</td></tr>';
+        } else {
+          tbody.innerHTML = memos.map(function(m) {
+            return `
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-3 font-mono-code font-bold text-blue-900">${escapeHtml(m.MemoID)}</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-semibold text-slate-900">${escapeHtml(m.Subject)}</div>
+                  <div class="text-[11px] text-slate-500">อ้างอิง: ${escapeHtml(m.TaskID)}</div>
+                </td>
+                <td class="py-2.5 px-3 text-right font-mono-code font-bold text-emerald-800">฿${formatCurrency(m.EstimatedBudget)}</td>
+                <td class="py-2.5 px-3 text-slate-700">${escapeHtml(m.RequestedBy || 'ผู้ควบคุมงาน')}</td>
+                <td class="py-2.5 px-3 text-center">
+                  <button type="button" onclick="FMMS.selectMemoFromAlert('${m.MemoID}', '${m.TaskID}')"
+                    class="bg-blue-700 hover:bg-blue-600 text-white text-[11px] font-semibold px-3 py-1 rounded transition shadow cursor-pointer">
+                    พิจารณาอนุมัติ →
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    }
+  }
+
+  function openApprovalAlertModal() {
+    checkAndShowApprovalAlert(true);
+  }
+
+  function closeApprovalAlertModal() {
+    const role = state.session ? Number(state.session.roleLevel) : 0;
+    const chk = document.getElementById('chkDoNotShowAgainInSession');
+    if (chk && chk.checked && (role === 2 || role === 3)) {
+      sessionAlertDismissed['role' + role] = true;
+    }
+    const modal = document.getElementById('approvalAlertModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+  }
+
+  function goToApprovalQueueFromAlert() {
+    closeApprovalAlertModal();
+    const role = state.session ? Number(state.session.roleLevel) : 0;
+    if (role === 2) {
+      switchView('role2');
+      switchSupervisorSubTab('tasks');
+    } else if (role === 3) {
+      switchView('role3');
+      switchExecutiveSubTab('cards');
+    }
+  }
+
+  function selectTaskFromAlert(taskId) {
+    closeApprovalAlertModal();
+    switchView('role2');
+    switchSupervisorSubTab('tasks');
+    selectSupervisorTask(taskId);
+  }
+
+  function selectMemoFromAlert(memoId, taskId) {
+    closeApprovalAlertModal();
+    switchView('role3');
+    switchExecutiveSubTab('cards');
+  }
+
   function renderAllViews() {
     renderCostReferences();
     updateNextTaskIdPreview();
@@ -3385,19 +3767,27 @@ const FMMS = (function() {
 
   function renderStatusBadge(status) {
     const map = {
-      'In Progress': 'bg-amber-50 text-amber-800 border-amber-300',
+      'Pending Level 2 Approval': 'bg-amber-100 text-amber-900 border-amber-400 font-bold',
+      'Pending Level 3 Approval': 'bg-blue-100 text-blue-900 border-blue-400 font-bold',
       'Pending Approval': 'bg-blue-50 text-blue-800 border-blue-300',
-      'Approved': 'bg-emerald-50 text-emerald-800 border-emerald-300',
-      'Completed': 'bg-teal-50 text-teal-800 border-teal-300',
+      'Approved': 'bg-emerald-100 text-emerald-800 border-emerald-400 font-semibold',
+      'In Progress': 'bg-teal-50 text-teal-800 border-teal-300',
+      'Completed': 'bg-indigo-50 text-indigo-800 border-indigo-300',
       'Closed': 'bg-slate-200 text-slate-800 border-slate-400',
+      'Rejected to Level 1': 'bg-rose-100 text-rose-900 border-rose-400',
+      'Rejected to Level 2': 'bg-orange-100 text-orange-900 border-orange-400',
       'Rejected': 'bg-red-50 text-red-800 border-red-300'
     };
     const labelMap = {
-      'In Progress': 'กำลังดำเนินการ',
-      'Pending Approval': 'รออนุมัติงบ',
-      'Approved': 'อนุมัติแล้ว',
-      'Completed': 'ซ่อมเสร็จ/รอตรวจ',
-      'Closed': 'ปิดงานแล้ว',
+      'Pending Level 2 Approval': 'รอ ผค.งาน (ระดับ 2) อนุมัติ ⏳',
+      'Pending Level 3 Approval': 'รอ ผู้บริหาร (ระดับ 3) อนุมัติ 📋',
+      'Pending Approval': 'รออนุมัติงบประมาณ',
+      'Approved': 'อนุมัติแล้ว (พร้อมเริ่มงาน)',
+      'In Progress': 'ช่างกำลังดำเนินการ',
+      'Completed': 'ซ่อมเสร็จ/รอตรวจรับ',
+      'Closed': 'ปิดงานสมบูรณ์ (Closed)',
+      'Rejected to Level 1': 'ตีกลับให้ช่างแก้ไข',
+      'Rejected to Level 2': 'ตีกลับให้ ผค.งานทบทวน',
       'Rejected': 'ตีกลับ'
     };
     const cls = map[status] || 'bg-slate-100 text-slate-700 border-slate-300';
@@ -3598,7 +3988,16 @@ const FMMS = (function() {
     applyCostRefToContractorForm: applyCostRefToContractorForm,
     handleSaveCostRefSubmit: handleSaveCostRefSubmit,
     resetCostRefForm: resetCostRefForm,
-    editCostRef: editCostRef
+    editCostRef: editCostRef,
+    handleSupervisorApproveAndForward: handleSupervisorApproveAndForward,
+    handleSupervisorRejectToLevel1: handleSupervisorRejectToLevel1,
+    updateApprovalAlertBadge: updateApprovalAlertBadge,
+    checkAndShowApprovalAlert: checkAndShowApprovalAlert,
+    openApprovalAlertModal: openApprovalAlertModal,
+    closeApprovalAlertModal: closeApprovalAlertModal,
+    goToApprovalQueueFromAlert: goToApprovalQueueFromAlert,
+    selectTaskFromAlert: selectTaskFromAlert,
+    selectMemoFromAlert: selectMemoFromAlert
   };
 })();
 

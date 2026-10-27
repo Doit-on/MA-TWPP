@@ -240,14 +240,23 @@
           </button>
         </div>
 
-        <!-- Logged-in User Pill & Dedicated Logout Button -->
-        <div class="flex items-center gap-2">
+        <!-- Approval Notification Bell, Logged-in User Pill & Dedicated Logout Button -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" id="headerApprovalAlertBtn" onclick="FMMS.openApprovalAlertModal()"
+            class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition cursor-pointer relative shadow-sm"
+            title="แจ้งเตือนรายการรออนุมัติตามลำดับขั้น">
+            <span class="text-sm">🔔</span>
+            <span class="font-medium hidden sm:inline" id="headerAlertLabel">รออนุมัติ</span>
+            <span id="headerAlertBadge" class="bg-amber-500 text-slate-950 font-bold px-1.5 py-0.2 rounded-full text-[10px] font-mono-code animate-pulse">0</span>
+          </button>
+
           <div class="bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-md text-xs flex items-center gap-2">
             <div>
               <div class="font-semibold text-white leading-tight" id="headerUserName">วิศวกร พรเทพ ใจดี</div>
               <div class="text-[10px] text-teal-400 font-mono-code" id="headerUserRole">ROLE 2 | USR-2026-0002</div>
             </div>
           </div>
+
           <button type="button" onclick="FMMS.logout()" title="กดเพื่อออกจากระบบและกลับสู่หน้าแรก (Landing Page)"
             class="bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-semibold px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 shadow-md transition cursor-pointer border border-red-500">
             <span class="text-sm">🚪</span>
@@ -450,7 +459,7 @@
 
             <div class="pt-3 flex items-center gap-3">
               <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-4 rounded-md text-sm transition touch-target">
-                สร้างเอกสารใบงานใหม่ (Create Document v1.0)
+                📤 บันทึก & ส่งขออนุมัติต่อผู้ควบคุมงาน (ระดับ 2)
               </button>
               <button type="button" onclick="FMMS.resetContractorForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-md text-xs transition touch-target">
                 ล้างฟอร์ม
@@ -529,11 +538,12 @@
               </select>
               <select id="supStatusFilter" onchange="FMMS.renderSupervisorGrid()" class="border border-slate-300 rounded-md px-2.5 py-1.5 text-xs bg-white">
                 <option value="ALL">ทุกสถานะ</option>
-                <option value="Pending Approval">รออนุมัติงบ</option>
-                <option value="In Progress">กำลังดำเนินการ</option>
-                <option value="Completed">รอตรวจรับ</option>
-                <option value="Closed">ปิดงานแล้ว</option>
-                <option value="Rejected">ตีกลับ</option>
+                <option value="Pending Level 2 Approval">1. รอ ผค.งาน (ระดับ 2) อนุมัติ ⏳</option>
+                <option value="Pending Level 3 Approval">2. รอ ผู้บริหาร (ระดับ 3) อนุมัติงบ 📋</option>
+                <option value="Approved">อนุมัติแล้ว (กำลังทำ)</option>
+                <option value="Completed">รอตรวจรับ (Completed)</option>
+                <option value="Closed">ปิดงานแล้ว (Closed)</option>
+                <option value="Rejected to Level 1">ตีกลับช่างแก้ไข</option>
               </select>
             </div>
           </div>
@@ -959,10 +969,11 @@
               <select id="execCardStatusFilter" onchange="FMMS.renderExecutivePipelineCards()"
                 class="w-full border border-slate-300 rounded-md px-3 py-2 bg-slate-50 text-xs font-medium">
                 <option value="ALL">ทุกสถานะการดำเนินงาน</option>
-                <option value="Pending Approval">1. รออนุมัติงบประมาณ (Pending Approval)</option>
-                <option value="In Progress">2. ช่างกำลังเข้าดำเนินการ (In Progress)</option>
-                <option value="Completed">3. ซ่อมเสร็จแล้ว / รอตรวจรับ (Completed)</option>
-                <option value="Closed">4. ตรวจรับและปิดงานสมบูรณ์ (Closed)</option>
+                <option value="Pending Level 2 Approval">1. รอ ผค.งาน (ระดับ 2) อนุมัติ</option>
+                <option value="Pending Level 3 Approval">2. รอ ผู้บริหาร (ระดับ 3) อนุมัติงบ</option>
+                <option value="In Progress">3. ช่างกำลังเข้าดำเนินการ (In Progress)</option>
+                <option value="Completed">4. ซ่อมเสร็จแล้ว / รอตรวจรับ (Completed)</option>
+                <option value="Closed">5. ตรวจรับและปิดงานสมบูรณ์ (Closed)</option>
               </select>
             </div>
             <div>
@@ -1640,6 +1651,91 @@
           class="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-6 py-2.5 rounded-lg text-xs transition shadow cursor-pointer">
           รับทราบและปิดหน้าต่าง
         </button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- ========================================================================
+       6.8 SEQUENTIAL APPROVAL NOTIFICATION MODAL (POPUP)
+       ======================================================================== -->
+  <div id="approvalAlertModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 no-print" onclick="FMMS.closeApprovalAlertModal()">
+    <div class="max-w-2xl w-full bg-white rounded-xl shadow-2xl border-2 border-amber-500 overflow-hidden transform transition-all" onclick="event.stopPropagation()">
+      <!-- Header Banner -->
+      <div class="bg-gradient-to-r from-amber-600 via-amber-700 to-slate-900 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-2xl shadow-inner animate-pulse">
+            🔔
+          </div>
+          <div>
+            <h3 class="text-base font-bold tracking-wide" id="alertModalTitle">รายการรอการพิจารณาอนุมัติ</h3>
+            <p class="text-xs text-amber-200 font-mono-code" id="alertModalSubtitle">SEQUENTIAL APPROVAL WORKFLOW • ACTION REQUIRED</p>
+          </div>
+        </div>
+        <button type="button" onclick="FMMS.closeApprovalAlertModal()" class="text-white/80 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-4 text-xs">
+        <!-- 2-Tier Approval Standard Indicator -->
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div class="text-[11px] font-bold text-slate-700 uppercase mb-2">ขั้นตอนการขออนุมัติตามลำดับขั้น (2-Tier Hierarchical Approval Flow):</div>
+          <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
+            <div class="p-2 rounded bg-teal-50 border border-teal-200 text-teal-800" id="step1Indicator">
+              <div class="font-bold">ขั้นตอน 1: ช่างหน้างาน</div>
+              <div class="text-[10px] text-teal-600">สำรวจ & ส่งขออนุมัติ</div>
+            </div>
+            <div class="p-2 rounded bg-amber-50 border border-amber-200 text-amber-900 font-bold" id="step2Indicator">
+              <div>ขั้นตอน 2: ผค.งาน (ระดับ 2)</div>
+              <div class="text-[10px] text-amber-700">ตรวจราคา & ส่งต่อระดับ 3</div>
+            </div>
+            <div class="p-2 rounded bg-blue-50 border border-blue-200 text-blue-900 font-bold" id="step3Indicator">
+              <div>ขั้นตอน 3: ผู้บริหาร (ระดับ 3)</div>
+              <div class="text-[10px] text-blue-700">อนุมัติงบขั้นสุดท้าย</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⚠️</span>
+            <span id="alertModalNoticeText" class="font-medium">มีรายการที่ต้องได้รับการพิจารณาอนุมัติจากคุณ</span>
+          </div>
+          <span class="font-mono-code font-bold bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full text-xs" id="alertModalCountBadge">0 รายการ</span>
+        </div>
+
+        <!-- Pending Items Table -->
+        <div class="overflow-x-auto max-h-64 border border-slate-200 rounded-lg">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-semibold sticky top-0">
+              <tr>
+                <th class="py-2.5 px-3">รหัส / อ้างอิง</th>
+                <th class="py-2.5 px-3">รายการ / พิกัดสถานที่</th>
+                <th class="py-2.5 px-3 text-right">งบประมาณ</th>
+                <th class="py-2.5 px-3">ผู้เสนอเรื่อง</th>
+                <th class="py-2.5 px-3 text-center">การพิจารณา</th>
+              </tr>
+            </thead>
+            <tbody id="alertPendingItemsTableBody" class="divide-y divide-slate-100">
+              <!-- Populated dynamically by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between">
+        <span class="text-[11px] text-slate-500 font-mono-code">ระบบแจ้งเตือนอัตโนมัติตามระดับสิทธิ์ (Role-Based Notification)</span>
+        <div class="flex gap-2">
+          <button type="button" onclick="FMMS.closeApprovalAlertModal()"
+            class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg text-xs transition cursor-pointer">
+            ปิดหน้าต่าง
+          </button>
+          <button type="button" onclick="FMMS.goToApprovalQueueFromAlert()"
+            class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-5 py-2 rounded-lg text-xs transition shadow cursor-pointer">
+            ไปยังคิวอนุมัติทันที →
+          </button>
+        </div>
       </div>
     </div>
   </div>
