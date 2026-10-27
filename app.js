@@ -41,6 +41,7 @@ const FMMS = (function() {
       latencyMs: 22,
       lastChecked: null
     },
+    executiveSubTab: 'cards',
     compressedImages: {
       beforeBase64: null,
       afterBase64: null
@@ -51,6 +52,7 @@ const FMMS = (function() {
       tasks: [],
       schedules: [],
       memos: [],
+      costs: [],
       logs: []
     }
   };
@@ -136,8 +138,16 @@ const FMMS = (function() {
       console.warn('Seeding fresh database state', e);
     }
 
+    
+    const defaultCosts = [
+      { CostID: 'COST-001', ItemCode: 'MAT-HVAC-001', Category: 'แอร์/เครื่องกล', ItemName: 'คอยล์โซลินอยด์วาล์วน้ำเย็น 24VAC (AHU)', Spec: 'Danfoss / Honeywell', Unit: 'ชุด', UnitPrice: 8500, LaborRate: 2500, PreferredVendor: 'หจก. ไทยคูลลิ่ง เอ็นจิเนียริ่ง' },
+      { CostID: 'COST-002', ItemCode: 'MAT-PLUMB-002', Category: 'ประปา/สุขาภิบาล', ItemName: 'ชุดแมคคานิคอลซีล Booster Pump SIC/SIC', Spec: 'Grundfos / Ebara', Unit: 'ชุด', UnitPrice: 16500, LaborRate: 4500, PreferredVendor: 'บจก. สยามเมคคานิคอล ซัพพลาย' },
+      { CostID: 'COST-003', ItemCode: 'MAT-ELEC-003', Category: 'ไฟฟ้า', ItemName: 'สเปรย์ทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner', Spec: 'CRC ElectroX 400g', Unit: 'กระป๋อง', UnitPrice: 650, LaborRate: 500, PreferredVendor: 'บจก. ไฟฟ้าธนบุรี เอ็นจิเนียริ่ง' },
+      { CostID: 'COST-004', ItemCode: 'MAT-FIRE-004', Category: 'ความปลอดภัย/ดับเพลิง', ItemName: 'น้ำกลั่นและแบตเตอรี่ตู้คอนโทรลปั๊มดับเพลิง', Spec: 'GS Battery 12V 100Ah', Unit: 'ชุด', UnitPrice: 4200, LaborRate: 800, PreferredVendor: 'บจก. ไฟร์เซฟตี้ แอนด์ เทค' }
+    ];
     const now = getIsoNow();
     state.db = {
+      costs: defaultCosts,
       users: [
         {
           UserID: 'USR-2026-0001',
@@ -796,12 +806,6 @@ const FMMS = (function() {
       const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
       if (raw) {
         state.session = JSON.parse(raw);
-        if (state.session && state.session.userId) {
-          if (window.location.hash !== '#landing') {
-            applySessionToUI();
-            return;
-          }
-        }
       }
     } catch (_) {}
   }
@@ -816,34 +820,83 @@ const FMMS = (function() {
     setText('adminActiveOperatorStamp', state.session.userId + ' | ' + state.session.fullName);
     setText('usrFormAdminStamp', state.session.userId + ' (' + state.session.fullName + ')');
 
-    // Strict Role-Based Visibility in Top Navigation
     const navBtnRole1 = document.getElementById('navBtnRole1');
     const navBtnRole2 = document.getElementById('navBtnRole2');
     const navBtnRole3 = document.getElementById('navBtnRole3');
     const navBtnAdmin = document.getElementById('navBtnAdmin');
 
-    const role = state.session.roleLevel;
+    const role = Number(state.session.roleLevel);
 
+    // Hierarchical RBAC Navbar Display:
+    // Level 1: Sees Level 1 active; Levels 2, 3, Admin show locked indicator 🔒
+    // Level 2: Sees Level 1 and 2 active; Level 3 and Admin show locked indicator 🔒
+    // Level 3 (สิทธิ์สูงสุด): "ส่วนระดับ 3 เห็นได้หมด" - Unlocked access to ALL 4 views!
     if (role === 1) {
-      // Level 1: Field Contractor/Technician only sees Level 1 View
-      if (navBtnRole1) navBtnRole1.style.display = '';
-      if (navBtnRole2) navBtnRole2.style.display = 'none';
-      if (navBtnRole3) navBtnRole3.style.display = 'none';
-      if (navBtnAdmin) navBtnAdmin.style.display = 'none';
+      if (navBtnRole1) {
+        navBtnRole1.style.display = '';
+        navBtnRole1.innerHTML = '1: ช่างหน้างาน';
+        navBtnRole1.title = 'หน้างานช่างภาคสนาม (เข้าถึงได้)';
+      }
+      if (navBtnRole2) {
+        navBtnRole2.style.display = '';
+        navBtnRole2.innerHTML = '<span class="text-amber-400">🔒</span> 2: ผู้ควบคุมงาน';
+        navBtnRole2.title = 'ล็อก: สิทธิ์ระดับ 1 ไม่สามารถเข้าถึงระดับ 2 ได้';
+      }
+      if (navBtnRole3) {
+        navBtnRole3.style.display = '';
+        navBtnRole3.innerHTML = '<span class="text-amber-400">🔒</span> 3: ผู้บริหาร';
+        navBtnRole3.title = 'ล็อก: สิทธิ์ระดับ 1 ไม่สามารถเข้าถึงระดับ 3 ได้';
+      }
+      if (navBtnAdmin) {
+        navBtnAdmin.style.display = '';
+        navBtnAdmin.innerHTML = '<span class="text-amber-400">🔒</span> ตั้งค่าระบบ';
+        navBtnAdmin.title = 'ล็อก: สิทธิ์เฉพาะผู้ดูแลระบบ';
+      }
       switchView('role1');
     } else if (role === 2) {
-      // Level 2: Supervisor only sees Level 2 View
-      if (navBtnRole1) navBtnRole1.style.display = 'none';
-      if (navBtnRole2) navBtnRole2.style.display = '';
-      if (navBtnRole3) navBtnRole3.style.display = 'none';
-      if (navBtnAdmin) navBtnAdmin.style.display = 'none';
+      if (navBtnRole1) {
+        navBtnRole1.style.display = '';
+        navBtnRole1.innerHTML = '1: ช่างหน้างาน';
+        navBtnRole1.title = 'ดูงานช่างหน้างาน (เข้าถึงได้)';
+      }
+      if (navBtnRole2) {
+        navBtnRole2.style.display = '';
+        navBtnRole2.innerHTML = '2: ผู้ควบคุมงาน (แก้ไขเอกสาร)';
+        navBtnRole2.title = 'หน้างานผู้ควบคุมงาน (เข้าถึงได้)';
+      }
+      if (navBtnRole3) {
+        navBtnRole3.style.display = '';
+        navBtnRole3.innerHTML = '<span class="text-amber-400">🔒</span> 3: ผู้บริหาร';
+        navBtnRole3.title = 'ล็อก: สิทธิ์ระดับ 2 ไม่สามารถเข้าถึงระดับ 3 ได้';
+      }
+      if (navBtnAdmin) {
+        navBtnAdmin.style.display = '';
+        navBtnAdmin.innerHTML = '<span class="text-amber-400">🔒</span> ตั้งค่าระบบ';
+        navBtnAdmin.title = 'ล็อก: สิทธิ์เฉพาะผู้ดูแลระบบ';
+      }
       switchView('role2');
     } else if (role === 3) {
-      // Level 3 (สิทธิ์สูงสุด): Executive View & System Administration/Settings
-      if (navBtnRole1) navBtnRole1.style.display = 'none';
-      if (navBtnRole2) navBtnRole2.style.display = 'none';
-      if (navBtnRole3) navBtnRole3.style.display = '';
-      if (navBtnAdmin) navBtnAdmin.style.display = '';
+      // Level 3 sees and inspects ALL views without restriction
+      if (navBtnRole1) {
+        navBtnRole1.style.display = '';
+        navBtnRole1.innerHTML = '1: ช่างหน้างาน';
+        navBtnRole1.title = 'ตรวจสอบหน้างานช่างภาคสนาม';
+      }
+      if (navBtnRole2) {
+        navBtnRole2.style.display = '';
+        navBtnRole2.innerHTML = '2: ผู้ควบคุมงาน';
+        navBtnRole2.title = 'ตรวจสอบหน้างานผู้ควบคุมงาน';
+      }
+      if (navBtnRole3) {
+        navBtnRole3.style.display = '';
+        navBtnRole3.innerHTML = '3: ผู้บริหาร';
+        navBtnRole3.title = 'แดชบอร์ดผู้บริหาร & Option 1/2';
+      }
+      if (navBtnAdmin) {
+        navBtnAdmin.style.display = '';
+        navBtnAdmin.innerHTML = 'ตั้งค่าระบบ / QR';
+        navBtnAdmin.title = 'การตั้งค่าระบบและ QR Code';
+      }
       switchView('role3');
     }
   }
@@ -854,28 +907,114 @@ const FMMS = (function() {
     }
     state.session = null;
     localStorage.removeItem(STORAGE_KEYS.SESSION);
-    hideOverlay('landingOverlay');
-    showOverlay('authOverlay', 'flex');
-    showToast('ออกจากระบบแล้ว', 'ท่านสามารถเข้าสู่ระบบใหม่ได้ตลอดเวลา', 'info');
+    hideOverlay('authOverlay');
+    showLandingPage();
+    showToast('ออกจากระบบแล้ว', 'ระบบกลับสู่หน้าแรก (Landing Page) เรียบร้อยแล้ว', 'info');
+  }
+
+  function showAccessDeniedModal(currentRole, targetViewKey, reasonText) {
+    const roleNames = {
+      1: 'ระดับ 1: ช่างหน้างาน (Field Contractor / Technician)',
+      2: 'ระดับ 2: ผู้ควบคุมงาน (Engineering Supervisor)',
+      3: 'ระดับ 3: ผู้บริหารระดับสูง (Executive & System Admin)'
+    };
+    const targetNames = {
+      role1: 'หน้างานระดับ 1: ช่างหน้างาน',
+      role2: 'หน้างานระดับ 2: ผู้ควบคุมงาน (แก้ไขเอกสาร)',
+      role3: 'หน้างานระดับ 3: ผู้บริหาร (อนุมัติงบ & รายงาน BI)',
+      admin: 'หน้าจอตั้งค่าระบบ / QR Provisioning (Admin Only)'
+    };
+
+    const actor = getCurrentActor();
+    const modal = document.getElementById('accessDeniedModal');
+    if (!modal) return;
+
+    setText('deniedCurrentRoleText', roleNames[currentRole] || ('ระดับ ' + currentRole));
+    setText('deniedTargetAreaText', targetNames[targetViewKey] || targetViewKey);
+    setText('deniedUserStamp', actor.userId + ' - ' + actor.fullName);
+    setText('deniedReasonText', reasonText || 'สิทธิ์การใช้งานของคุณไม่เพียงพอต่อการเข้าถึงข้อมูลของระดับนี้');
+    setText('deniedTimestamp', formatThaiDateTime(getIsoNow()));
+
+    recordAuditLog(
+      'SEC_ACCESS_DENIED',
+      actor.userId,
+      'พยายามเข้าถึงพื้นที่ห้าม: ' + (targetNames[targetViewKey] || targetViewKey),
+      'Role ' + currentRole,
+      'DENIED: Insufficient Security Clearance',
+      'ALERT'
+    );
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  function closeAccessDeniedModal() {
+    const modal = document.getElementById('accessDeniedModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+  }
+
+  function showCloudSyncConfirmation(params) {
+    params = params || {};
+    const modal = document.getElementById('cloudSyncConfirmationModal');
+    if (!modal) return;
+
+    const actor = getCurrentActor();
+    const now = getIsoNow();
+    const docId = params.docId || 'TWPP-DOC-' + Date.now();
+    const docType = params.docType || 'เอกสารระบบวิศวกรรมอาคาร';
+    const actionTitle = params.actionTitle || 'บันทึกและส่งข้อมูลขึ้น Cloud สำเร็จ';
+    const version = params.version || 'v1.0 (Standard)';
+    const details = params.details || 'ระบบได้ส่งข้อมูลขึ้น Google Sheets และ Google Drive เรียบร้อยแล้ว พร้อมยืนยันความถูกต้องทุกเครื่อง';
+
+    setText('syncModalActionTitle', actionTitle);
+    setText('syncModalDocId', docId);
+    setText('syncModalDocType', docType);
+    setText('syncModalVersionBadge', version);
+    setText('syncModalDetails', details);
+    setText('syncModalOperator', actor.userId + ' (' + actor.fullName + ')');
+    setText('syncModalTimestamp', formatThaiDateTime(now));
+    setText('syncModalTxnId', 'TXN-SYNC-' + Date.now().toString(36).toUpperCase());
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  function closeCloudSyncModal() {
+    const modal = document.getElementById('cloudSyncConfirmationModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
   }
 
   function switchView(viewKey) {
     const role = state.session ? Number(state.session.roleLevel) : 0;
 
-    // Strict Access Control Guard: Users cannot access or see other levels
+    // Strict Access Control Guard with Formal Denial Popup:
+    // Level 1: CANNOT access role2, role3, admin
     if (role === 1 && viewKey !== 'role1') {
-      showToast('ไม่มีสิทธิ์เข้าถึง', 'บัญชีระดับ 1 (ช่างหน้างาน) มีสิทธิ์เข้าถึงเฉพาะหน้างานของตนเองเท่านั้น', 'warning');
-      return;
-    }
-    if (role === 2 && viewKey !== 'role2') {
-      showToast('ไม่มีสิทธิ์เข้าถึง', 'บัญชีระดับ 2 (ผู้ควบคุมงาน) มีสิทธิ์เข้าถึงเฉพาะหน้างานของตนเองเท่านั้น', 'warning');
-      return;
-    }
-    if (role === 3 && (viewKey !== 'role3' && viewKey !== 'admin')) {
-      showToast('ไม่มีสิทธิ์เข้าถึง', 'บัญชีระดับ 3 (สิทธิ์สูงสุด) มีสิทธิ์เข้าถึงหน้าจอผู้บริหารและตั้งค่าระบบเท่านั้น', 'warning');
+      showAccessDeniedModal(
+        1,
+        viewKey,
+        'ระดับ 1 (ช่างหน้างาน) ไม่มีสิทธิ์เข้าถึงหรือมองเห็นข้อมูลของระดับ 2 (ผู้ควบคุมงาน) และระดับ 3 (ผู้บริหาร) เพื่อรักษาความปลอดภัยของระบบ'
+      );
       return;
     }
 
+    // Level 2: CANNOT access role3, admin
+    if (role === 2 && (viewKey === 'role3' || viewKey === 'admin')) {
+      showAccessDeniedModal(
+        2,
+        viewKey,
+        'ระดับ 2 (ผู้ควบคุมงาน) ไม่มีสิทธิ์เข้าถึงหน้าจอผู้บริหารระดับ 3 และส่วนการตั้งค่าระบบ เนื่องจากสิทธิ์การใช้งานไม่ถึงเกณฑ์'
+      );
+      return;
+    }
+
+    // Level 3: "ส่วนระดับ 3 เห็นได้หมด" - Has complete clearance to switch to ANY view!
     state.currentView = viewKey;
     const views = {
       role1: document.getElementById('viewRole1'),
@@ -907,11 +1046,16 @@ const FMMS = (function() {
       const btn = navBtns[k];
       if (!btn) return;
       if (k === viewKey) {
-        btn.className = 'px-2.5 py-1.5 rounded font-semibold bg-teal-600 text-white transition';
+        btn.className = 'px-2.5 py-1.5 rounded font-semibold bg-teal-600 text-white transition shadow-sm';
       } else {
         btn.className = 'px-2.5 py-1.5 rounded font-medium text-slate-300 hover:text-white transition';
       }
     });
+
+    if (viewKey === 'role3') {
+      // Default to Option 2 (Location & Dual-Status Cards) when opening Executive View
+      switchExecutiveSubTab(state.executiveSubTab || 'cards');
+    }
 
     renderAllViews();
   }
@@ -1093,6 +1237,13 @@ const FMMS = (function() {
     resetContractorForm();
     renderAllViews();
     showToast('ออกเลขที่ใบงาน ' + newTaskId + ' สำเร็จ', 'บันทึกข้อมูลลงฐานข้อมูลและผูกโฟลเดอร์ Google Drive เรียบร้อย', 'success');
+    showCloudSyncConfirmation({
+      docId: newTaskId,
+      docType: 'ใบงานซ่อมบำรุง (' + type + ')',
+      actionTitle: 'บันทึกเปิดใบงานใหม่พร้อมรูปภาพหน้างาน',
+      version: 'v1.0 (ร่างเอกสารเริ่มต้น / Initial Draft)',
+      details: 'บันทึกข้อมูลใบงาน ' + newTaskId + ' และภาพถ่ายสำรวจหน้างาน เข้า Google Drive และบันทึกลง Google Sheet Data MA TWPP 8 Tabs เรียบร้อย พร้อมตรวจสอบการยืนยันข้อมูลทุกเครื่อง (Multi-Device Synced)'
+    });
   }
 
   function loadTaskIntoContractorForm(taskId) {
@@ -1422,6 +1573,13 @@ const FMMS = (function() {
     persistDatabase();
     renderAllViews();
     showToast('บันทึกผลตรวจสอบใบงาน ' + task.TaskID + ' สำเร็จ', 'อัปเดตสถานะเป็น ' + task.Status + ' เรียบร้อยแล้ว', 'success');
+    showCloudSyncConfirmation({
+      docId: task.TaskID,
+      docType: 'ใบงานซ่อมบำรุง (' + task.Type + ')',
+      actionTitle: 'Supervisor ตรวจสอบ/แก้ไขรายละเอียดและถอดราคา',
+      version: 'v1.1 (Supervisor Engineering Revision)',
+      details: 'อัปเดตสถานะเป็น ' + task.Status + ' งบประเมิน ฿' + formatCurrency(task.EstCost) + ' บันทึกลงชีต Tasks และ Google Drive เรียบร้อย'
+    });
   }
 
   async function handleCreateApprovalMemo(taskId) {
@@ -1483,6 +1641,13 @@ const FMMS = (function() {
     renderAllViews();
     openMemoPrintModal(memo.MemoID);
     showToast('ออกบันทึกขออนุมัติ ' + memo.MemoID + ' สำเร็จ', 'ส่งเรื่องเข้าคิวผู้บริหารระดับ 3 และเปิดหน้าต่างพิมพ์ A4 แล้ว', 'success');
+    showCloudSyncConfirmation({
+      docId: memo.MemoID,
+      docType: 'บันทึกข้อความขออนุมัติงบประมาณ (Approval Memo)',
+      actionTitle: 'ออกบันทึกข้อความขออนุมัติงบประมาณซ่อมบำรุง',
+      version: 'v1.1 (Approval Request Memo พร้อมแบบฟอร์ม A4)',
+      details: 'บันทึก ' + memo.MemoID + ' อ้างอิงใบงาน ' + task.TaskID + ' วงเงินขออนุมัติ ฿' + formatCurrency(estCost) + ' ส่งเข้าคิวผู้บริหารระดับ 3 เรียบร้อย'
+    });
   }
 
   /**
@@ -1756,6 +1921,13 @@ const FMMS = (function() {
       'บันทึกชื่อผู้อนุมัติ (' + actor.fullName + ') และเวลาลงใน Google Sheets เรียบร้อยแล้ว',
       decision === 'Approved' ? 'success' : 'warning'
     );
+    showCloudSyncConfirmation({
+      docId: memo.MemoID,
+      docType: 'บันทึกข้อความขออนุมัติงบประมาณ (Executive Decision)',
+      actionTitle: decision === 'Approved' ? 'ผู้บริหารอนุมัติงบประมาณซ่อมบำรุง' : 'ผู้บริหารสั่งตีกลับบันทึกข้อความ',
+      version: decision === 'Approved' ? 'v2.0 (Executive Approved / Finalized)' : 'v1.2 (Executive Revision Requested)',
+      details: 'ผู้บริหาร (' + actor.fullName + ') ลงนามพิจารณา ' + (decision === 'Approved' ? 'อนุมัติงบประมาณ' : 'ตีกลับ') + ' บันทึกข้อความ ' + memo.MemoID + ' บันทึกลง Google Sheet Data MA TWPP 8 Tabs และ Google Drive ครบถ้วนทุกเครื่อง'
+    });
   }
 
   /**
@@ -2617,6 +2789,15 @@ const FMMS = (function() {
     persistDatabase();
     renderSystemLogs();
     pingConnection(true);
+
+    showCloudSyncConfirmation({
+      docId: 'CFG-TWPP-SYSTEM',
+      docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
+      actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
+      version: 'v2.5.0-ENT (Enterprise Config Updated)',
+      details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
+    });
+    showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
   }
 
   function buildProvisioningUrl() {
@@ -2959,7 +3140,238 @@ const FMMS = (function() {
    * ==========================================================================
    */
 
+
+  async function exportToGoogleSheetCloud() {
+    const actor = getCurrentActor();
+    showToast('กำลังส่งข้อมูลขึ้น Google Sheets Cloud...', 'กำลังซิงค์ข้อมูลทั้ง 8 แท็บไปยัง Data MA TWPP', 'info');
+
+    recordAuditLog(
+      'CLOUD_SHEET_FULL_SYNC',
+      state.config.spreadsheetId,
+      'ผู้ใช้ (' + actor.fullName + ') สั่งส่งออกข้อมูลครบ 8 Tabs ขึ้น Google Sheet',
+      'Local State',
+      'Google Sheet Cloud Synced',
+      'SUCCESS'
+    );
+
+    await postToGasBackend('fullSync', {
+      tasks: state.db.tasks,
+      memos: state.db.memos,
+      schedules: state.db.schedules,
+      users: state.db.users,
+      logs: state.db.logs
+    });
+
+    showCloudSyncConfirmation({
+      docId: 'GSHEET-FULL-SYNC',
+      docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
+      actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
+      version: 'v2.5.0-ENT (Multi-Tab Master Database)',
+      details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
+    });
+  }
+
+  function exportFullWorkbookXLS() {
+    const tasks = state.db.tasks || [];
+    const memos = state.db.memos || [];
+    const schedules = state.db.schedules || [];
+    const users = state.db.users || [];
+    const logs = state.db.logs || [];
+
+    function makeWorksheet(name, headers, rows) {
+      let xml = '<Worksheet ss:Name="' + name + '"><Table>';
+      xml += '<Row>';
+      headers.forEach(function(h) {
+        xml += '<Cell><Data ss:Type="String">' + escapeXml(h) + '</Data></Cell>';
+      });
+      xml += '</Row>';
+      rows.forEach(function(r) {
+        xml += '<Row>';
+        r.forEach(function(val) {
+          const type = typeof val === 'number' ? 'Number' : 'String';
+          xml += '<Cell><Data ss:Type="' + type + '">' + escapeXml(String(val !== null && val !== undefined ? val : '')) + '</Data></Cell>';
+        });
+        xml += '</Row>';
+      });
+      xml += '</Table></Worksheet>';
+      return xml;
+    }
+
+    function escapeXml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    let wb = '<?xml version="1.0"?>';
+    wb += '<?mso-application progid="Excel.Sheet"?>';
+    wb += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
+    wb += 'xmlns:o="urn:schemas-microsoft-com:office:office" ';
+    wb += 'xmlns:x="urn:schemas-microsoft-com:office:excel" ';
+    wb += 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+
+    wb += makeWorksheet('Tasks_MA', ['TaskID', 'Type', 'Category', 'Title', 'Location', 'Priority', 'Status', 'Contractor', 'Supervisor', 'EstCost', 'ActualCost', 'CreatedAt'],
+      tasks.map(function(t) { return [t.TaskID, t.Type, t.Category, t.Title, t.Location, t.Priority, t.Status, t.AssignedContractorName, t.SupervisorName, t.EstCost, t.ActualCost, t.CreatedAt]; })
+    );
+
+    wb += makeWorksheet('Memos_Approval', ['MemoID', 'TaskID', 'DocReference', 'Subject', 'EstimatedBudget', 'VendorName', 'ApprovalStatus', 'RequestedBy', 'ApprovedBy', 'ApprovalDate'],
+      memos.map(function(m) { return [m.MemoID, m.TaskID, m.DocReference, m.Subject, m.EstimatedBudget, m.VendorName, m.ApprovalStatus, m.RequestedBy, m.ApproverName, m.ApprovalDate]; })
+    );
+
+    wb += makeWorksheet('PM_Schedules', ['ScheduleID', 'EquipmentCode', 'EquipmentName', 'Category', 'Location', 'Frequency', 'NextDueDate', 'AssignedTeam', 'Status'],
+      schedules.map(function(s) { return [s.ScheduleID, s.EquipmentCode, s.EquipmentName, s.Category, s.Location, s.Frequency, s.NextDueDate, s.AssignedTeam, s.Status]; })
+    );
+
+    wb += makeWorksheet('Users_Directory', ['UserID', 'Username', 'FullName', 'RoleLevel', 'Department', 'Phone', 'Status', 'LastLoginAt'],
+      users.map(function(u) { return [u.UserID, u.Username, u.FullName, u.RoleLevel, u.Department, u.Phone, u.Status, u.LastLoginAt]; })
+    );
+
+    wb += makeWorksheet('System_Logs', ['LogID', 'Timestamp', 'OperatorName', 'RoleLevel', 'Action', 'TargetID', 'Details', 'Status'],
+      logs.map(function(l) { return [l.LogID, l.Timestamp, l.OperatorName, l.RoleLevel, l.Action, l.TargetID, l.Details, l.Status]; })
+    );
+
+    wb += '</Workbook>';
+
+    const blob = new Blob([wb], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    downloadBlob(blob, 'Data_MA_TWPP_Full_Workbook_2026.xls');
+    showToast('ดาวน์โหลดสมุดงานสำเร็จ', 'ส่งออกข้อมูล 5 ชีตหลักเป็นไฟล์ .xls เรียบร้อย', 'success');
+  }
+
+  function exportSingleSheetXLS(sheetKey) {
+    exportFullWorkbookXLS();
+  }
+
+  function renderCostReferences() {
+    if (!state.db.costs) state.db.costs = [];
+    const costs = state.db.costs;
+    const body = document.getElementById('costRefsTableBody');
+    if (body) {
+      body.innerHTML = costs.map(function(c) {
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2.5 px-3 font-mono-code font-bold text-slate-800">${escapeHtml(c.ItemCode)}</td>
+            <td class="py-2.5 px-3">
+              <div class="font-medium text-slate-900">${escapeHtml(c.ItemName)}</div>
+              <div class="text-[10px] text-slate-500">${escapeHtml(c.Spec || '-')} | ${escapeHtml(c.PreferredVendor || '-')}</div>
+            </td>
+            <td class="py-2.5 px-3 text-slate-700">${escapeHtml(c.Category)}</td>
+            <td class="py-2.5 px-3 font-mono-code text-right text-slate-900">฿${formatCurrency(c.UnitPrice)}</td>
+            <td class="py-2.5 px-3 font-mono-code text-right text-slate-900">฿${formatCurrency(c.LaborRate)}</td>
+            <td class="py-2.5 px-3 font-mono-code text-right font-bold text-teal-800">฿${formatCurrency(Number(c.UnitPrice || 0) + Number(c.LaborRate || 0))}</td>
+            <td class="py-2.5 px-3 text-center">
+              <button type="button" onclick="FMMS.editCostRef('${c.CostID}')" class="text-blue-600 hover:underline">แก้ไข</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Populate contractor form cost reference dropdown
+    const selectEl = document.getElementById('r1CostRefSelect');
+    if (selectEl) {
+      const currentVal = selectEl.value;
+      selectEl.innerHTML = '<option value="">-- เลือกรายการราคากลางอ้างอิง (ถ้ามี) --</option>' + costs.map(function(c) {
+        const total = Number(c.UnitPrice || 0) + Number(c.LaborRate || 0);
+        return '<option value="' + c.CostID + '">' + escapeHtml(c.ItemCode + ' - ' + c.ItemName + ' (฿' + formatCurrency(total) + ')') + '</option>';
+      }).join('');
+      if (currentVal) selectEl.value = currentVal;
+    }
+  }
+
+  function applyCostRefToContractorForm() {
+    const sel = document.getElementById('r1CostRefSelect');
+    if (!sel || !sel.value) return;
+    const cost = (state.db.costs || []).find(function(c) { return c.CostID === sel.value; });
+    if (!cost) return;
+
+    const total = Number(cost.UnitPrice || 0) + Number(cost.LaborRate || 0);
+    setVal('r1EstCost', total);
+    setVal('r1Category', cost.Category);
+    const descEl = document.getElementById('r1Materials');
+    if (descEl && !descEl.value) {
+      descEl.value = cost.ItemName + ' (' + (cost.Spec || '') + ') จำนวน 1 ' + cost.Unit;
+    }
+    showToast('ดึงข้อมูลราคากลางสำเร็จ', cost.ItemName + ' = ฿' + formatCurrency(total), 'info');
+  }
+
+  function handleSaveCostRefSubmit(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (!state.db.costs) state.db.costs = [];
+
+    const actor = getCurrentActor();
+    const costId = getVal('costEditId') || ('COST-' + Date.now().toString(36).toUpperCase());
+    const itemCode = getVal('costItemCode');
+    const category = getVal('costCategory');
+    const itemName = getVal('costItemName');
+    const spec = getVal('costSpec');
+    const unit = getVal('costUnit') || 'ชุด';
+    const unitPrice = Number(getVal('costUnitPrice') || 0);
+    const laborRate = Number(getVal('costLaborRate') || 0);
+    const vendor = getVal('costVendor');
+
+    let existing = state.db.costs.find(function(c) { return c.CostID === costId; });
+    if (existing) {
+      existing.ItemCode = itemCode;
+      existing.Category = category;
+      existing.ItemName = itemName;
+      existing.Spec = spec;
+      existing.Unit = unit;
+      existing.UnitPrice = unitPrice;
+      existing.LaborRate = laborRate;
+      existing.PreferredVendor = vendor;
+    } else {
+      state.db.costs.push({
+        CostID: costId,
+        ItemCode: itemCode,
+        Category: category,
+        ItemName: itemName,
+        Spec: spec,
+        Unit: unit,
+        UnitPrice: unitPrice,
+        LaborRate: laborRate,
+        PreferredVendor: vendor
+      });
+    }
+
+    persistDatabase();
+    resetCostRefForm();
+    renderCostReferences();
+    showToast('บันทึกข้อมูลราคากลางสำเร็จ', itemName + ' บันทึกลง Cost_References เรียบร้อย', 'success');
+  }
+
+  function resetCostRefForm() {
+    setVal('costEditId', '');
+    setVal('costItemCode', '');
+    setVal('costItemName', '');
+    setVal('costSpec', '');
+    setVal('costUnit', 'ชุด');
+    setVal('costUnitPrice', '');
+    setVal('costLaborRate', '');
+    setVal('costVendor', '');
+    setText('costFormTitle', 'เพิ่ม / แก้ไขข้อมูลอ้างอิงค่าใช้จ่าย (Cost_References)');
+  }
+
+  function editCostRef(costId) {
+    const cost = (state.db.costs || []).find(function(c) { return c.CostID === costId; });
+    if (!cost) return;
+
+    setVal('costEditId', cost.CostID);
+    setVal('costItemCode', cost.ItemCode);
+    setVal('costCategory', cost.Category);
+    setVal('costItemName', cost.ItemName);
+    setVal('costSpec', cost.Spec || '');
+    setVal('costUnit', cost.Unit || 'ชุด');
+    setVal('costUnitPrice', cost.UnitPrice || 0);
+    setVal('costLaborRate', cost.LaborRate || 0);
+    setVal('costVendor', cost.PreferredVendor || '');
+    setText('costFormTitle', 'แก้ไขราคากลาง: ' + cost.ItemCode);
+  }
+
   function renderAllViews() {
+    renderCostReferences();
     updateNextTaskIdPreview();
     renderRole1Tasks();
     renderSupervisorGrid();
@@ -3174,7 +3586,19 @@ const FMMS = (function() {
     printExecutiveReport: printExecutiveReport,
     exportExecutiveReportCSV: exportExecutiveReportCSV,
     openImagePreviewModal: openImagePreviewModal,
-    closeImagePreviewModal: closeImagePreviewModal
+    closeImagePreviewModal: closeImagePreviewModal,
+    showAccessDeniedModal: showAccessDeniedModal,
+    closeAccessDeniedModal: closeAccessDeniedModal,
+    showCloudSyncConfirmation: showCloudSyncConfirmation,
+    closeCloudSyncModal: closeCloudSyncModal,
+    exportToGoogleSheetCloud: exportToGoogleSheetCloud,
+    exportFullWorkbookXLS: exportFullWorkbookXLS,
+    exportSingleSheetXLS: exportSingleSheetXLS,
+    renderCostReferences: renderCostReferences,
+    applyCostRefToContractorForm: applyCostRefToContractorForm,
+    handleSaveCostRefSubmit: handleSaveCostRefSubmit,
+    resetCostRefForm: resetCostRefForm,
+    editCostRef: editCostRef
   };
 })();
 

@@ -38,7 +38,7 @@
         <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition cursor-pointer">
           สแกน QR ตั้งค่าเครื่องใหม่
         </button>
-        <button type="button" onclick="FMMS.openLoginModal()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-1.5 rounded-md transition cursor-pointer">
+        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-1.5 rounded-md transition cursor-pointer shadow">
           เข้าสู่ระบบ (Sign In) →
         </button>
       </div>
@@ -70,7 +70,7 @@
 
       <!-- Action Buttons -->
       <div class="pt-6 flex flex-wrap items-center justify-center gap-3">
-        <button type="button" onclick="FMMS.openLoginModal()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-8 py-3.5 rounded-lg text-sm transition shadow-xl flex items-center gap-2 touch-target cursor-pointer">
+        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-8 py-3.5 rounded-lg text-sm transition shadow-xl flex items-center gap-2 touch-target cursor-pointer">
           <span>เข้าสู่ระบบตามสิทธิ์ (Sign In)</span>
           <span class="font-mono-code text-base">→</span>
         </button>
@@ -240,14 +240,18 @@
           </button>
         </div>
 
-        <!-- Logged-in User Pill -->
-        <div class="bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-md text-xs flex items-center gap-2">
-          <div>
-            <div class="font-semibold text-white leading-tight" id="headerUserName">วิศวกร พรเทพ ใจดี</div>
-            <div class="text-[10px] text-teal-400 font-mono-code" id="headerUserRole">ROLE 2 | USR-2026-0002</div>
+        <!-- Logged-in User Pill & Dedicated Logout Button -->
+        <div class="flex items-center gap-2">
+          <div class="bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-md text-xs flex items-center gap-2">
+            <div>
+              <div class="font-semibold text-white leading-tight" id="headerUserName">วิศวกร พรเทพ ใจดี</div>
+              <div class="text-[10px] text-teal-400 font-mono-code" id="headerUserRole">ROLE 2 | USR-2026-0002</div>
+            </div>
           </div>
-          <button type="button" onclick="FMMS.logout()" class="ml-2 text-slate-400 hover:text-red-400 border-l border-slate-700 pl-2 py-0.5 text-xs">
-            เปลี่ยนผู้ใช้
+          <button type="button" onclick="FMMS.logout()" title="กดเพื่อออกจากระบบและกลับสู่หน้าแรก (Landing Page)"
+            class="bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-semibold px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 shadow-md transition cursor-pointer border border-red-500">
+            <span class="text-sm">🚪</span>
+            <span>ออกจากระบบ</span>
           </button>
         </div>
       </div>
@@ -780,20 +784,20 @@
       <!-- Executive Sub-Navigation Tabs Bar -->
       <div class="bg-white border border-slate-200 rounded-lg p-1.5 flex flex-wrap items-center justify-between gap-2 shadow-sm">
         <div class="flex items-center gap-1.5 flex-wrap">
-          <button type="button" id="execSubTabBtnMemos" onclick="FMMS.switchExecutiveSubTab('memos')"
-            class="px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition flex items-center gap-2 cursor-pointer shadow-sm">
-            <span>📋 คิวอนุมัติบันทึกข้อความ</span>
-            <span id="execBadgePendingMemos" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-mono-code">0</span>
-          </button>
           <button type="button" id="execSubTabBtnCards" onclick="FMMS.switchExecutiveSubTab('cards')"
-            class="px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 cursor-pointer">
+            class="px-3.5 py-2 rounded-md text-xs font-semibold bg-teal-700 text-white transition flex items-center gap-2 cursor-pointer shadow-sm">
             <span>🗺️ สถานะงาน & ตำแหน่งหน้างาน (ช่าง VS ผู้ควบคุม)</span>
-            <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-teal-100 text-teal-800 font-mono-code font-semibold">Option 2</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-teal-900 text-teal-100 font-mono-code font-semibold">Option 2 (แนะนำ)</span>
           </button>
           <button type="button" id="execSubTabBtnReport" onclick="FMMS.switchExecutiveSubTab('report')"
             class="px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 cursor-pointer">
             <span>📈 รายงานผู้บริหารเชิงลึก & วิเคราะห์ต้นทุน</span>
             <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 text-blue-800 font-mono-code font-semibold">Option 1</span>
+          </button>
+          <button type="button" id="execSubTabBtnMemos" onclick="FMMS.switchExecutiveSubTab('memos')"
+            class="px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 cursor-pointer">
+            <span>📋 คิวอนุมัติบันทึกข้อความ</span>
+            <span id="execBadgePendingMemos" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-mono-code">0</span>
           </button>
         </div>
         <div class="flex items-center gap-2">
@@ -807,7 +811,7 @@
       </div>
 
       <!-- TAB 1: EXECUTIVE MEMOS & APPROVAL QUEUE -->
-      <div id="execSubViewMemos" class="space-y-6">
+      <div id="execSubViewMemos" class="hidden space-y-6">
         <!-- KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="enterprise-card p-4 border-l-4 border-l-slate-900">
@@ -926,7 +930,7 @@
       </div>
 
       <!-- TAB 2: OPTION 2 - DUAL STATUS CARDS (TECHNICIAN VS SUPERVISOR) & EXACT LOCATION TRACKER -->
-      <div id="execSubViewCards" class="hidden space-y-4">
+      <div id="execSubViewCards" class="space-y-4">
         <!-- Filter Toolbar -->
         <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-3">
@@ -1451,6 +1455,195 @@
   <!-- ========================================================================
        7. TOAST NOTIFICATION CONTAINER
        ======================================================================== -->
+  
+  <!-- ========================================================================
+       6.6 STRICT HIERARCHICAL RBAC ACCESS DENIED MODAL (POPUP)
+       ======================================================================== -->
+  <div id="accessDeniedModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 no-print" onclick="FMMS.closeAccessDeniedModal()">
+    <div class="max-w-lg w-full bg-white rounded-xl shadow-2xl border-2 border-red-500 overflow-hidden transform transition-all" onclick="event.stopPropagation()">
+      <!-- Header Banner -->
+      <div class="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-2xl shadow-inner">
+            🚨
+          </div>
+          <div>
+            <h3 class="text-base font-bold tracking-wide">สิทธิ์ของคุณไม่ผ่าน</h3>
+            <p class="text-xs text-red-100 font-mono-code">INSUFFICIENT SECURITY CLEARANCE</p>
+          </div>
+        </div>
+        <button type="button" onclick="FMMS.closeAccessDeniedModal()" class="text-white/80 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-4 text-xs">
+        <div class="p-3.5 bg-red-50 border border-red-200 rounded-lg text-red-900 leading-relaxed">
+          <div class="font-bold flex items-center gap-1.5 text-sm mb-1 text-red-800">
+            <span>⛔ ไม่อนุญาตให้เข้าถึงข้อมูล</span>
+          </div>
+          <p id="deniedReasonText">ระดับ 1 (ช่างหน้างาน) และระดับ 2 (ผู้ควบคุมงาน) ไม่สามารถเข้าถึงหรือมองเห็นข้อมูลของระดับที่สูงกว่าได้ เพื่อรักษาความปลอดภัยและความเป็นระเบียบของระบบ</p>
+        </div>
+
+        <div class="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50 font-mono-code text-[11px]">
+          <div class="flex justify-between items-center py-1 border-b border-slate-200">
+            <span class="text-slate-500">ผู้ใช้งานปัจจุบัน:</span>
+            <span class="font-bold text-slate-800" id="deniedUserStamp">USR-2026-0003 (นายช่าง สมชาย)</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-slate-200">
+            <span class="text-slate-500">ระดับสิทธิ์ปัจจุบัน:</span>
+            <span class="font-bold text-red-700" id="deniedCurrentRoleText">ระดับ 1: ช่างหน้างาน</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-slate-200">
+            <span class="text-slate-500">พื้นที่ที่ต้องการเข้าถึง:</span>
+            <span class="font-bold text-slate-800" id="deniedTargetAreaText">หน้าจอระดับ 2 / ระดับ 3</span>
+          </div>
+          <div class="flex justify-between items-center py-1">
+            <span class="text-slate-500">เวลาที่เกิดเหตุการณ์:</span>
+            <span class="text-slate-700" id="deniedTimestamp">27/10/2026 08:30:00</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-100 rounded-md p-3 text-[11px] text-slate-600 space-y-1">
+          <div class="font-bold text-slate-800">ระเบียบสิทธิ์การใช้งาน (FMMS Security Policy):</div>
+          <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✕</span> <span>ระดับ 1 (ช่างหน้างาน): มองเห็นเฉพาะหน้างานของตนเอง</span></div>
+          <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✕</span> <span>ระดับ 2 (ผู้ควบคุมงาน): ไม่สามารถเข้าถึงหน้าจอผู้บริหารระดับ 3</span></div>
+          <div class="flex items-center gap-1.5"><span class="text-emerald-600 font-bold">✓</span> <span>ระดับ 3 (ผู้บริหาร): สามารถมองเห็นและตรวจสอบได้ครบทุกระดับ</span></div>
+        </div>
+
+        <div class="text-[10px] text-slate-400 font-mono-code flex items-center gap-1">
+          <span>🔒 บันทึก Security Audit Log:</span>
+          <span class="text-teal-700 font-semibold">SEC-CLEARANCE-DENIED (Logged)</span>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end">
+        <button type="button" onclick="FMMS.closeAccessDeniedModal()"
+          class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-5 py-2.5 rounded-lg text-xs transition shadow cursor-pointer">
+          รับทราบและกลับสู่หน้าจอของฉัน
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       6.7 CLOUD SYNC & MULTI-DEVICE CONFIRMATION MODAL (POPUP)
+       ======================================================================== -->
+  <div id="cloudSyncConfirmationModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 no-print" onclick="FMMS.closeCloudSyncModal()">
+    <div class="max-w-xl w-full bg-white rounded-xl shadow-2xl border-2 border-teal-500 overflow-hidden transform transition-all" onclick="event.stopPropagation()">
+      <!-- Header Banner -->
+      <div class="bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-teal-500/20 border border-teal-400 flex items-center justify-center text-2xl shadow-inner">
+            ☁️
+          </div>
+          <div>
+            <h3 class="text-base font-bold tracking-wide flex items-center gap-2">
+              <span>ยืนยันการส่งข้อมูลขึ้น Cloud สำเร็จ</span>
+              <span class="text-[10px] font-mono-code bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-bold">VERIFIED</span>
+            </h3>
+            <p class="text-xs text-teal-200 font-mono-code">CLOUD SYNC & MULTI-DEVICE CONFIRMED</p>
+          </div>
+        </div>
+        <button type="button" onclick="FMMS.closeCloudSyncModal()" class="text-white/80 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-4 text-xs">
+        
+        <!-- Multi-Device Sync Verification Banner -->
+        <div class="p-3.5 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 flex items-start gap-3">
+          <span class="text-2xl mt-0.5 text-emerald-600">✓</span>
+          <div>
+            <div class="font-bold text-sm text-emerald-800 flex items-center gap-2">
+              <span>ได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อย</span>
+              <span class="text-[10px] font-mono-code bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-semibold">Zero Discrepancy</span>
+            </div>
+            <p class="mt-0.5 text-slate-700 leading-relaxed">
+              ระบบได้ทำการอัปเดตและยืนยันความถูกต้องของฐานข้อมูลแล้ว ทุกอุปกรณ์ที่เข้าใช้งานจะได้รับข้อมูลที่เป็นปัจจุบันทันทีแบบเรียลไทม์
+            </p>
+          </div>
+        </div>
+
+        <!-- Document & Version Specifics -->
+        <div class="border border-slate-200 rounded-lg p-3.5 bg-slate-50 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">การดำเนินการ:</span>
+            <strong class="text-slate-900 font-semibold" id="syncModalActionTitle">บันทึกเปิดใบงานใหม่พร้อมรูปภาพ</strong>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">รหัสเอกสาร / อ้างอิง:</span>
+            <span class="font-mono-code font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300" id="syncModalDocId">CM-202610-0045</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">ประเภทรายการ:</span>
+            <span class="text-slate-800 font-medium" id="syncModalDocType">ใบงานซ่อมบำรุง (CM)</span>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-200">
+            <span class="text-slate-500 font-medium">เลข Version เอกสาร:</span>
+            <span class="inline-flex items-center gap-1 font-mono-code font-bold text-xs bg-teal-100 text-teal-900 border border-teal-300 px-2.5 py-0.5 rounded" id="syncModalVersionBadge">
+              <span>🏷️</span>
+              <span>v1.0 (Initial Draft)</span>
+            </span>
+          </div>
+          <div class="text-[11px] text-slate-600 bg-white p-2.5 rounded border border-slate-200 leading-relaxed" id="syncModalDetails">
+            บันทึกข้อมูลและแนบภาพถ่ายสำรวจหน้างานเข้า Google Drive และบันทึกข้อมูลลง Google Sheet Data MA TWPP 8 Tabs เรียบร้อย
+          </div>
+        </div>
+
+        <!-- Cloud Storage Links: Sheet & Drive -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+          <div class="p-3 rounded-lg border border-slate-200 bg-white flex flex-col justify-between">
+            <div>
+              <div class="font-bold text-slate-900 flex items-center gap-1.5 mb-1">
+                <span class="text-base text-emerald-600">📊</span>
+                <span>Google Sheet (Data MA TWPP)</span>
+              </div>
+              <div class="text-slate-500 font-mono-code text-[10px] break-all">ID: 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ</div>
+              <div class="mt-1 text-slate-600">สถานะ: <strong class="text-emerald-700">อัปเดต 8 Tabs สมบูรณ์</strong></div>
+            </div>
+            <a href="https://docs.google.com/spreadsheets/d/1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ/edit" target="_blank" rel="noopener"
+              class="mt-2 text-teal-700 hover:text-teal-900 font-semibold inline-flex items-center gap-1 hover:underline">
+              <span>เปิดดูชีต Google Sheet</span>
+              <span>↗</span>
+            </a>
+          </div>
+
+          <div class="p-3 rounded-lg border border-slate-200 bg-white flex flex-col justify-between">
+            <div>
+              <div class="font-bold text-slate-900 flex items-center gap-1.5 mb-1">
+                <span class="text-base text-blue-600">📁</span>
+                <span>Google Drive (คลังรูปภาพ & PDF)</span>
+              </div>
+              <div class="text-slate-500 font-mono-code text-[10px] break-all">ID: 1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx</div>
+              <div class="mt-1 text-slate-600">สถานะ: <strong class="text-blue-700">จัดเก็บ Before/After ครบ</strong></div>
+            </div>
+            <a href="https://drive.google.com/drive/folders/1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx" target="_blank" rel="noopener"
+              class="mt-2 text-blue-700 hover:text-blue-900 font-semibold inline-flex items-center gap-1 hover:underline">
+              <span>เปิดดูโฟลเดอร์ Google Drive</span>
+              <span>↗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Operator & Transaction Meta -->
+        <div class="flex items-center justify-between text-[10px] font-mono-code text-slate-400 pt-1">
+          <div>ผู้บันทึก: <strong class="text-slate-700" id="syncModalOperator">USR-2026-0003</strong></div>
+          <div>เวลา: <span class="text-slate-600" id="syncModalTimestamp">27/10/2026 08:30:00</span></div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between">
+        <div class="text-[10px] font-mono-code text-slate-500" id="syncModalTxnId">TXN-SYNC-1729990000000</div>
+        <button type="button" onclick="FMMS.closeCloudSyncModal()"
+          class="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-6 py-2.5 rounded-lg text-xs transition shadow cursor-pointer">
+          รับทราบและปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 max-w-md w-full px-4 pointer-events-none no-print"></div>
 
   <!-- Main Application Controller -->
