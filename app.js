@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (ISO 41001 Aligned)
+ * Facility Maintenance Management System (FMMS Enterprise v2.5.0-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -2042,7 +2042,7 @@ const FMMS = (function() {
     });
 
     if (tabKey === 'cards') renderExecutivePipelineCards();
-    if (tabKey === 'report') renderExecutiveReport();
+    if (tabKey === 'report') { renderExecutiveReport(); renderReportTasksTable(); }
   }
 
   function renderExecutivePipelineCards() {
@@ -2358,7 +2358,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // ISO 41001 Scorecard
+    // FMMS Engineering Performance Scorecard (v2.5.0-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -2414,7 +2414,7 @@ const FMMS = (function() {
   }
 
   function printExecutiveReport() {
-    window.print();
+    openExecutiveReportPrintModal();
   }
 
   function exportExecutiveReportCSV() {
@@ -2455,11 +2455,12 @@ const FMMS = (function() {
     if (titleEl) titleEl.textContent = title || 'รูปภาพหน้างาน';
     if (captionEl) captionEl.textContent = caption || 'TWPP FM Field Inspection Photo';
     if (modal) modal.classList.remove('hidden');
+    modal.style.display = 'block';
   }
 
   function closeImagePreviewModal() {
     const modal = document.getElementById('imagePreviewModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
   }
 
   /**
@@ -2513,17 +2514,18 @@ const FMMS = (function() {
     const isApproved = memo.ApprovalStatus === 'Approved';
 
     container.innerHTML = `
-      <!-- Top International & Official Header -->
-      <div class="border-b-2 border-slate-900 pb-4 mb-5 flex items-start justify-between">
+      <!-- Top Official Thai Memorandum Header (TH Sarabun New Typography) -->
+      <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-start justify-between">
         <div>
-          <div class="text-xs font-mono-code uppercase tracking-widest text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM (ISO 41001)</div>
-          <h1 class="text-xl font-bold text-slate-900 mt-0.5">บันทึกข้อความ (INTERNAL APPROVAL MEMORANDUM)</h1>
-          <div class="text-xs text-slate-700 mt-0.5">${escapeHtml(state.config.orgName)}</div>
+          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.5.0-ENT (DATA MA TWPP)</div>
+          <h1 class="doc-title mt-1" style="font-size: 16pt; font-weight: 700; color: #000000; line-height: 1.3;">บันทึกข้อความ (INTERNAL APPROVAL MEMORANDUM)</h1>
+          <div class="doc-subheading text-slate-800" style="font-size: 14pt; font-weight: 700;">${escapeHtml(state.config.orgName || 'บริษัทบริหารจัดการอาคารและวิศวกรรม ทวพ. จำกัด')}</div>
         </div>
-        <div class="text-right font-mono-code text-xs border border-slate-400 p-2 rounded">
-          <div><strong>เลขที่เอกสาร:</strong> ${escapeHtml(memo.MemoID)}</div>
+        <div class="text-right font-mono-code border border-slate-500 p-2 rounded" style="font-size: 12pt; min-width: 190px;">
+          <div><strong>เลขที่บันทึก:</strong> ${escapeHtml(memo.MemoID)}</div>
           <div><strong>อ้างอิงใบงาน:</strong> ${escapeHtml(memo.TaskID)}</div>
           <div><strong>วันที่ออกเอกสาร:</strong> ${formatThaiDateOnly(memo.RequestedAt)}</div>
+          <div class="text-teal-800 font-bold">Doc Version: v1.1</div>
         </div>
       </div>
 
@@ -2551,7 +2553,7 @@ const FMMS = (function() {
           บริเวณสถานที่ <strong>${escapeHtml(task.Location || '-')}</strong> โดยมีรายละเอียดอาการเสียและผลการวิเคราะห์ทางวิศวกรรมดังนี้:
         </p>
 
-        <div class="border border-slate-400 rounded p-3 bg-slate-50/60 text-xs space-y-1.5">
+        <div class="border border-slate-400 rounded p-3 bg-slate-50/60 space-y-1.5" style="font-size: 12pt;">
           <div><strong>1. อาการเสียที่ตรวจพบ:</strong> ${escapeHtml(task.Description || memo.ReasonRationale)}</div>
           <div><strong>2. การวิเคราะห์สาเหตุเบื้องต้น (Root Cause):</strong> ${escapeHtml(task.InitialAnalysis || '-')}</div>
           <div><strong>3. เหตุผลความจำเป็นในการขออนุมัติ:</strong> ${escapeHtml(memo.ReasonRationale)}</div>
@@ -2560,7 +2562,7 @@ const FMMS = (function() {
 
         <!-- Section 2: Cost & Quotation Table -->
         <div class="mt-4">
-          <div class="font-bold text-xs uppercase tracking-wider text-slate-700 mb-1.5">ตารางสรุปงบประมาณและผู้เสนอราคา (Budget & Vendor Breakdown)</div>
+          <h3 style="font-size: 14pt; font-weight: 700; color: #000000;" class="mb-1.5">ตารางสรุปงบประมาณและผู้เสนอราคา (Budget & Vendor Breakdown)</h3>
           <table class="w-full border-collapse border border-slate-500 text-xs">
             <thead>
               <tr class="bg-slate-100">
@@ -2589,7 +2591,7 @@ const FMMS = (function() {
 
         <!-- Section 3: Photographic Evidence -->
         <div class="mt-4">
-          <div class="font-bold text-xs uppercase tracking-wider text-slate-700 mb-1.5">ภาพถ่ายประกอบหลักฐานหน้างาน (Field Photographic Evidence)</div>
+          <h3 style="font-size: 14pt; font-weight: 700; color: #000000;" class="mb-1.5">ภาพถ่ายประกอบหลักฐานหน้างาน (Field Photographic Evidence)</h3>
           <div class="grid grid-cols-2 gap-4">
             <div class="border border-slate-400 p-2 text-center">
               <div class="text-xs font-bold mb-1">ภาพก่อนดำเนินการ (BEFORE)</div>
@@ -2608,13 +2610,13 @@ const FMMS = (function() {
           </div>
         </div>
 
-        <p class="indent-8 text-xs pt-2">
+        <p class="indent-8 pt-2" style="font-size: 12pt;">
           จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติงบประมาณจำนวน <strong class="font-mono-code">฿${formatCurrency(memo.EstimatedBudget)} บาท</strong>
           เพื่อให้ฝ่ายซ่อมบำรุงดำเนินการตามขั้นตอนต่อไป
         </p>
 
         <!-- Signatures & Digital Audit Stamp Block -->
-        <div class="grid grid-cols-3 gap-4 pt-6 mt-6 border-t border-slate-400 text-xs text-center">
+        <div class="grid grid-cols-3 gap-4 pt-6 mt-6 border-t border-slate-400 text-center" style="font-size: 12pt;">
           <div class="border border-slate-300 p-3 rounded">
             <div class="font-bold mb-6">ผู้ปฏิบัติงาน / ช่างผู้สำรวจ (ระดับ 1)</div>
             <div class="font-semibold">${escapeHtml(task.AssignedContractorName || 'นายช่าง สมชาย สายลุย')}</div>
@@ -3752,7 +3754,372 @@ const FMMS = (function() {
     switchExecutiveSubTab('cards');
   }
 
+
+  function openExecutiveReportPrintModal() {
+    const tasks = state.db.tasks || [];
+    const memos = state.db.memos || [];
+    const container = document.getElementById('a4PaperContainer');
+    const modal = document.getElementById('memoPrintModal');
+    if (!container || !modal) return;
+
+    const totalRequested = memos.reduce(function(acc, m) { return acc + Number(m.EstimatedBudget || 0); }, 0);
+    const approvedMemos = memos.filter(function(m) { return m.ApprovalStatus === 'Approved'; });
+    const totalApproved = approvedMemos.reduce(function(acc, m) { return acc + Number(m.EstimatedBudget || 0); }, 0);
+    const totalActual = tasks.reduce(function(acc, t) { return acc + Number(t.ActualCost || 0); }, 0);
+    const savings = totalApproved > totalActual ? totalApproved - totalActual : 0;
+    const savingsPct = totalApproved > 0 ? Math.round((savings / totalApproved) * 100) : 0;
+
+    const disciplines = [
+      { label: '1. ระบบปรับอากาศและระบายอากาศ (HVAC)', key: 'แอร์/เครื่องกล' },
+      { label: '2. ระบบไฟฟ้าและสื่อสาร (Electrical)', key: 'ไฟฟ้า' },
+      { label: '3. ระบบประปาและสุขาภิบาล (Plumbing)', key: 'ประปา/สุขาภิบาล' },
+      { label: '4. ระบบดับเพลิงและความปลอดภัย (Fire & Safety)', key: 'ความปลอดภัย/ดับเพลิง' }
+    ];
+
+    container.innerHTML = `
+      <!-- Executive Management Report A4 Paper (TH Sarabun New) -->
+      <div style="font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 12pt; color: #000000; line-height: 1.45;">
+        
+        <!-- Header Strip -->
+        <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-start justify-between">
+          <div>
+            <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-700">FACILITY MAINTENANCE MANAGEMENT SYSTEM • DATA MA TWPP</div>
+            <h1 style="font-size: 16pt; font-weight: 700; color: #000000; line-height: 1.3;" class="mt-1">
+              รายงานสรุปผลการบริหารงานซ่อมบำรุงและควบคุมต้นทุนวิศวกรรมอาคาร
+            </h1>
+            <h2 style="font-size: 14pt; font-weight: 700; color: #1e293b;">
+              EXECUTIVE MANAGEMENT & FINANCIAL VARIANCE REPORT
+            </h2>
+            <div style="font-size: 12pt;" class="text-slate-700">${escapeHtml(state.config.orgName || 'โครงการบริหารจัดการอาคารและวิศวกรรม ทวพ.')}</div>
+          </div>
+          <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
+            <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
+            <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.5.0-ENT</div>
+          </div>
+        </div>
+
+        <!-- Section 1: Financial Summary Box -->
+        <div class="mb-4">
+          <h3 style="font-size: 14pt; font-weight: 700; color: #000000;" class="mb-1.5 border-b border-slate-300 pb-1">
+            1. สรุปภาพรวมงบประมาณและการควบคุมต้นทุน (Financial Variance & Cost Savings)
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12pt;" class="mb-3">
+            <thead>
+              <tr style="background-color: #f1f5f9;">
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: left; font-weight: 700;">หมวดงบประมาณ</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700;">จำนวนเงิน (บาท)</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: left; font-weight: 700;">คำอธิบาย / อัตราเปรียบเทียบ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="border: 1px solid #333333; padding: 5px 8px;">งบประมาณขออนุมัติรวมทั้งหมด (Requested)</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700;">฿${formatCurrency(totalRequested)}</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px;">จากบันทึกข้อความขออนุมัติทั้งหมด ${memos.length} ฉบับ</td>
+              </tr>
+              <tr>
+                <td style="border: 1px solid #333333; padding: 5px 8px;">งบประมาณที่ผู้บริหารอนุมัติแล้ว (Approved)</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700; color: #047857;">฿${formatCurrency(totalApproved)}</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px;">อนุมัติงบเรียบร้อยแล้ว ${approvedMemos.length} ฉบับ</td>
+              </tr>
+              <tr>
+                <td style="border: 1px solid #333333; padding: 5px 8px;">ค่าใช้จ่ายเกิดขึ้นจริง (Actual Expenditure)</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700;">฿${formatCurrency(totalActual)}</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px;">จากใบงานที่ดำเนินการแล้วเสร็จ</td>
+              </tr>
+              <tr style="background-color: #f0fdf4;">
+                <td style="border: 1px solid #333333; padding: 5px 8px; font-weight: 700;">ผลประหยัดงบประมาณสุทธิ (Net Cost Savings)</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700; color: #047857;">฿${formatCurrency(savings)}</td>
+                <td style="border: 1px solid #333333; padding: 5px 8px; font-weight: 700; color: #047857;">ประหยัดได้ ${savingsPct}% จากงบประมาณที่ได้รับอนุมัติ</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 2: 4-Discipline MEP Engineering Breakdown -->
+        <div class="mb-4">
+          <h3 style="font-size: 14pt; font-weight: 700; color: #000000;" class="mb-1.5 border-b border-slate-300 pb-1">
+            2. การวิเคราะห์ปริมาณงานและต้นทุนแยกตาม 4 หมวดวิศวกรรมหลัก (MEP Breakdown)
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
+            <thead>
+              <tr style="background-color: #f1f5f9;">
+                <th style="border: 1px solid #333333; padding: 5px 8px; font-weight: 700;">ระบบวิศวกรรม (MEP Discipline)</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: center; font-weight: 700;">จำนวนงาน</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700;">งบประเมิน (฿)</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700;">ใช้จริง (฿)</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700;">ส่วนต่างประหยัด (฿)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${disciplines.map(function(d) {
+                const catTasks = tasks.filter(function(t) { return t.Category === d.key; });
+                const count = catTasks.length;
+                const estCost = catTasks.reduce(function(acc, t) { return acc + Number(t.EstCost || 0); }, 0);
+                const actCost = catTasks.reduce(function(acc, t) { return acc + Number(t.ActualCost || 0); }, 0);
+                const diff = estCost - actCost;
+                return `
+                  <tr>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; font-weight: 600;">${escapeHtml(d.label)}</td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; text-align: center;">${count}</td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right;">฿${formatCurrency(estCost)}</td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right;">฿${formatCurrency(actCost)}</td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700; color: ${diff >= 0 ? '#047857' : '#b91c1c'};">
+                      ${diff >= 0 ? '+฿' : '-฿'}${formatCurrency(Math.abs(diff))}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 3: Key Work Orders List -->
+        <div class="mb-4">
+          <h3 style="font-size: 14pt; font-weight: 700; color: #000000;" class="mb-1.5 border-b border-slate-300 pb-1">
+            3. บัญชีรายการใบงานซ่อมบำรุงและสถานะปัจจุบัน (Work Orders Summary)
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
+            <thead>
+              <tr style="background-color: #f1f5f9;">
+                <th style="border: 1px solid #333333; padding: 5px 8px; font-weight: 700;">รหัสใบงาน</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; font-weight: 700;">รายการ / พิกัดสถานที่</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; font-weight: 700;">ช่างผู้ปฏิบัติงาน</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 700;">งบประเมิน (฿)</th>
+                <th style="border: 1px solid #333333; padding: 5px 8px; text-align: center; font-weight: 700;">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tasks.slice(0, 8).map(function(t) {
+                return `
+                  <tr>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; font-weight: 700;">${escapeHtml(t.TaskID)}</td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px;">
+                      <div><strong>${escapeHtml(t.Title)}</strong></div>
+                      <div style="font-size: 11pt; color: #475569;">📍 ${escapeHtml(t.Location)}</div>
+                    </td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px;">${escapeHtml(t.AssignedContractorName || '-')}</td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; text-align: right; font-weight: 600;">฿${formatCurrency(t.EstCost)}</td>
+                    <td style="border: 1px solid #333333; padding: 5px 8px; text-align: center;">${escapeHtml(t.Status)}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Endorsement Signatures -->
+        <div class="pt-4 border-t border-slate-400 mt-4 grid grid-cols-2 gap-8 text-center" style="font-size: 12pt;">
+          <div class="border border-slate-300 p-3 rounded">
+            <div style="font-size: 14pt; font-weight: 700;" class="mb-6">ผู้จัดทำรายงาน / ผู้ควบคุมงาน (ระดับ 2)</div>
+            <div class="font-bold">วิศวกร พรเทพ ใจดี</div>
+            <div style="font-size: 11pt; color: #475569;">หัวหน้าฝ่ายวิศวกรรมซ่อมบำรุงอาคาร</div>
+            <div style="font-size: 10pt;" class="font-mono-code text-slate-500 mt-1">${formatThaiDateTime(getIsoNow())}</div>
+          </div>
+          <div class="border border-slate-300 p-3 rounded">
+            <div style="font-size: 14pt; font-weight: 700;" class="mb-6">ผู้รับรองรายงาน / ผู้บริหารระดับสูง (ระดับ 3)</div>
+            <div class="font-bold">คุณนิพนธ์ (Executive & System Admin)</div>
+            <div style="font-size: 11pt; color: #475569;">ผู้อำนวยการฝ่ายบริหารอาคารและทรัพย์สิน</div>
+            <div style="font-size: 10pt;" class="font-mono-code text-slate-500 mt-1">${formatThaiDateTime(getIsoNow())}</div>
+          </div>
+        </div>
+
+        <!-- Footer Meta -->
+        <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
+          <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
+          <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
+          <span>System Version: v2.5.0-ENT</span>
+        </div>
+      </div>
+    `;
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'block';
+  }
+
+  function previewTaskA4Report(taskId) {
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    if (!task) return;
+
+    let memo = state.db.memos.find(function(m) { return m.TaskID === taskId; });
+    if (memo) {
+      openMemoPrintModal(memo.MemoID);
+      return;
+    }
+
+    openMemoPrintModalByTask(taskId);
+  }
+
+  function renderReportTasksTable() {
+    const tbody = document.getElementById('reportTasksTableBody');
+    const countEl = document.getElementById('repTasksCountText');
+    if (!tbody) return;
+
+    const tasks = state.db.tasks || [];
+    const q = String(getVal('repTaskSearchInput') || '').trim().toLowerCase();
+    const statusFilter = getVal('repTaskStatusFilter') || 'ALL';
+
+    const filtered = tasks.filter(function(t) {
+      if (statusFilter !== 'ALL' && t.Status !== statusFilter) return false;
+      if (q) {
+        const corpus = [t.TaskID, t.Title, t.Location, t.Category, t.AssignedContractorName, t.SupervisorName].join(' ').toLowerCase();
+        if (!corpus.includes(q)) return false;
+      }
+      return true;
+    });
+
+    if (countEl) countEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-400">ไม่พบรายการใบงานตามเงื่อนไขที่ค้นหา</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(function(t) {
+      return `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 font-mono-code font-bold text-slate-900 whitespace-nowrap">
+            <div>${escapeHtml(t.TaskID)}</div>
+            <div class="text-[10px] text-teal-700 font-normal">v1.1</div>
+          </td>
+          <td class="py-3 px-3">
+            <span class="inline-block px-2 py-0.5 rounded text-[11px] bg-slate-100 text-slate-800 font-medium mb-1">${escapeHtml(t.Category || '-')}</span>
+            <div class="text-[11px] text-slate-500 font-medium">📍 ${escapeHtml(t.Location)}</div>
+          </td>
+          <td class="py-3 px-4">
+            <div class="font-bold text-slate-900 line-clamp-1">${escapeHtml(t.Title)}</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1">${escapeHtml(t.Description || '-')}</div>
+          </td>
+          <td class="py-3 px-3 text-right font-mono-code font-semibold text-slate-900 whitespace-nowrap">
+            ฿${formatCurrency(t.EstCost)}
+          </td>
+          <td class="py-3 px-3 text-right font-mono-code whitespace-nowrap ${Number(t.ActualCost) > 0 ? 'text-slate-900 font-bold' : 'text-slate-400'}">
+            ฿${formatCurrency(t.ActualCost)}
+          </td>
+          <td class="py-3 px-3 text-[11px]">
+            <div class="text-slate-800 font-medium">👷 ${escapeHtml(t.AssignedContractorName || 'ช่างประจำโครงการ')}</div>
+            <div class="text-slate-500">👔 ${escapeHtml(t.SupervisorName || 'วิศวกรผู้ควบคุม')}</div>
+          </td>
+          <td class="py-3 px-3 whitespace-nowrap">
+            ${renderStatusBadge(t.Status)}
+          </td>
+          <td class="py-3 px-4 text-center whitespace-nowrap">
+            <div class="flex items-center justify-center gap-1.5">
+              <button type="button" onclick="FMMS.previewTaskA4Report('${t.TaskID}')"
+                class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded transition shadow-sm flex items-center gap-1 cursor-pointer"
+                title="เปิดดูตัวอย่างเอกสาร A4 สำหรับพิมพ์">
+                <span>👁️</span>
+                <span>อ่าน/พรีวิว</span>
+              </button>
+              <button type="button" onclick="FMMS.openEditTaskModalFromReport('${t.TaskID}')"
+                class="border border-blue-600 hover:bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1.5 rounded transition flex items-center gap-1 cursor-pointer"
+                title="แก้ไขข้อมูลใบงานนี้">
+                <span>✏️</span>
+                <span>แก้ไข</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openEditTaskModalFromReport(taskId) {
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    if (!task) return;
+
+    setVal('repEditTaskId', task.TaskID);
+    setVal('repEditTaskIdDisplay', task.TaskID);
+    setVal('repEditTaskType', task.Type || 'CM');
+    setVal('repEditCategory', task.Category || 'แอร์/เครื่องกล');
+    setVal('repEditTitle', task.Title || '');
+    setVal('repEditLocation', task.Location || '');
+    setVal('repEditPriority', task.Priority || 'Normal');
+    setVal('repEditEstCost', task.EstCost || 0);
+    setVal('repEditActualCost', task.ActualCost || 0);
+    setVal('repEditStatus', task.Status || 'Pending Level 2 Approval');
+    setVal('repEditAnalysis', task.InitialAnalysis || '');
+    setVal('repEditMaterials', task.MaterialsRequired || '');
+
+    const modal = document.getElementById('reportEditTaskModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeReportEditTaskModal() {
+    const modal = document.getElementById('reportEditTaskModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+  }
+
+  async function handleSaveEditTaskFromReport(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    const taskId = getVal('repEditTaskId');
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    if (!task) return;
+
+    const actor = getCurrentActor();
+    const now = getIsoNow();
+
+    const beforeSnap = JSON.stringify({
+      Title: task.Title,
+      Location: task.Location,
+      EstCost: task.EstCost,
+      ActualCost: task.ActualCost,
+      Status: task.Status
+    });
+
+    task.Type = getVal('repEditTaskType');
+    task.Category = getVal('repEditCategory');
+    task.Title = getVal('repEditTitle');
+    task.Location = getVal('repEditLocation');
+    task.Priority = getVal('repEditPriority');
+    task.EstCost = Number(getVal('repEditEstCost') || 0);
+    task.ActualCost = Number(getVal('repEditActualCost') || 0);
+    task.Status = getVal('repEditStatus');
+    task.InitialAnalysis = getVal('repEditAnalysis');
+    task.MaterialsRequired = getVal('repEditMaterials');
+    task.UpdatedAt = now;
+    task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
+
+    recordAuditLog(
+      'EDIT_TASK_FROM_REPORT',
+      task.TaskID,
+      'แก้ไขข้อมูลใบงานจากหน้าต่างรายงาน: ' + task.TaskID,
+      beforeSnap,
+      JSON.stringify({
+        Title: task.Title,
+        Location: task.Location,
+        EstCost: task.EstCost,
+        ActualCost: task.ActualCost,
+        Status: task.Status
+      }),
+      'SUCCESS'
+    );
+
+    await postToGasBackend('updateTask', { taskData: task });
+    persistDatabase();
+    renderAllViews();
+    closeReportEditTaskModal();
+
+    showCloudSyncConfirmation({
+      docId: task.TaskID,
+      docType: 'ใบงานซ่อมบำรุง (แก้ไขจากรายงาน)',
+      actionTitle: 'บันทึกแก้ไขข้อมูลเอกสารใบงานเรียบร้อย',
+      version: 'v1.2 (Edited via Report Workbench)',
+      details: 'อัปเดตข้อมูล ' + task.TaskID + ' งบประเมิน ฿' + formatCurrency(task.EstCost) + ' สถานะ: ' + task.Status + ' บันทึกลง Google Sheet และ Drive เรียบร้อยแล้ว'
+    });
+
+    showToast('แก้ไขข้อมูลใบงาน ' + task.TaskID + ' สำเร็จ', 'อัปเดตตารางรายงานและฐานข้อมูลเรียบร้อยแล้ว', 'success');
+  }
+
   function renderAllViews() {
+    renderReportTasksTable();
     renderCostReferences();
     updateNextTaskIdPreview();
     renderRole1Tasks();
@@ -3997,7 +4364,13 @@ const FMMS = (function() {
     closeApprovalAlertModal: closeApprovalAlertModal,
     goToApprovalQueueFromAlert: goToApprovalQueueFromAlert,
     selectTaskFromAlert: selectTaskFromAlert,
-    selectMemoFromAlert: selectMemoFromAlert
+    selectMemoFromAlert: selectMemoFromAlert,
+    openExecutiveReportPrintModal: openExecutiveReportPrintModal,
+    previewTaskA4Report: previewTaskA4Report,
+    renderReportTasksTable: renderReportTasksTable,
+    openEditTaskModalFromReport: openEditTaskModalFromReport,
+    closeReportEditTaskModal: closeReportEditTaskModal,
+    handleSaveEditTaskFromReport: handleSaveEditTaskFromReport
   };
 })();
 

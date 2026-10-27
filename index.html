@@ -11,6 +11,7 @@
   <!-- Google Fonts: IBM Plex Sans Thai, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- QR Code Generator & QR Scanner Libraries -->
@@ -32,7 +33,7 @@
         <span class="w-2 h-2 rounded-full bg-emerald-400 status-dot-live"></span>
         <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.5.0-ENT</strong></span>
         <span class="text-slate-600">|</span>
-        <span>ISO 41001 FACILITY MANAGEMENT STANDARD</span>
+        <span>FMMS ENTERPRISE VERSION: <strong class="text-teal-300">v2.5.0-ENT</strong></span>
       </div>
       <div class="flex items-center gap-3 text-xs font-mono-code">
         <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition cursor-pointer">
@@ -126,7 +127,7 @@
           FMMS ENTERPRISE
         </div>
         <div class="text-[11px] font-mono-code uppercase tracking-widest text-teal-700 mt-1">
-          DATA MA TWPP • ISO 41001 ALIGNED
+          DATA MA TWPP • SYS VER: v2.5.0-ENT
         </div>
       </div>
 
@@ -827,7 +828,7 @@
           <div class="enterprise-card p-4 border-l-4 border-l-slate-900">
             <div class="flex items-center justify-between">
               <span class="text-xs font-semibold text-slate-500 uppercase">ใบงานทั้งหมด / สัดส่วน PM:CM</span>
-              <span class="text-[10px] font-mono-code bg-slate-100 px-2 py-0.5 rounded text-slate-700">ISO-METRIC-01</span>
+              <span class="text-[10px] font-mono-code bg-slate-100 px-2 py-0.5 rounded text-slate-700">FMMS-METRIC-01</span>
             </div>
             <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1.5" id="kpiTotalTasks">0</div>
             <div class="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden flex">
@@ -908,7 +909,7 @@
           <div class="enterprise-card overflow-hidden">
             <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
               <h3 class="text-sm font-bold text-slate-900">สรุปงบประมาณและปริมาณงานแยกตามหมวดวิศวกรรม (MEP Breakdown)</h3>
-              <span class="text-[11px] font-mono-code text-slate-500">ISO 41001 Clause 9.1</span>
+              <span class="text-[11px] font-mono-code text-slate-500">SYS VER: v2.5.0-ENT</span>
             </div>
             <div class="p-4 overflow-x-auto">
               <table class="w-full text-xs text-left border-collapse">
@@ -990,7 +991,7 @@
         </div>
       </div>
 
-      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & ISO 41001 REPORT -->
+      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & PERFORMANCE REPORT (SYS VER: v2.5.0-ENT) -->
       <div id="execSubViewReport" class="hidden space-y-6">
         <!-- Report Header & Actions -->
         <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
@@ -1000,7 +1001,7 @@
               <span class="text-xs text-slate-500">รายงานสรุปผลการบริหารงานซ่อมบำรุงและควบคุมต้นทุนวิศวกรรมอาคาร</span>
             </div>
             <h3 class="text-base font-bold text-slate-900 mt-1">รายงานสรุปผู้บริหารเชิงลึก (Executive Analytical & Financial Report)</h3>
-            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ สอดคล้องตามมาตรฐานสากล ISO 41001:2018 Facility Management</p>
+            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ ระบบบริหารงานซ่อมบำรุงวิศวกรรมอาคาร Version v2.5.0-ENT</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button type="button" onclick="FMMS.printExecutiveReport()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow flex items-center gap-1.5 cursor-pointer">
@@ -1043,7 +1044,7 @@
               <h4 class="text-sm font-bold text-slate-900">การวิเคราะห์ต้นทุนและปริมาณงานแยกตาม 4 หมวดวิศวกรรมหลัก (MEP Breakdown)</h4>
               <p class="text-xs text-slate-500">HVAC (ปรับอากาศ) • Electrical (ไฟฟ้า) • Plumbing (สุขาภิบาล) • Fire & Safety (ดับเพลิง)</p>
             </div>
-            <span class="text-xs font-mono-code bg-slate-100 px-2.5 py-1 rounded text-slate-700 border border-slate-200">ISO 41001-MEP</span>
+            <span class="text-xs font-mono-code bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 font-semibold">SYS VER: v2.5.0-ENT</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -1066,12 +1067,12 @@
           </div>
         </div>
 
-        <!-- Section 3: ISO 41001 Facility Management Scorecards & Contractor Ledger -->
+        <!-- Section 3: FMMS Engineering Performance Scorecards (v2.5.0-ENT) & Contractor Ledger -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- ISO 41001 Operational Health -->
+          <!-- FMMS Engineering Operational Health (v2.5.0-ENT) -->
           <div class="lg:col-span-5 enterprise-card overflow-hidden flex flex-col justify-between">
             <div class="enterprise-panel-header px-5 py-3.5">
-              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพตามมาตรฐาน ISO 41001</h4>
+              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพงานวิศวกรรม (FMMS Performance Scorecard v2.5.0-ENT)</h4>
               <p class="text-xs text-slate-500">เกณฑ์ประเมินการบำรุงรักษาเชิงป้องกันและประสิทธิผลงาน</p>
             </div>
             <div class="p-5 space-y-4 text-xs">
@@ -1137,6 +1138,56 @@
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Comprehensive Tasks & Documents Report Table with "อ่าน" (Preview) and "แก้ไข" (Edit) -->
+        <div class="enterprise-card overflow-hidden">
+          <div class="enterprise-panel-header px-5 py-4 flex flex-wrap items-center justify-between gap-3 bg-slate-50 border-b border-slate-200">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-900">ตารางรายงานสรุปรายการใบงานและเอกสารซ่อมบำรุงทั้งหมด</span>
+                <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-teal-100 text-teal-800 font-semibold">DOC PREVIEW & EDIT SUITE</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">ผู้บริหารและผู้ควบคุมงานสามารถกดปุ่ม <strong class="text-slate-800">"👁️ อ่าน / พรีวิว A4"</strong> เพื่อดูเอกสารตัวเต็มก่อนพิมพ์ หรือกด <strong class="text-slate-800">"✏️ แก้ไข"</strong> เพื่อปรับปรุงข้อมูลได้ทันที</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap text-xs">
+              <input type="text" id="repTaskSearchInput" oninput="FMMS.renderReportTasksTable()" placeholder="ค้นหารหัสงาน, สถานที่, เรื่อง..."
+                class="border border-slate-300 rounded px-3 py-1.5 text-xs w-48 sm:w-64 bg-white">
+              <select id="repTaskStatusFilter" onchange="FMMS.renderReportTasksTable()" class="border border-slate-300 rounded px-2.5 py-1.5 text-xs bg-white">
+                <option value="ALL">ทุกสถานะงาน</option>
+                <option value="Pending Level 2 Approval">รอ ผค.งาน (ระดับ 2) อนุมัติ</option>
+                <option value="Pending Level 3 Approval">รอ ผู้บริหาร (ระดับ 3) อนุมัติงบ</option>
+                <option value="In Progress">กำลังดำเนินการ</option>
+                <option value="Completed">รอตรวจรับ</option>
+                <option value="Closed">ปิดงานแล้ว</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto max-h-[500px]">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-100 border-b border-slate-200 text-slate-700 uppercase font-semibold sticky top-0 z-10">
+                <tr>
+                  <th class="py-3 px-4">รหัสใบงาน / Version</th>
+                  <th class="py-3 px-3">หมวดหมู่ / สถานที่</th>
+                  <th class="py-3 px-4">หัวข้อรายการงาน</th>
+                  <th class="py-3 px-3 text-right">งบประเมิน</th>
+                  <th class="py-3 px-3 text-right">ค่าใช้จ่ายจริง</th>
+                  <th class="py-3 px-3">ช่าง / ผู้ควบคุมงาน</th>
+                  <th class="py-3 px-3">สถานะ</th>
+                  <th class="py-3 px-4 text-center">จัดการเอกสาร</th>
+                </tr>
+              </thead>
+              <tbody id="reportTasksTableBody" class="divide-y divide-slate-200">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500 font-mono-code">
+            <div>พบข้อมูลในรายงาน: <strong id="repTasksCountText" class="text-slate-900">0</strong> รายการ</div>
+            <div>SYS VER: <strong class="text-teal-700">v2.5.0-ENT</strong> | FONT: TH Sarabun New (12pt / 14pt / 16pt)</div>
           </div>
         </div>
       </div>
@@ -1737,6 +1788,129 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  
+  <!-- ========================================================================
+       6.9 REPORT EDIT TASK MODAL (POPUP)
+       ======================================================================== -->
+  <div id="reportEditTaskModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 no-print" onclick="FMMS.closeReportEditTaskModal()">
+    <div class="max-w-2xl w-full bg-white rounded-xl shadow-2xl border-2 border-blue-500 overflow-hidden transform transition-all max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+      <!-- Header Banner -->
+      <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-slate-900 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl shadow-inner">
+            ✏️
+          </div>
+          <div>
+            <h3 class="text-base font-bold tracking-wide" id="reportEditModalTitle">แก้ไขข้อมูลใบงานซ่อมบำรุง</h3>
+            <p class="text-xs text-blue-200 font-mono-code">EXECUTIVE & SUPERVISOR DOCUMENT EDITOR</p>
+          </div>
+        </div>
+        <button type="button" onclick="FMMS.closeReportEditTaskModal()" class="text-white/80 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Form Body -->
+      <form id="reportEditTaskForm" onsubmit="FMMS.handleSaveEditTaskFromReport(event)" class="p-6 space-y-4 text-xs overflow-y-auto flex-1">
+        <input type="hidden" id="repEditTaskId" value="">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">รหัสเอกสารใบงาน</label>
+            <input type="text" id="repEditTaskIdDisplay" disabled class="w-full border border-slate-300 rounded px-3 py-2 bg-slate-100 font-mono-code font-bold text-slate-800">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ประเภทงาน</label>
+            <select id="repEditTaskType" class="w-full border border-slate-300 rounded px-3 py-2 bg-white font-mono-code">
+              <option value="CM">CM (Corrective)</option>
+              <option value="PM">PM (Preventive)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">หมวดหมู่งานระบบ *</label>
+            <select id="repEditCategory" class="w-full border border-slate-300 rounded px-3 py-2 bg-white">
+              <option value="แอร์/เครื่องกล">แอร์/เครื่องกล</option>
+              <option value="ไฟฟ้า">ไฟฟ้า</option>
+              <option value="ประปา/สุขาภิบาล">ประปา/สุขาภิบาล</option>
+              <option value="โครงสร้าง/สถาปัตย์">โครงสร้าง/สถาปัตย์</option>
+              <option value="ความปลอดภัย/ดับเพลิง">ความปลอดภัย/ดับเพลิง</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">หัวข้องาน / อาการชำรุด *</label>
+          <input type="text" id="repEditTitle" required class="w-full border border-slate-300 rounded px-3 py-2 font-medium">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">พิกัดสถานที่ / อาคาร / ชั้น / ห้อง *</label>
+            <input type="text" id="repEditLocation" required class="w-full border border-slate-300 rounded px-3 py-2">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ระดับความเร่งด่วน</label>
+            <select id="repEditPriority" class="w-full border border-slate-300 rounded px-3 py-2 bg-white">
+              <option value="Normal">Normal (ปกติ)</option>
+              <option value="High">High (เร่งด่วน)</option>
+              <option value="Critical">Critical (ฉุกเฉินวิกฤต)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">งบประมาณประเมิน (฿)</label>
+            <input type="number" id="repEditEstCost" min="0" step="1" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code font-bold text-slate-900">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ค่าใช้จ่ายจริงเกิดขึ้น (฿)</label>
+            <input type="number" id="repEditActualCost" min="0" step="1" class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code font-bold text-slate-900">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">สถานะการดำเนินงาน *</label>
+            <select id="repEditStatus" class="w-full border border-slate-300 rounded px-3 py-2 bg-white font-semibold">
+              <option value="Pending Level 2 Approval">รอ ผค.งาน (ระดับ 2) อนุมัติ</option>
+              <option value="Pending Level 3 Approval">รอ ผู้บริหาร (ระดับ 3) อนุมัติงบ</option>
+              <option value="Approved">อนุมัติแล้ว (Approved)</option>
+              <option value="In Progress">กำลังดำเนินการ</option>
+              <option value="Completed">ซ่อมเสร็จแล้ว (รอตรวจ)</option>
+              <option value="Closed">ตรวจรับและปิดงานแล้ว (Closed)</option>
+              <option value="Rejected to Level 1">ตีกลับให้ช่างแก้ไข</option>
+              <option value="Rejected to Level 2">ตีกลับให้ ผค.งานทบทวน</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">การวิเคราะห์ทางวิศวกรรม / ความเห็นผู้ควบคุมงาน</label>
+          <textarea id="repEditAnalysis" rows="2" class="w-full border border-slate-300 rounded px-3 py-2"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">รายการอะไหล่ & วัสดุอุปกรณ์</label>
+          <input type="text" id="repEditMaterials" class="w-full border border-slate-300 rounded px-3 py-2">
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <button type="button" onclick="FMMS.previewTaskA4Report(document.getElementById('repEditTaskId').value)"
+            class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-4 py-2.5 rounded-lg text-xs transition border border-slate-300 flex items-center gap-1.5 cursor-pointer">
+            <span>👁️ พรีวิวเอกสาร A4</span>
+          </button>
+          <div class="flex gap-2">
+            <button type="button" onclick="FMMS.closeReportEditTaskModal()"
+              class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2.5 rounded-lg text-xs transition cursor-pointer">
+              ยกเลิก
+            </button>
+            <button type="submit"
+              class="bg-blue-700 hover:bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-lg text-xs transition shadow cursor-pointer">
+              บันทึกการแก้ไขข้อมูล
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 

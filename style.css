@@ -1,3 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap');
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  font-style: normal;
+  font-weight: 400;
+  src: local('TH Sarabun New'), local('THSarabunNew'), url('https://fonts.gstatic.com/s/sarabun/v14/DtVkJxOVoTznr3a-lr5tU5bW.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  font-style: normal;
+  font-weight: 700;
+  src: local('TH Sarabun New Bold'), local('THSarabunNew-Bold'), url('https://fonts.gstatic.com/s/sarabun/v14/DtVhJxOVoTznr3a-prZUS5bxVw.woff2') format('woff2');
+}
+
 /* ============================================================================
  * FMMS - FACILITY MAINTENANCE MANAGEMENT SYSTEM (ENTERPRISE B2B EDITION)
  * Architectural & Industrial Styling (ISO 41001 Aligned)
@@ -124,7 +140,8 @@ body {
 }
 
 /* ============================================================================
- * INTERNATIONAL & THAI OFFICIAL MEMO A4 PAPER LAYOUT (@media print)
+ * OFFICIAL THAI TH SARABUN A4 PAPER LAYOUT & TYPOGRAPHY (@media print)
+ * Base text: 12pt, Subheading: 14pt (bold), Main Header: 16pt (bold)
  * ============================================================================ */
 
 .a4-paper-sheet {
@@ -135,51 +152,170 @@ body {
   color: #000000;
   padding: 18mm 20mm;
   border: 1px solid #cbd5e1;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
   position: relative;
-  font-family: 'IBM Plex Sans Thai', serif;
-  line-height: 1.65;
+  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+  font-size: 12pt !important;
+  line-height: 1.45 !important;
+}
+
+.a4-paper-sheet,
+.a4-paper-sheet p,
+.a4-paper-sheet div,
+.a4-paper-sheet span,
+.a4-paper-sheet td,
+.a4-paper-sheet li {
+  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+  font-size: 12pt;
+  line-height: 1.45;
+  color: #000000;
+}
+
+/* Headings 2 sizes larger than body (12pt -> 14pt) + Bold */
+.a4-paper-sheet h3,
+.a4-paper-sheet h4,
+.a4-paper-sheet .doc-subheading {
+  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+  font-size: 14pt !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  color: #000000 !important;
+}
+
+/* Main Document Title 4 sizes larger (12pt -> 16pt) + Bold */
+.a4-paper-sheet h1,
+.a4-paper-sheet h2,
+.a4-paper-sheet .doc-title {
+  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+  font-size: 16pt !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: #000000 !important;
+}
+
+/* A4 Paper Tables */
+.a4-paper-sheet table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 12pt !important;
+}
+
+.a4-paper-sheet table th {
+  font-size: 12pt !important;
+  font-weight: 700 !important;
+  padding: 5px 8px !important;
+  border: 1px solid #333333 !important;
+  background-color: #f1f5f9 !important;
+  text-align: left !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+.a4-paper-sheet table td {
+  font-size: 12pt !important;
+  padding: 5px 8px !important;
+  border: 1px solid #333333 !important;
 }
 
 @media (max-width: 860px) {
   .a4-paper-sheet {
     width: 100%;
     min-height: auto;
-    padding: 20px;
+    padding: 16px;
   }
 }
 
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm 15mm;
+    margin: 10mm 12mm;
   }
 
-  body {
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
   }
 
-  .no-print {
+  /* Hide application shell elements */
+  header, main, footer, .no-print,
+  #landingOverlay, #authOverlay, #accessDeniedModal,
+  #cloudSyncConfirmationModal, #approvalAlertModal,
+  #qrScannerModal, #imagePreviewModal, #toastContainer,
+  #reportEditTaskModal,
+  body > main {
     display: none !important;
   }
 
+  /* Ensure modal and A4 paper render with 100% visibility */
   #memoPrintModal {
     position: static !important;
     inset: auto !important;
-    background: transparent !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     overflow: visible !important;
     display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    z-index: 99999 !important;
+  }
+
+  #memoPrintModal.hidden {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  #memoPrintModal > div.no-print {
+    display: none !important;
   }
 
   .a4-paper-sheet {
     width: 100% !important;
+    max-width: 100% !important;
     min-height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: block !important;
+    visibility: visible !important;
+    font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+    font-size: 12pt !important;
+    line-height: 1.45 !important;
+  }
+
+  .a4-paper-sheet * {
+    visibility: visible !important;
+    color: #000000 !important;
+    box-sizing: border-box !important;
+  }
+
+  .a4-paper-sheet th {
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .a4-paper-sheet img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    visibility: visible !important;
   }
 }
 
