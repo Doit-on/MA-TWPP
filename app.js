@@ -9,7 +9,7 @@
  * ============================================================================
  */
 
-const FMMS = (function() {
+var FMMS = (function() {
   'use strict';
 
   const DEFAULT_CONFIG = {
@@ -768,22 +768,35 @@ const FMMS = (function() {
    * ==========================================================================
    */
 
+  function hideOverlay(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+    el.style.display = 'none';
+  }
+
+  function showOverlay(id, displayType) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+    el.style.display = displayType || 'flex';
+  }
+
   function fillLoginPreset(username, password) {
     setVal('loginUsername', username);
     setVal('loginPassword', password);
   }
 
-  function enterLoginFromLanding() {
-    const landing = document.getElementById('landingOverlay');
-    if (landing) landing.classList.add('hidden');
+  function quickLogin(username, password) {
+    fillLoginPreset(username, password);
+    handleLoginSubmit();
+  }
 
-    if (state.session && state.session.userId) {
-      applySessionToUI();
-      return;
-    }
-
-    const auth = document.getElementById('authOverlay');
-    if (auth) auth.classList.remove('hidden');
+  function openLoginModal() {
+    hideOverlay('landingOverlay');
+    showOverlay('authOverlay', 'flex');
 
     const usernameInput = document.getElementById('loginUsername');
     if (usernameInput) {
@@ -796,11 +809,26 @@ const FMMS = (function() {
     }
   }
 
+  function enterLoginFromLanding(forceModal) {
+    if (state.session && state.session.userId) {
+      applySessionToUI();
+      return;
+    }
+
+    if (forceModal === true) {
+      openLoginModal();
+      return;
+    }
+
+    // Direct 1-click entry into system using default Supervisor account
+    const defaultUser = (state.config && state.config.defaultRoleUser) || 'supervisor';
+    const defaultPass = defaultUser === 'admin' ? 'admin123' : (defaultUser === 'tech01' ? 'tech123' : 'sup123');
+    quickLogin(defaultUser, defaultPass);
+  }
+
   function showLandingPage() {
-    const landing = document.getElementById('landingOverlay');
-    if (landing) landing.classList.remove('hidden');
-    const auth = document.getElementById('authOverlay');
-    if (auth) auth.classList.add('hidden');
+    showOverlay('landingOverlay', 'flex');
+    hideOverlay('authOverlay');
   }
 
   function handleLoginSubmit(e) {
@@ -878,10 +906,8 @@ const FMMS = (function() {
   }
 
   function applySessionToUI() {
-    const landing = document.getElementById('landingOverlay');
-    if (landing) landing.classList.add('hidden');
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.classList.add('hidden');
+    hideOverlay('landingOverlay');
+    hideOverlay('authOverlay');
 
     if (!state.session) return;
     setText('headerUserName', state.session.fullName);
@@ -904,10 +930,8 @@ const FMMS = (function() {
     }
     state.session = null;
     localStorage.removeItem(STORAGE_KEYS.SESSION);
-    const landing = document.getElementById('landingOverlay');
-    if (landing) landing.classList.add('hidden');
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.classList.remove('hidden');
+    hideOverlay('landingOverlay');
+    showOverlay('authOverlay', 'flex');
     showToast('ออกจากระบบแล้ว', 'ท่านสามารถเข้าสู่ระบบใหม่ได้ตลอดเวลา', 'info');
   }
 
@@ -924,8 +948,10 @@ const FMMS = (function() {
       if (views[k]) {
         if (k === viewKey) {
           views[k].classList.remove('hidden');
+          views[k].style.display = 'block';
         } else {
           views[k].classList.add('hidden');
+          views[k].style.display = 'none';
         }
       }
     });
@@ -2989,6 +3015,8 @@ const FMMS = (function() {
 
   return {
     fillLoginPreset: fillLoginPreset,
+    quickLogin: quickLogin,
+    openLoginModal: openLoginModal,
     handleLoginSubmit: handleLoginSubmit,
     enterLoginFromLanding: enterLoginFromLanding,
     showLandingPage: showLandingPage,
@@ -3037,3 +3065,7 @@ const FMMS = (function() {
     exportToGoogleSheetCloud: exportToGoogleSheetCloud
   };
 })();
+
+if (typeof window !== 'undefined') {
+  window.FMMS = FMMS;
+}

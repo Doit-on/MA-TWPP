@@ -35,10 +35,10 @@
         <span>ISO 41001 FACILITY MANAGEMENT STANDARD</span>
       </div>
       <div class="flex items-center gap-3 text-xs font-mono-code">
-        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition">
+        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition cursor-pointer">
           สแกน QR ตั้งค่าเครื่องใหม่
         </button>
-        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-1.5 rounded-md transition">
+        <button type="button" onclick="FMMS.openLoginModal()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-1.5 rounded-md transition cursor-pointer">
           เข้าสู่ระบบ (Sign In) →
         </button>
       </div>
@@ -70,12 +70,29 @@
 
       <!-- Action Buttons -->
       <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
-        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-7 py-3 rounded-md text-sm transition shadow-lg flex items-center gap-2 touch-target">
+        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-7 py-3 rounded-md text-sm transition shadow-lg flex items-center gap-2 touch-target cursor-pointer">
           <span>เข้าสู่ระบบปฏิบัติการ (Enter FM Portal)</span>
           <span class="font-mono-code">→</span>
         </button>
-        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-600 text-slate-100 font-medium px-5 py-3 rounded-md text-sm transition flex items-center gap-2 touch-target">
-          <span>📷 สแกน QR Code เปิดเครื่องใหม่</span>
+        <button type="button" onclick="FMMS.openLoginModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-600 text-slate-100 font-medium px-5 py-3 rounded-md text-sm transition flex items-center gap-2 touch-target cursor-pointer">
+          <span>🔑 เลือกบัญชีลงชื่อเข้าใช้</span>
+        </button>
+        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-600 text-slate-100 font-medium px-4 py-3 rounded-md text-sm transition flex items-center gap-2 touch-target cursor-pointer">
+          <span>📷 สแกน QR</span>
+        </button>
+      </div>
+
+      <!-- Quick 1-Click Role Direct Sign-In on Landing Page -->
+      <div class="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
+        <span class="text-slate-400">เข้าใช้งานด่วน:</span>
+        <button type="button" onclick="FMMS.quickLogin('tech01','tech123')" class="px-3 py-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 transition cursor-pointer">
+          ช่างหน้างาน (tech01)
+        </button>
+        <button type="button" onclick="FMMS.quickLogin('supervisor','sup123')" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold border border-blue-400 transition cursor-pointer shadow">
+          Supervisor ★ (sup123)
+        </button>
+        <button type="button" onclick="FMMS.quickLogin('admin','admin123')" class="px-3 py-1.5 rounded bg-teal-800 hover:bg-teal-700 text-teal-100 font-semibold border border-teal-500 transition cursor-pointer">
+          ผู้บริหาร/Admin (admin123)
         </button>
       </div>
 
