@@ -72,6 +72,8 @@ const FMMS = (function() {
     renderAllViews();
     generateProvisioningQrCode();
     restoreSessionOrShowLogin();
+    // Guarantee Landing Page is always presented on initial visit / load
+    showLandingPage();
     pingConnection(false);
 
     window.addEventListener('online', function() {
