@@ -69,30 +69,13 @@
       </p>
 
       <!-- Action Buttons -->
-      <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
-        <button type="button" onclick="FMMS.enterLoginFromLanding()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-7 py-3 rounded-md text-sm transition shadow-lg flex items-center gap-2 touch-target cursor-pointer">
-          <span>เข้าสู่ระบบปฏิบัติการ (Enter FM Portal)</span>
-          <span class="font-mono-code">→</span>
+      <div class="pt-6 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onclick="FMMS.openLoginModal()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-8 py-3.5 rounded-lg text-sm transition shadow-xl flex items-center gap-2 touch-target cursor-pointer">
+          <span>เข้าสู่ระบบตามสิทธิ์ (Sign In)</span>
+          <span class="font-mono-code text-base">→</span>
         </button>
-        <button type="button" onclick="FMMS.openLoginModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-600 text-slate-100 font-medium px-5 py-3 rounded-md text-sm transition flex items-center gap-2 touch-target cursor-pointer">
-          <span>🔑 เลือกบัญชีลงชื่อเข้าใช้</span>
-        </button>
-        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-600 text-slate-100 font-medium px-4 py-3 rounded-md text-sm transition flex items-center gap-2 touch-target cursor-pointer">
-          <span>📷 สแกน QR</span>
-        </button>
-      </div>
-
-      <!-- Quick 1-Click Role Direct Sign-In on Landing Page -->
-      <div class="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-        <span class="text-slate-400">เข้าใช้งานด่วน:</span>
-        <button type="button" onclick="FMMS.quickLogin('tech01','tech123')" class="px-3 py-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 transition cursor-pointer">
-          ช่างหน้างาน (tech01)
-        </button>
-        <button type="button" onclick="FMMS.quickLogin('supervisor','sup123')" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold border border-blue-400 transition cursor-pointer shadow">
-          Supervisor ★ (sup123)
-        </button>
-        <button type="button" onclick="FMMS.quickLogin('admin','admin123')" class="px-3 py-1.5 rounded bg-teal-800 hover:bg-teal-700 text-teal-100 font-semibold border border-teal-500 transition cursor-pointer">
-          ผู้บริหาร/Admin (admin123)
+        <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 font-medium px-5 py-3.5 rounded-lg text-sm transition flex items-center gap-2 touch-target cursor-pointer">
+          <span>📷 สแกน QR สำหรับเครื่องใหม่</span>
         </button>
       </div>
 
@@ -132,126 +115,56 @@
        1. LOGIN & ZERO-TOUCH QR DEVICE PROVISIONING OVERLAY
        ======================================================================== -->
   <div id="authOverlay" class="hidden fixed inset-0 z-40 arch-login-bg flex items-center justify-center p-4 overflow-y-auto no-print">
-    <div class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 bg-slate-950/90 border border-slate-700 rounded-md overflow-hidden shadow-2xl relative z-10">
+    <div class="w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl p-6 sm:p-8 text-slate-900 relative z-10">
 
-      <!-- Left Architectural Brand & Resource Binding Panel -->
-      <div class="lg:col-span-5 p-6 sm:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between bg-slate-900/60">
-        <div>
-          <div class="flex items-center gap-3 mb-6">
-            <!-- Mini 3 Rings + FM Emblem -->
-            <div class="px-2 py-1.5 rounded-lg bg-white shadow-sm border border-slate-200 flex items-center gap-2">
-              <img src="logo-cropped.png" alt="TWPP Logo" class="w-7 h-7 object-contain" />
-              <span class="font-mono-code font-bold text-slate-900 text-sm">FM</span>
-            </div>
-            <div>
-              <div class="text-[11px] font-mono-code uppercase tracking-widest text-teal-400">BUILD v2.5.0-ENT</div>
-              <h1 class="text-base font-bold text-white tracking-tight">FMMS ENTERPRISE</h1>
-            </div>
-          </div>
-
-          <h2 class="text-lg font-semibold text-white leading-snug mb-2">
-            เข้าสู่ระบบบริหารงานซ่อมบำรุงอาคาร
-          </h2>
-          <p class="text-xs text-slate-300 leading-relaxed mb-5">
-            รองรับการควบคุมเลขเอกสารไม่ซ้ำ (Mutex Lock), แสดงเลข Version เอกสารทุกครั้งที่สร้าง/แก้ไข และจำกัดสิทธิ์การแก้ไขเอกสารเฉพาะระดับ Supervisor
-          </p>
-
-          <!-- Verified Resource Connection Card -->
-          <div class="bg-slate-950/80 border border-slate-800 rounded-md p-3.5 space-y-2.5 text-xs">
-            <div class="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-2">
-              <span class="font-medium text-slate-200">ฐานข้อมูล 8 แท็บ (Data MA TWPP)</span>
-              <span id="loginPingBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono-code text-[11px]">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot-live"></span>
-                READY
-              </span>
-            </div>
-            <div class="space-y-1">
-              <div class="text-slate-400 flex items-center justify-between">
-                <span>Google Sheet:</span>
-                <a href="https://docs.google.com/spreadsheets/d/1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ/edit?gid=0#gid=0" target="_blank" rel="noopener" class="text-teal-400 hover:underline font-mono-code">เปิดดูชีต ↗</a>
-              </div>
-              <div class="font-mono-code text-[11px] text-slate-300 truncate bg-slate-900 px-2 py-1 rounded border border-slate-800" id="loginSheetIdDisplay">
-                1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
-              </div>
-            </div>
-            <div class="space-y-1">
-              <div class="text-slate-400 flex items-center justify-between">
-                <span>Google Drive:</span>
-                <a href="https://drive.google.com/drive/u/0/folders/1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx" target="_blank" rel="noopener" class="text-teal-400 hover:underline font-mono-code">เปิดโฟลเดอร์ ↗</a>
-              </div>
-              <div class="font-mono-code text-[11px] text-slate-300 truncate bg-slate-900 px-2 py-1 rounded border border-slate-800" id="loginDriveIdDisplay">
-                1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx
-              </div>
-            </div>
-          </div>
+      <!-- Logo & Brand Header -->
+      <div class="flex flex-col items-center justify-center mb-6 text-center">
+        <div class="p-3.5 rounded-2xl bg-white shadow-md inline-flex items-center justify-center border border-indigo-100 ring-2 ring-indigo-500/10 mb-3">
+          <img src="logo-cropped.png" alt="TWPP Logo" class="w-16 h-14 object-contain" />
         </div>
-
-        <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono-code">
-          <button type="button" onclick="FMMS.showLandingPage()" class="text-teal-400 hover:underline">← กลับหน้า Landing Page</button>
-          <span>DEVICE: <strong id="loginDeviceId" class="text-slate-200">DEV-INIT</strong></span>
+        <div class="tracking-wider font-mono-code text-xl font-bold text-slate-900">
+          FMMS ENTERPRISE
+        </div>
+        <div class="text-[11px] font-mono-code uppercase tracking-widest text-teal-700 mt-1">
+          DATA MA TWPP • ISO 41001 ALIGNED
         </div>
       </div>
 
-      <!-- Right Authentication & Device Onboarding Form -->
-      <div class="lg:col-span-7 p-6 sm:p-8 bg-white text-slate-900 flex flex-col justify-between">
+      <div class="border-b border-slate-200 pb-3 mb-5 text-center">
+        <h2 class="text-base font-bold text-slate-900">ลงชื่อเข้าใช้งานระบบ</h2>
+        <p class="text-xs text-slate-500 mt-1">กรุณาระบุชื่อผู้ใช้งานและรหัสผ่านตามสิทธิ์ที่ได้รับมอบหมาย</p>
+      </div>
+
+      <!-- Clean Login Form -->
+      <form id="loginForm" onsubmit="FMMS.handleLoginSubmit(event)" class="space-y-4">
         <div>
-          <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-200">
-            <div>
-              <h3 class="text-base font-bold text-slate-900">ลงชื่อเข้าใช้งานระบบ (Operator Sign-In)</h3>
-              <p class="text-xs text-slate-500">เลือกบัญชีตามระดับสิทธิ์เพื่อเข้าสู่หน้าจอปฏิบัติงาน</p>
-            </div>
-            <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium px-3 py-2 rounded-md flex items-center gap-1.5 transition touch-target">
-              <span>📷 สแกน QR ตั้งค่าเครื่องใหม่</span>
-            </button>
-          </div>
-
-          <!-- Login Form -->
-          <form id="loginForm" onsubmit="FMMS.handleLoginSubmit(event)" class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">ชื่อผู้ใช้งาน (Username)</label>
-              <input type="text" id="loginUsername" required placeholder="เช่น supervisor, admin, tech01" value="supervisor"
-                class="w-full border border-slate-300 rounded-md px-3.5 py-2.5 text-sm focus:outline-none focus:border-slate-900 font-mono-code">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">รหัสผ่าน (Password)</label>
-              <input type="password" id="loginPassword" required placeholder="••••••••" value="sup123"
-                class="w-full border border-slate-300 rounded-md px-3.5 py-2.5 text-sm focus:outline-none focus:border-slate-900 font-mono-code">
-            </div>
-
-            <!-- Quick Role Selection Presets -->
-            <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
-              <div class="text-[11px] font-semibold text-slate-500 uppercase mb-2">คลิกเลือกสลับบัญชีทดสอบแต่ละระดับสิทธิ์:</div>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button type="button" onclick="FMMS.fillLoginPreset('tech01','tech123')" class="text-left p-2 rounded border border-slate-200 bg-white hover:border-slate-900 transition">
-                  <div class="text-xs font-bold text-slate-900">ระดับ 1: ช่างหน้างาน</div>
-                  <div class="text-[10px] text-slate-500">สร้างใบงานใหม่ (ห้ามแก้เอกสารเดิม)</div>
-                </button>
-                <button type="button" onclick="FMMS.fillLoginPreset('supervisor','sup123')" class="text-left p-2 rounded border border-blue-400 bg-blue-50/40 hover:border-blue-700 transition">
-                  <div class="text-xs font-bold text-blue-700">ระดับ 2: Supervisor ★</div>
-                  <div class="text-[10px] text-slate-600">มีสิทธิ์แก้ไขเอกสาร & ราคากลาง</div>
-                </button>
-                <button type="button" onclick="FMMS.fillLoginPreset('admin','admin123')" class="text-left p-2 rounded border border-slate-200 bg-white hover:border-slate-900 transition">
-                  <div class="text-xs font-bold text-teal-700">ระดับ 3: ผู้บริหาร/Admin</div>
-                  <div class="text-[10px] text-slate-500">อนุมัติงบ & จัดการผู้ใช้</div>
-                </button>
-              </div>
-            </div>
-
-            <div id="loginErrorBox" class="hidden bg-red-50 border border-red-300 text-red-800 text-xs px-3 py-2 rounded-md"></div>
-
-            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 rounded-md text-sm transition touch-target flex items-center justify-center gap-2">
-              <span>เข้าสู่ระบบและซิงค์ฐานข้อมูล</span>
-              <span class="font-mono-code text-xs text-teal-400">→</span>
-            </button>
-          </form>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">ชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="loginUsername" required placeholder="ระบุชื่อผู้ใช้งาน" autocomplete="username"
+            class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600 font-mono-code bg-slate-50/50">
         </div>
 
-        <div class="mt-6 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-          <div>เวอร์ชันระบบ: <strong class="font-mono-code text-slate-800">v2.5.0-ENT</strong></div>
-          <button type="button" onclick="FMMS.openConnectionConfigModal()" class="text-blue-700 hover:underline font-medium">
-            ตั้งค่า URL เชื่อมต่อ Apps Script (GAS)
-          </button>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">รหัสผ่าน (Password)</label>
+          <input type="password" id="loginPassword" required placeholder="ระบุรหัสผ่าน" autocomplete="current-password"
+            class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600 font-mono-code bg-slate-50/50">
         </div>
+
+        <div id="loginErrorBox" class="hidden bg-red-50 border border-red-300 text-red-800 text-xs px-3.5 py-2.5 rounded-lg leading-relaxed"></div>
+
+        <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-4 rounded-lg text-sm transition touch-target flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer">
+          <span>เข้าสู่ระบบ (Sign In)</span>
+          <span class="font-mono-code text-teal-400">→</span>
+        </button>
+      </form>
+
+      <!-- Clean Footer Links -->
+      <div class="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+        <button type="button" onclick="FMMS.showLandingPage()" class="text-slate-600 hover:text-slate-900 flex items-center gap-1 font-medium transition cursor-pointer">
+          <span>← กลับหน้าแรก</span>
+        </button>
+        <button type="button" onclick="FMMS.openQrScannerModal()" class="text-teal-700 hover:text-teal-900 font-medium transition cursor-pointer">
+          📷 สแกน QR สำหรับเครื่องใหม่
+        </button>
       </div>
 
     </div>
@@ -861,129 +774,354 @@
     </section>
 
     <!-- ======================================================================
-         VIEW 3: LEVEL 3 - EXECUTIVE DASHBOARD, ONE-CLICK APPROVAL & XLS/GSHEET EXPORT
+         VIEW 3: LEVEL 3 - EXECUTIVE DASHBOARD, DUAL-STATUS WORK TRACKER & ANALYTICS
          ====================================================================== -->
-    <section id="viewRole3" class="hidden space-y-6">
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="enterprise-card p-4 border-l-4 border-l-slate-900">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-500 uppercase">ใบงานทั้งหมด / สัดส่วน PM:CM</span>
-            <span class="text-[10px] font-mono-code bg-slate-100 px-2 py-0.5 rounded text-slate-700">ISO-METRIC-01</span>
-          </div>
-          <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1.5" id="kpiTotalTasks">0</div>
-          <div class="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden flex">
-            <div id="kpiPmBar" class="bg-teal-600 h-full" style="width: 60%"></div>
-            <div id="kpiCmBar" class="bg-amber-500 h-full" style="width: 40%"></div>
-          </div>
-          <div class="text-[11px] text-slate-600 mt-1.5 flex justify-between font-mono-code">
-            <span id="kpiPmRatioText">PM: 60%</span>
-            <span id="kpiCmRatioText">CM: 40%</span>
-          </div>
+    <section id="viewRole3" class="hidden space-y-5">
+      <!-- Executive Sub-Navigation Tabs Bar -->
+      <div class="bg-white border border-slate-200 rounded-lg p-1.5 flex flex-wrap items-center justify-between gap-2 shadow-sm">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" id="execSubTabBtnMemos" onclick="FMMS.switchExecutiveSubTab('memos')"
+            class="px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition flex items-center gap-2 cursor-pointer shadow-sm">
+            <span>📋 คิวอนุมัติบันทึกข้อความ</span>
+            <span id="execBadgePendingMemos" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-mono-code">0</span>
+          </button>
+          <button type="button" id="execSubTabBtnCards" onclick="FMMS.switchExecutiveSubTab('cards')"
+            class="px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 cursor-pointer">
+            <span>🗺️ สถานะงาน & ตำแหน่งหน้างาน (ช่าง VS ผู้ควบคุม)</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-teal-100 text-teal-800 font-mono-code font-semibold">Option 2</span>
+          </button>
+          <button type="button" id="execSubTabBtnReport" onclick="FMMS.switchExecutiveSubTab('report')"
+            class="px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 cursor-pointer">
+            <span>📈 รายงานผู้บริหารเชิงลึก & วิเคราะห์ต้นทุน</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 text-blue-800 font-mono-code font-semibold">Option 1</span>
+          </button>
         </div>
-
-        <div class="enterprise-card p-4 border-l-4 border-l-blue-700">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-blue-700 uppercase">รออนุมัติบันทึกข้อความ</span>
-            <span class="text-[10px] font-mono-code bg-blue-50 text-blue-700 px-2 py-0.5 rounded">PENDING MEMO</span>
-          </div>
-          <div class="text-2xl font-bold font-mono-code text-blue-700 mt-1.5" id="kpiPendingMemos">0</div>
-          <div class="text-xs text-slate-600 mt-2">
-            วงเงินรออนุมัติรวม: <strong id="kpiPendingBudget" class="font-mono-code text-slate-900">฿0</strong>
-          </div>
-        </div>
-
-        <div class="enterprise-card p-4 border-l-4 border-l-teal-700">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-teal-800 uppercase">งบประมาณประเมิน vs จ่ายจริง</span>
-            <span class="text-[10px] font-mono-code bg-teal-50 text-teal-800 px-2 py-0.5 rounded">BUDGET CONTROL</span>
-          </div>
-          <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1.5" id="kpiActualBudget">฿0</div>
-          <div class="text-xs text-slate-600 mt-2">
-            จากงบประเมินรวม: <strong id="kpiEstimatedBudget" class="font-mono-code text-slate-800">฿0</strong>
-          </div>
-        </div>
-
-        <div class="enterprise-card p-4 border-l-4 border-l-emerald-600">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-emerald-700 uppercase">ประวัติแก้ไขเอกสารทั้งหมด</span>
-            <span class="text-[10px] font-mono-code bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded">VERSION AUDIT</span>
-          </div>
-          <div class="text-2xl font-bold font-mono-code text-emerald-700 mt-1.5" id="kpiCompletionRate">0 Revs</div>
-          <div class="text-xs text-slate-600 mt-2" id="kpiCompletedCountText">
-            ตรวจรับและปิดงานแล้ว 0 รายการ
-          </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="FMMS.exportFullWorkbookXLS()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer">
+            <span>📊 ดาวน์โหลดรวมทุกชีต (.xls)</span>
+          </button>
+          <button type="button" onclick="FMMS.exportToGoogleSheetCloud()" class="bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer">
+            <span>☁ ส่งออก Google Sheet</span>
+          </button>
         </div>
       </div>
 
-      <!-- Executive Approval Queue & Memo Table -->
-      <div class="enterprise-card overflow-hidden">
-        <div class="enterprise-panel-header px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="text-sm font-bold text-slate-900">คิวบันทึกข้อความขออนุมัติงบประมาณซ่อมบำรุง (พร้อมเลข Version เอกสาร)</h3>
-            <p class="text-xs text-slate-500">ผู้บริหารตรวจสอบเลข Version ของเอกสาร กดอนุมัติในคลิกเดียว หรือส่งออกข้อมูลเป็นไฟล์ .xls และ Google Sheet</p>
+      <!-- TAB 1: EXECUTIVE MEMOS & APPROVAL QUEUE -->
+      <div id="execSubViewMemos" class="space-y-6">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="enterprise-card p-4 border-l-4 border-l-slate-900">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500 uppercase">ใบงานทั้งหมด / สัดส่วน PM:CM</span>
+              <span class="text-[10px] font-mono-code bg-slate-100 px-2 py-0.5 rounded text-slate-700">ISO-METRIC-01</span>
+            </div>
+            <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1.5" id="kpiTotalTasks">0</div>
+            <div class="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden flex">
+              <div id="kpiPmBar" class="bg-teal-600 h-full" style="width: 60%"></div>
+              <div id="kpiCmBar" class="bg-amber-500 h-full" style="width: 40%"></div>
+            </div>
+            <div class="text-[11px] text-slate-600 mt-1.5 flex justify-between font-mono-code">
+              <span id="kpiPmRatioText">PM: 60%</span>
+              <span id="kpiCmRatioText">CM: 40%</span>
+            </div>
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" onclick="FMMS.exportFullWorkbookXLS()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition">
-              📊 ดาวน์โหลดรายงานรวมทุกชีต (.xls)
-            </button>
-            <button type="button" onclick="FMMS.exportToGoogleSheetCloud()" class="bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition">
-              ☁ ส่งออกเป็นไฟล์ Google Sheet ใหม่
-            </button>
+
+          <div class="enterprise-card p-4 border-l-4 border-l-blue-700">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-blue-700 uppercase">รออนุมัติบันทึกข้อความ</span>
+              <span class="text-[10px] font-mono-code bg-blue-50 text-blue-700 px-2 py-0.5 rounded">PENDING MEMO</span>
+            </div>
+            <div class="text-2xl font-bold font-mono-code text-blue-700 mt-1.5" id="kpiPendingMemos">0</div>
+            <div class="text-xs text-slate-600 mt-2">
+              วงเงินรออนุมัติรวม: <strong id="kpiPendingBudget" class="font-mono-code text-slate-900">฿0</strong>
+            </div>
+          </div>
+
+          <div class="enterprise-card p-4 border-l-4 border-l-teal-700">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-teal-800 uppercase">งบประมาณประเมิน vs จ่ายจริง</span>
+              <span class="text-[10px] font-mono-code bg-teal-50 text-teal-800 px-2 py-0.5 rounded">BUDGET CONTROL</span>
+            </div>
+            <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1.5" id="kpiActualBudget">฿0</div>
+            <div class="text-xs text-slate-600 mt-2">
+              จากงบประเมินรวม: <strong id="kpiEstimatedBudget" class="font-mono-code text-slate-800">฿0</strong>
+            </div>
+          </div>
+
+          <div class="enterprise-card p-4 border-l-4 border-l-emerald-600">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-emerald-700 uppercase">ประวัติแก้ไขเอกสารทั้งหมด</span>
+              <span class="text-[10px] font-mono-code bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded">VERSION AUDIT</span>
+            </div>
+            <div class="text-2xl font-bold font-mono-code text-emerald-700 mt-1.5" id="kpiCompletionRate">0 Revs</div>
+            <div class="text-xs text-slate-600 mt-2" id="kpiCompletedCountText">
+              ตรวจรับและปิดงานแล้ว 0 รายการ
+            </div>
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase font-semibold">
-                <th class="py-3 px-4">เลขที่บันทึก / Version</th>
-                <th class="py-3 px-3">อ้างอิงใบงาน</th>
-                <th class="py-3 px-4">เรื่อง / อ้างอิงราคามาตรฐาน</th>
-                <th class="py-3 px-3 text-right">งบประมาณขออนุมัติ</th>
-                <th class="py-3 px-3">ผู้เสนอ / เวลา</th>
-                <th class="py-3 px-3">สถานะอนุมัติ</th>
-                <th class="py-3 px-4 text-right">การพิจารณาอนุมัติ (ระดับ 3)</th>
-              </tr>
-            </thead>
-            <tbody id="executiveMemosTableBody" class="divide-y divide-slate-200">
-              <!-- Populated by app.js -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Executive Summary Matrix -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Executive Approval Queue & Memo Table -->
         <div class="enterprise-card overflow-hidden">
-          <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
-            <h3 class="text-sm font-bold text-slate-900">สรุปงบประมาณและปริมาณงานแยกตามหมวดวิศวกรรม (MEP Breakdown)</h3>
-            <span class="text-[11px] font-mono-code text-slate-500">ISO 41001 Clause 9.1</span>
+          <div class="enterprise-panel-header px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">คิวบันทึกข้อความขออนุมัติงบประมาณซ่อมบำรุง (พร้อมเลข Version เอกสาร)</h3>
+              <p class="text-xs text-slate-500">ผู้บริหารตรวจสอบเลข Version ของเอกสาร กดอนุมัติในคลิกเดียว หรือส่งออกข้อมูลเป็นไฟล์ .xls และ Google Sheet</p>
+            </div>
           </div>
-          <div class="p-4 overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse">
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
               <thead>
-                <tr class="border-b border-slate-200 text-slate-500 uppercase">
-                  <th class="py-2">หมวดหมู่ระบบ</th>
-                  <th class="py-2 text-center">จำนวนงาน</th>
-                  <th class="py-2 text-right">งบประเมิน (฿)</th>
-                  <th class="py-2 text-right">ใช้จริง (฿)</th>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase font-semibold">
+                  <th class="py-3 px-4">เลขที่บันทึก / Version</th>
+                  <th class="py-3 px-3">อ้างอิงใบงาน</th>
+                  <th class="py-3 px-4">เรื่อง / อ้างอิงราคามาตรฐาน</th>
+                  <th class="py-3 px-3 text-right">งบประมาณขออนุมัติ</th>
+                  <th class="py-3 px-3">ผู้เสนอ / เวลา</th>
+                  <th class="py-3 px-3">สถานะอนุมัติ</th>
+                  <th class="py-3 px-4 text-right">การพิจารณาอนุมัติ (ระดับ 3)</th>
                 </tr>
               </thead>
-              <tbody id="execCategoryBreakdownBody" class="divide-y divide-slate-100">
+              <tbody id="executiveMemosTableBody" class="divide-y divide-slate-200">
                 <!-- Populated by app.js -->
               </tbody>
             </table>
           </div>
         </div>
 
+        <!-- Executive Summary Matrix -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="enterprise-card overflow-hidden">
+            <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-900">สรุปงบประมาณและปริมาณงานแยกตามหมวดวิศวกรรม (MEP Breakdown)</h3>
+              <span class="text-[11px] font-mono-code text-slate-500">ISO 41001 Clause 9.1</span>
+            </div>
+            <div class="p-4 overflow-x-auto">
+              <table class="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-500 uppercase">
+                    <th class="py-2">หมวดหมู่ระบบ</th>
+                    <th class="py-2 text-center">จำนวนงาน</th>
+                    <th class="py-2 text-right">งบประเมิน (฿)</th>
+                    <th class="py-2 text-right">ใช้จริง (฿)</th>
+                  </tr>
+                </thead>
+                <tbody id="execCategoryBreakdownBody" class="divide-y divide-slate-100">
+                  <!-- Populated by app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="enterprise-card overflow-hidden">
+            <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-900">ประวัติการสร้างและแก้ไข Version เอกสารล่าสุด</h3>
+              <span class="text-xs text-slate-500">ระบบบันทึก Audit Trailing</span>
+            </div>
+            <div id="execRecentLogsContainer" class="p-4 space-y-2.5 max-h-64 overflow-y-auto text-xs">
+              <!-- Populated by app.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: OPTION 2 - DUAL STATUS CARDS (TECHNICIAN VS SUPERVISOR) & EXACT LOCATION TRACKER -->
+      <div id="execSubViewCards" class="hidden space-y-4">
+        <!-- Filter Toolbar -->
+        <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span>📍 ติดตามสถานะงานตามตำแหน่งหน้างานจริง (Location & Dual-Status Tracker)</span>
+                <span class="text-[11px] font-mono-code px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 font-semibold">FIELD TECH vs SUPERVISOR</span>
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">ผู้บริหารมองเห็นจุดเกิดเหตุของงาน (พิกัด/ชั้น/ห้อง) พร้อมสถานะควบคู่จากช่างภาคสนามและผู้ควบคุมงานวิศวกรรม</p>
+            </div>
+            <div class="text-xs font-mono-code text-slate-600 bg-slate-100 px-3 py-1.5 rounded border border-slate-200">
+              พบข้อมูล: <strong id="execCardsFilteredCount" class="text-slate-900">0</strong> รายการ
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100 text-xs">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">📍 กรองตามตำแหน่ง/อาคาร (Physical Location):</label>
+              <select id="execCardLocationFilter" onchange="FMMS.renderExecutivePipelineCards()"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 bg-slate-50 text-xs font-medium">
+                <option value="ALL">ทุกสถานที่ (All Locations)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">📊 กรองตามสถานะงาน (Stage / Status):</label>
+              <select id="execCardStatusFilter" onchange="FMMS.renderExecutivePipelineCards()"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 bg-slate-50 text-xs font-medium">
+                <option value="ALL">ทุกสถานะการดำเนินงาน</option>
+                <option value="Pending Approval">1. รออนุมัติงบประมาณ (Pending Approval)</option>
+                <option value="In Progress">2. ช่างกำลังเข้าดำเนินการ (In Progress)</option>
+                <option value="Completed">3. ซ่อมเสร็จแล้ว / รอตรวจรับ (Completed)</option>
+                <option value="Closed">4. ตรวจรับและปิดงานสมบูรณ์ (Closed)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">🔍 ค้นหา (รหัสใบงาน, อาการ, ช่าง):</label>
+              <input type="text" id="execCardSearchInput" oninput="FMMS.renderExecutivePipelineCards()" placeholder="พิมพ์เพื่อค้นหา..."
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+            </div>
+          </div>
+        </div>
+
+        <!-- Cards Grid Container -->
+        <div id="execCardsGrid" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+
+      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & ISO 41001 REPORT -->
+      <div id="execSubViewReport" class="hidden space-y-6">
+        <!-- Report Header & Actions -->
+        <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-mono-code px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-200 font-semibold">EXECUTIVE BI SUITE</span>
+              <span class="text-xs text-slate-500">รายงานสรุปผลการบริหารงานซ่อมบำรุงและควบคุมต้นทุนวิศวกรรมอาคาร</span>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mt-1">รายงานสรุปผู้บริหารเชิงลึก (Executive Analytical & Financial Report)</h3>
+            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ สอดคล้องตามมาตรฐานสากล ISO 41001:2018 Facility Management</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" onclick="FMMS.printExecutiveReport()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow flex items-center gap-1.5 cursor-pointer">
+              <span>🖨️ สั่งพิมพ์รายงานผู้บริหาร A4</span>
+            </button>
+            <button type="button" onclick="FMMS.exportExecutiveReportCSV()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2 rounded-md transition flex items-center gap-1.5 cursor-pointer">
+              <span>📊 ส่งออกข้อมูลรายงาน (.csv)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 1: Financial Variance & Cost Control -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="enterprise-card p-4 border-t-4 border-t-blue-600 bg-white shadow-sm">
+            <div class="text-xs font-semibold text-slate-500 uppercase">งบประมาณขออนุมัติรวม</div>
+            <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1" id="repFinancialRequested">฿0</div>
+            <div class="text-[11px] text-slate-500 mt-1" id="repFinancialReqCount">จากบันทึกข้อความ 0 ฉบับ</div>
+          </div>
+          <div class="enterprise-card p-4 border-t-4 border-t-teal-600 bg-white shadow-sm">
+            <div class="text-xs font-semibold text-teal-800 uppercase">งบประมาณที่อนุมัติแล้ว</div>
+            <div class="text-2xl font-bold font-mono-code text-teal-700 mt-1" id="repFinancialApproved">฿0</div>
+            <div class="text-[11px] text-slate-500 mt-1" id="repFinancialAppCount">อนุมัติแล้ว 0 ฉบับ</div>
+          </div>
+          <div class="enterprise-card p-4 border-t-4 border-t-slate-800 bg-white shadow-sm">
+            <div class="text-xs font-semibold text-slate-600 uppercase">ค่าใช้จ่ายเกิดขึ้นจริง (Actual)</div>
+            <div class="text-2xl font-bold font-mono-code text-slate-900 mt-1" id="repFinancialActual">฿0</div>
+            <div class="text-[11px] text-slate-500 mt-1" id="repFinancialBurnRate">อัตราการใช้งบ: 0%</div>
+          </div>
+          <div class="enterprise-card p-4 border-t-4 border-t-emerald-600 bg-white shadow-sm">
+            <div class="text-xs font-semibold text-emerald-800 uppercase">ผลประหยัดงบประมาณ (Cost Savings)</div>
+            <div class="text-2xl font-bold font-mono-code text-emerald-700 mt-1" id="repFinancialSavings">฿0</div>
+            <div class="text-[11px] text-emerald-600 font-semibold mt-1" id="repFinancialSavingsPct">ประหยัดได้ 0% จากงบขออนุมัติ</div>
+          </div>
+        </div>
+
+        <!-- Section 2: 4-Discipline MEP Engineering Breakdown -->
         <div class="enterprise-card overflow-hidden">
           <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
-            <h3 class="text-sm font-bold text-slate-900">ประวัติการสร้างและแก้ไข Version เอกสารล่าสุด</h3>
-            <button type="button" onclick="FMMS.switchView('role2'); FMMS.switchSupervisorSubTab('revisions');" class="text-xs text-blue-700 hover:underline">ดูตาราง Revision ทั้งหมด →</button>
+            <div>
+              <h4 class="text-sm font-bold text-slate-900">การวิเคราะห์ต้นทุนและปริมาณงานแยกตาม 4 หมวดวิศวกรรมหลัก (MEP Breakdown)</h4>
+              <p class="text-xs text-slate-500">HVAC (ปรับอากาศ) • Electrical (ไฟฟ้า) • Plumbing (สุขาภิบาล) • Fire & Safety (ดับเพลิง)</p>
+            </div>
+            <span class="text-xs font-mono-code bg-slate-100 px-2.5 py-1 rounded text-slate-700 border border-slate-200">ISO 41001-MEP</span>
           </div>
-          <div id="execRecentLogsContainer" class="p-4 space-y-2.5 max-h-64 overflow-y-auto text-xs">
-            <!-- Populated by app.js -->
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-700 uppercase font-semibold">
+                  <th class="py-3 px-4">ระบบวิศวกรรม (MEP Discipline)</th>
+                  <th class="py-3 px-3 text-center">จำนวนงานรวม</th>
+                  <th class="py-3 px-3 text-center">สัดส่วน PM vs CM</th>
+                  <th class="py-3 px-3 text-right">งบประเมินขออนุมัติ</th>
+                  <th class="py-3 px-3 text-right">ค่าใช้จ่ายจริง</th>
+                  <th class="py-3 px-3 text-right">ส่วนต่างประหยัด</th>
+                  <th class="py-3 px-4 text-center">สัดส่วนงบทั้งหมด (%)</th>
+                </tr>
+              </thead>
+              <tbody id="repMepBreakdownTableBody" class="divide-y divide-slate-200">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 3: ISO 41001 Facility Management Scorecards & Contractor Ledger -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- ISO 41001 Operational Health -->
+          <div class="lg:col-span-5 enterprise-card overflow-hidden flex flex-col justify-between">
+            <div class="enterprise-panel-header px-5 py-3.5">
+              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพตามมาตรฐาน ISO 41001</h4>
+              <p class="text-xs text-slate-500">เกณฑ์ประเมินการบำรุงรักษาเชิงป้องกันและประสิทธิผลงาน</p>
+            </div>
+            <div class="p-5 space-y-4 text-xs">
+              <div>
+                <div class="flex justify-between font-semibold mb-1">
+                  <span>สัดส่วนงานป้องกันเชิงรุก (PM Ratio):</span>
+                  <span id="repIsoPmRatioText" class="font-mono-code text-teal-800 font-bold">0% (เป้าหมาย >= 70%)</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                  <div id="repIsoPmBar" class="bg-teal-600 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between font-semibold mb-1">
+                  <span>อัตราการแก้ปัญหาสำเร็จรอบเดียว (First-Time Fix Rate):</span>
+                  <span id="repIsoFtfrText" class="font-mono-code text-blue-800 font-bold">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                  <div id="repIsoFtfrBar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between font-semibold mb-1">
+                  <span>ความตรงต่อเวลาตามมาตรฐานข้อตกลงบริการ (SLA Compliance):</span>
+                  <span id="repIsoSlaText" class="font-mono-code text-emerald-800 font-bold">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                  <div id="repIsoSlaBar" class="bg-emerald-600 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-slate-600">
+                <span>ระยะเวลาเฉลี่ยในการปิดงาน (MTTR):</span>
+                <strong id="repIsoMttrText" class="font-mono-code text-slate-900 font-bold text-sm">~ 4.2 ชั่วโมง</strong>
+              </div>
+            </div>
+            <div class="bg-slate-50 px-5 py-2.5 border-t border-slate-200 text-[11px] font-mono-code text-slate-500">
+              AUDIT COMPLIANCE: PASS • VERIFIED BY FM SYSTEM
+            </div>
+          </div>
+
+          <!-- Contractor & Field Tech Ledger -->
+          <div class="lg:col-span-7 enterprise-card overflow-hidden">
+            <div class="enterprise-panel-header px-5 py-3.5">
+              <h4 class="text-sm font-bold text-slate-900">ทะเบียนและผลการปฏิบัติงานของทีมช่างและผู้รับเหมา (Operator Ledger)</h4>
+              <p class="text-xs text-slate-500">ติดตามภาระงาน อัตราการปิดงานสำเร็จ และค่าใช้จ่ายจริงเฉลี่ยต่องาน</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase font-semibold">
+                    <th class="py-2.5 px-3">ชื่อช่าง / ผู้รับเหมา</th>
+                    <th class="py-2.5 px-3 text-center">งานทั้งหมด</th>
+                    <th class="py-2.5 px-3 text-center">ปิดงานแล้ว</th>
+                    <th class="py-2.5 px-3 text-right">ค่าใช้จ่ายรวม</th>
+                    <th class="py-2.5 px-3 text-right">สำเร็จ (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="repContractorLedgerTableBody" class="divide-y divide-slate-200">
+                  <!-- Populated by app.js -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1287,6 +1425,25 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       6.5 FIELD IMAGE PREVIEW MODAL
+       ======================================================================== -->
+  <div id="imagePreviewModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4 no-print" onclick="FMMS.closeImagePreviewModal()">
+    <div class="max-w-3xl w-full bg-slate-900 border border-slate-700 rounded-lg overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+      <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-white">
+        <div class="text-xs font-semibold" id="imagePreviewTitle">รูปภาพหน้างาน</div>
+        <button type="button" onclick="FMMS.closeImagePreviewModal()" class="text-slate-400 hover:text-white text-sm font-bold cursor-pointer">✕</button>
+      </div>
+      <div class="p-2 flex items-center justify-center bg-black/60 max-h-[80vh] overflow-hidden">
+        <img id="imagePreviewImg" src="" alt="Field Photo" class="max-h-[75vh] w-auto object-contain rounded">
+      </div>
+      <div class="px-4 py-2 bg-slate-950 border-t border-slate-800 text-[11px] font-mono-code text-slate-400 flex justify-between items-center">
+        <span id="imagePreviewCaption">TWPP FM Field Inspection Photo</span>
+        <button type="button" onclick="FMMS.closeImagePreviewModal()" class="text-teal-400 hover:underline">ปิดหน้าต่าง [ESC]</button>
       </div>
     </div>
   </div>

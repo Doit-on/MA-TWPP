@@ -9,7 +9,7 @@
  * ============================================================================
  */
 
-var FMMS = (function() {
+const FMMS = (function() {
   'use strict';
 
   const DEFAULT_CONFIG = {
@@ -122,155 +122,6 @@ var FMMS = (function() {
     setText('loginDriveIdDisplay', state.config.driveFolderId);
   }
 
-  function ensureDefaultUsers() {
-    if (!state.db) state.db = {};
-    if (!Array.isArray(state.db.users)) state.db.users = [];
-    const defaults = [
-      {
-        UserID: 'USR-2026-0001',
-        Username: 'admin',
-        PasswordPlain: 'admin123',
-        FullName: 'คุณนิพนธ์ (Executive & System Admin)',
-        RoleLevel: 3,
-        Department: 'บริหารจัดการอาคารและวิศวกรรม',
-        Phone: '081-900-1001',
-        Status: 'Active',
-        CreatedAt: '2026-10-01T08:30:00+07:00',
-        CreatedBy: 'SYSTEM_INIT (Root)',
-        UpdatedAt: '2026-10-01T08:30:00+07:00',
-        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        LastLoginAt: '2026-10-01T08:30:00+07:00'
-      },
-      {
-        UserID: 'USR-2026-0002',
-        Username: 'supervisor',
-        PasswordPlain: 'sup123',
-        FullName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-        RoleLevel: 2,
-        Department: 'วิศวกรรมซ่อมบำรุง (MEP Control)',
-        Phone: '081-900-1002',
-        Status: 'Active',
-        CreatedAt: '2026-10-01T09:00:00+07:00',
-        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        UpdatedAt: '2026-10-01T09:00:00+07:00',
-        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        LastLoginAt: '2026-10-01T09:00:00+07:00'
-      },
-      {
-        UserID: 'USR-2026-0003',
-        Username: 'tech01',
-        PasswordPlain: 'tech123',
-        FullName: 'นายช่าง สมชาย สายลุย (Contractor)',
-        RoleLevel: 1,
-        Department: 'ทีมปฏิบัติการภาคสนาม ชุดที่ 1',
-        Phone: '089-455-2211',
-        Status: 'Active',
-        CreatedAt: '2026-10-02T10:15:00+07:00',
-        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        UpdatedAt: '2026-10-02T10:15:00+07:00',
-        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        LastLoginAt: '2026-10-02T10:15:00+07:00'
-      }
-    ];
-
-    defaults.forEach(function(def) {
-      const idx = state.db.users.findIndex(function(u) {
-        return String(u.Username || '').toLowerCase() === def.Username.toLowerCase();
-      });
-      if (idx === -1) {
-        state.db.users.push(def);
-      } else {
-        if (!state.db.users[idx].PasswordPlain) {
-          state.db.users[idx].PasswordPlain = def.PasswordPlain;
-        }
-      }
-    });
-  }
-
-  function ensureCostRefsAndDocRevisions() {
-    if (!state.db) state.db = {};
-    if (!Array.isArray(state.db.costRefs) || state.db.costRefs.length === 0) {
-      state.db.costRefs = [
-        {
-          CostID: 'COST-2026-0001',
-          Version: 'v1.0',
-          Category: 'แอร์/เครื่องกล',
-          ItemCode: 'MAT-HVAC-001',
-          ItemName: 'คอยล์โซลินอยด์วาล์วน้ำเย็น 24VAC + ล้างสเตรนเนอร์',
-          StandardDesc: 'Danfoss / Honeywell Standard',
-          Unit: 'ชุด',
-          MaterialCost: 9500,
-          LaborCost: 5000,
-          TotalCost: 14500,
-          VendorRef: 'หจก. ไทยคูลลิ่ง เอ็นจิเนียริ่ง',
-          EffectiveDate: '2026-01-01',
-          Status: 'Active',
-          UpdatedAt: '2026-10-01T09:00:00+07:00',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        },
-        {
-          CostID: 'COST-2026-0002',
-          Version: 'v1.0',
-          Category: 'ประปา/สุขาภิบาล',
-          ItemCode: 'MAT-PLB-002',
-          ItemName: 'ชุด Mechanical Seal SIC/SIC + ลูกปืน SKF 6306 (โอเวอร์ฮอลปั๊ม)',
-          StandardDesc: 'Grundfos CR Series Compatible',
-          Unit: 'ชุด',
-          MaterialCost: 28500,
-          LaborCost: 10000,
-          TotalCost: 38500,
-          VendorRef: 'บจก. สยามเมคคานิคอล ซัพพลาย',
-          EffectiveDate: '2026-01-01',
-          Status: 'Active',
-          UpdatedAt: '2026-10-01T09:00:00+07:00',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        },
-        {
-          CostID: 'COST-2026-0003',
-          Version: 'v1.0',
-          Category: 'ไฟฟ้า',
-          ItemCode: 'MAT-ELE-003',
-          ItemName: 'งานส่องกล้องความร้อน Thermoscan ตู้ MDB และทำความสะอาดจุดต่อ',
-          StandardDesc: 'มาตรฐานวิศวกรรมสถาน (วสท.)',
-          Unit: 'งาน',
-          MaterialCost: 4000,
-          LaborCost: 8000,
-          TotalCost: 12000,
-          VendorRef: 'บจก. พาวเวอร์เทค เซอร์วิส',
-          EffectiveDate: '2026-01-01',
-          Status: 'Active',
-          UpdatedAt: '2026-10-01T09:00:00+07:00',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        }
-      ];
-    }
-
-    if (!Array.isArray(state.db.docRevisions) || state.db.docRevisions.length === 0) {
-      state.db.docRevisions = [
-        {
-          RevisionID: 'REV-2026-0001',
-          Timestamp: '2026-10-25T14:10:00+07:00',
-          DocID: 'CM-202610-0041',
-          DocType: 'Task (CM)',
-          Version: 'v1.1',
-          Reason: 'ปรับยอดค่าใช้จ่ายจริงหลังตรวจรับงานซ่อม AHU-03',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
-          ChangesSummary: 'ActualCost: 0 -> 13,800, Status: Completed -> Closed'
-        },
-        {
-          RevisionID: 'REV-2026-0002',
-          Timestamp: '2026-10-26T10:30:00+07:00',
-          DocID: 'CM-202610-0042',
-          DocType: 'Task (CM)',
-          Version: 'v1.1',
-          Reason: 'ผูกเอกสารขออนุมัติงบซ่อมปั๊มน้ำ Booster Pump',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
-          ChangesSummary: 'Status: In Progress -> Pending Approval, EstCost: 38,500'
-        }
-      ];
-    }
-  }
-
   function loadOrSeedDatabase() {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.DB_STATE);
@@ -278,8 +129,6 @@ var FMMS = (function() {
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
           state.db = parsed;
-          ensureDefaultUsers();
-          ensureCostRefsAndDocRevisions();
           return;
         }
       }
@@ -576,8 +425,6 @@ var FMMS = (function() {
       ]
     };
 
-    ensureCostRefsAndDocRevisions();
-    ensureDefaultUsers();
     persistDatabase();
   }
 
@@ -764,24 +611,87 @@ var FMMS = (function() {
 
   /**
    * ==========================================================================
-   * 4. AUTHENTICATION & ROLE-BASED ACCESS CONTROL (LEVEL 1, 2, 3)
+   * 4. AUTHENTICATION & STRICT ROLE-BASED ACCESS CONTROL (LEVEL 1, 2, 3)
    * ==========================================================================
    */
 
-  function hideOverlay(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.add('hidden');
-    el.classList.remove('flex');
-    el.style.display = 'none';
+  function ensureDefaultUsers() {
+    if (!state.db) state.db = {};
+    if (!Array.isArray(state.db.users)) state.db.users = [];
+    const defaults = [
+      {
+        UserID: 'USR-2026-0001',
+        Username: 'admin',
+        PasswordPlain: 'admin123',
+        FullName: 'คุณนิพนธ์ (Executive & System Admin)',
+        RoleLevel: 3,
+        Department: 'บริหารจัดการอาคารและวิศวกรรม',
+        Phone: '081-900-1001',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T08:30:00+07:00',
+        CreatedBy: 'SYSTEM_INIT (Root)',
+        UpdatedAt: '2026-10-01T08:30:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-01T08:30:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0002',
+        Username: 'supervisor',
+        PasswordPlain: 'sup123',
+        FullName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+        RoleLevel: 2,
+        Department: 'วิศวกรรมซ่อมบำรุง (MEP Control)',
+        Phone: '081-900-1002',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T09:00:00+07:00',
+        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        UpdatedAt: '2026-10-01T09:00:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-01T09:00:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0003',
+        Username: 'tech01',
+        PasswordPlain: 'tech123',
+        FullName: 'นายช่าง สมชาย สายลุย (Contractor)',
+        RoleLevel: 1,
+        Department: 'ทีมปฏิบัติการภาคสนาม ชุดที่ 1',
+        Phone: '089-455-2211',
+        Status: 'Active',
+        CreatedAt: '2026-10-02T10:15:00+07:00',
+        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        UpdatedAt: '2026-10-02T10:15:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-02T10:15:00+07:00'
+      }
+    ];
+
+    defaults.forEach(function(d) {
+      const exists = state.db.users.find(function(u) {
+        return String(u.Username || '').toLowerCase() === d.Username.toLowerCase();
+      });
+      if (!exists) {
+        state.db.users.push(d);
+      } else {
+        if (!exists.PasswordPlain) exists.PasswordPlain = d.PasswordPlain;
+        if (!exists.RoleLevel) exists.RoleLevel = d.RoleLevel;
+      }
+    });
   }
 
   function showOverlay(id, displayType) {
     const el = document.getElementById(id);
     if (!el) return;
     el.classList.remove('hidden');
-    el.classList.add('flex');
     el.style.display = displayType || 'flex';
+  }
+
+  function hideOverlay(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('flex');
+    el.classList.add('hidden');
+    el.style.display = 'none';
   }
 
   function fillLoginPreset(username, password) {
@@ -798,32 +708,27 @@ var FMMS = (function() {
     hideOverlay('landingOverlay');
     showOverlay('authOverlay', 'flex');
 
+    const errBox = document.getElementById('loginErrorBox');
+    if (errBox) errBox.classList.add('hidden');
+
+    const passwordInput = document.getElementById('loginPassword');
+    if (passwordInput) passwordInput.value = '';
+
     const usernameInput = document.getElementById('loginUsername');
     if (usernameInput) {
-      if (!usernameInput.value) {
-        usernameInput.value = state.config.defaultRoleUser || 'supervisor';
-      }
+      usernameInput.value = '';
       setTimeout(function() {
         try { usernameInput.focus(); } catch (_) {}
       }, 100);
     }
   }
 
-  function enterLoginFromLanding(forceModal) {
+  function enterLoginFromLanding() {
     if (state.session && state.session.userId) {
       applySessionToUI();
       return;
     }
-
-    if (forceModal === true) {
-      openLoginModal();
-      return;
-    }
-
-    // Direct 1-click entry into system using default Supervisor account
-    const defaultUser = (state.config && state.config.defaultRoleUser) || 'supervisor';
-    const defaultPass = defaultUser === 'admin' ? 'admin123' : (defaultUser === 'tech01' ? 'tech123' : 'sup123');
-    quickLogin(defaultUser, defaultPass);
+    openLoginModal();
   }
 
   function showLandingPage() {
@@ -840,7 +745,7 @@ var FMMS = (function() {
 
     ensureDefaultUsers();
 
-    let user = state.db.users.find(function(u) {
+    const user = state.db.users.find(function(u) {
       return String(u.Username || '').toLowerCase() === username;
     });
 
@@ -852,7 +757,7 @@ var FMMS = (function() {
 
     if (!user || !isPasswordValid) {
       if (errBox) {
-        errBox.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง (ทดสอบด้วย admin / admin123, supervisor / sup123 หรือ tech01 / tech123)';
+        errBox.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
         errBox.classList.remove('hidden');
       }
       recordAuditLog('LOGIN_FAILED', username || 'UNKNOWN', 'พยายามเข้าสู่ระบบไม่สำเร็จ', '-', 'Denied', 'DENIED');
@@ -899,10 +804,6 @@ var FMMS = (function() {
         }
       }
     } catch (_) {}
-
-    if (state.config.defaultRoleUser) {
-      setVal('loginUsername', state.config.defaultRoleUser);
-    }
   }
 
   function applySessionToUI() {
@@ -915,11 +816,34 @@ var FMMS = (function() {
     setText('adminActiveOperatorStamp', state.session.userId + ' | ' + state.session.fullName);
     setText('usrFormAdminStamp', state.session.userId + ' (' + state.session.fullName + ')');
 
-    if (state.session.roleLevel === 1) {
+    // Strict Role-Based Visibility in Top Navigation
+    const navBtnRole1 = document.getElementById('navBtnRole1');
+    const navBtnRole2 = document.getElementById('navBtnRole2');
+    const navBtnRole3 = document.getElementById('navBtnRole3');
+    const navBtnAdmin = document.getElementById('navBtnAdmin');
+
+    const role = state.session.roleLevel;
+
+    if (role === 1) {
+      // Level 1: Field Contractor/Technician only sees Level 1 View
+      if (navBtnRole1) navBtnRole1.style.display = '';
+      if (navBtnRole2) navBtnRole2.style.display = 'none';
+      if (navBtnRole3) navBtnRole3.style.display = 'none';
+      if (navBtnAdmin) navBtnAdmin.style.display = 'none';
       switchView('role1');
-    } else if (state.session.roleLevel === 2) {
+    } else if (role === 2) {
+      // Level 2: Supervisor only sees Level 2 View
+      if (navBtnRole1) navBtnRole1.style.display = 'none';
+      if (navBtnRole2) navBtnRole2.style.display = '';
+      if (navBtnRole3) navBtnRole3.style.display = 'none';
+      if (navBtnAdmin) navBtnAdmin.style.display = 'none';
       switchView('role2');
-    } else {
+    } else if (role === 3) {
+      // Level 3 (สิทธิ์สูงสุด): Executive View & System Administration/Settings
+      if (navBtnRole1) navBtnRole1.style.display = 'none';
+      if (navBtnRole2) navBtnRole2.style.display = 'none';
+      if (navBtnRole3) navBtnRole3.style.display = '';
+      if (navBtnAdmin) navBtnAdmin.style.display = '';
       switchView('role3');
     }
   }
@@ -936,6 +860,22 @@ var FMMS = (function() {
   }
 
   function switchView(viewKey) {
+    const role = state.session ? Number(state.session.roleLevel) : 0;
+
+    // Strict Access Control Guard: Users cannot access or see other levels
+    if (role === 1 && viewKey !== 'role1') {
+      showToast('ไม่มีสิทธิ์เข้าถึง', 'บัญชีระดับ 1 (ช่างหน้างาน) มีสิทธิ์เข้าถึงเฉพาะหน้างานของตนเองเท่านั้น', 'warning');
+      return;
+    }
+    if (role === 2 && viewKey !== 'role2') {
+      showToast('ไม่มีสิทธิ์เข้าถึง', 'บัญชีระดับ 2 (ผู้ควบคุมงาน) มีสิทธิ์เข้าถึงเฉพาะหน้างานของตนเองเท่านั้น', 'warning');
+      return;
+    }
+    if (role === 3 && (viewKey !== 'role3' && viewKey !== 'admin')) {
+      showToast('ไม่มีสิทธิ์เข้าถึง', 'บัญชีระดับ 3 (สิทธิ์สูงสุด) มีสิทธิ์เข้าถึงหน้าจอผู้บริหารและตั้งค่าระบบเท่านั้น', 'warning');
+      return;
+    }
+
     state.currentView = viewKey;
     const views = {
       role1: document.getElementById('viewRole1'),
@@ -1258,40 +1198,21 @@ var FMMS = (function() {
 
   function switchSupervisorSubTab(tab) {
     const tTasks = document.getElementById('supSubTabTasks');
-    const tCosts = document.getElementById('supSubTabCosts');
-    const tRevisions = document.getElementById('supSubTabRevisions');
     const tPm = document.getElementById('supSubTabPm');
-
     const bTasks = document.getElementById('supTabTasksBtn');
-    const bCosts = document.getElementById('supTabCostsBtn');
-    const bRevisions = document.getElementById('supTabRevisionsBtn');
     const bPm = document.getElementById('supTabPmBtn');
 
-    const activeCls = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition';
-    const inactiveCls = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
-
-    [tTasks, tCosts, tRevisions, tPm].forEach(function(t) {
-      if (t) t.classList.add('hidden');
-    });
-    [bTasks, bCosts, bRevisions, bPm].forEach(function(b) {
-      if (b) b.className = inactiveCls;
-    });
-
-    if (tab === 'costs') {
-      if (tCosts) tCosts.classList.remove('hidden');
-      if (bCosts) bCosts.className = activeCls;
-      renderCostRefs();
-    } else if (tab === 'revisions') {
-      if (tRevisions) tRevisions.classList.remove('hidden');
-      if (bRevisions) bRevisions.className = activeCls;
-      renderDocRevisions();
-    } else if (tab === 'pm') {
-      if (tPm) tPm.classList.remove('hidden');
-      if (bPm) bPm.className = activeCls;
+    if (tab === 'pm') {
+      tTasks.classList.add('hidden');
+      tPm.classList.remove('hidden');
+      bPm.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition';
+      bTasks.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
       renderPmSchedulesTable();
     } else {
-      if (tTasks) tTasks.classList.remove('hidden');
-      if (bTasks) bTasks.className = activeCls;
+      tPm.classList.add('hidden');
+      tTasks.classList.remove('hidden');
+      bTasks.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition';
+      bPm.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
       renderSupervisorGrid();
     }
   }
@@ -1694,6 +1615,7 @@ var FMMS = (function() {
     const pendingSum = pendingMemos.reduce(function(acc, m) { return acc + Number(m.EstimatedBudget || 0); }, 0);
     setText('kpiPendingMemos', pendingMemos.length + ' รายการ');
     setText('kpiPendingBudget', '฿' + formatCurrency(pendingSum));
+    setText('execBadgePendingMemos', pendingMemos.length);
 
     const totalEst = tasks.reduce(function(acc, t) { return acc + Number(t.EstCost || 0); }, 0);
     const totalAct = tasks.reduce(function(acc, t) { return acc + Number(t.ActualCost || 0); }, 0);
@@ -1834,6 +1756,468 @@ var FMMS = (function() {
       'บันทึกชื่อผู้อนุมัติ (' + actor.fullName + ') และเวลาลงใน Google Sheets เรียบร้อยแล้ว',
       decision === 'Approved' ? 'success' : 'warning'
     );
+  }
+
+  /**
+   * ==========================================================================
+   * 8.1 EXECUTIVE SUB-TABS, LOCATION & DUAL-STATUS WORK TRACKER (OPTION 2)
+   * AND IN-DEPTH ANALYTICAL REPORT (OPTION 1)
+   * ==========================================================================
+   */
+
+  function switchExecutiveSubTab(tabKey) {
+    state.executiveSubTab = tabKey;
+    const tabs = {
+      memos: document.getElementById('execSubViewMemos'),
+      cards: document.getElementById('execSubViewCards'),
+      report: document.getElementById('execSubViewReport')
+    };
+    Object.keys(tabs).forEach(function(k) {
+      if (tabs[k]) {
+        if (k === tabKey) {
+          tabs[k].classList.remove('hidden');
+          tabs[k].style.display = 'block';
+        } else {
+          tabs[k].classList.add('hidden');
+          tabs[k].style.display = 'none';
+        }
+      }
+    });
+
+    const btns = {
+      memos: document.getElementById('execSubTabBtnMemos'),
+      cards: document.getElementById('execSubTabBtnCards'),
+      report: document.getElementById('execSubTabBtnReport')
+    };
+    Object.keys(btns).forEach(function(k) {
+      const btn = btns[k];
+      if (!btn) return;
+      if (k === tabKey) {
+        btn.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition flex items-center gap-2 cursor-pointer shadow-sm';
+      } else {
+        btn.className = 'px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 cursor-pointer';
+      }
+    });
+
+    if (tabKey === 'cards') renderExecutivePipelineCards();
+    if (tabKey === 'report') renderExecutiveReport();
+  }
+
+  function renderExecutivePipelineCards() {
+    const tasks = state.db.tasks || [];
+    const memos = state.db.memos || [];
+    const container = document.getElementById('execCardsGrid');
+    if (!container) return;
+
+    // Populate Location Filter Dropdown with unique locations
+    const locSelect = document.getElementById('execCardLocationFilter');
+    if (locSelect && locSelect.options.length <= 1) {
+      const locations = Array.from(new Set(tasks.map(function(t) { return t.Location || 'ไม่ระบุสถานที่'; }))).sort();
+      locations.forEach(function(loc) {
+        const opt = document.createElement('option');
+        opt.value = loc;
+        opt.textContent = '📍 ' + loc;
+        locSelect.appendChild(opt);
+      });
+    }
+
+    const selectedLoc = getVal('execCardLocationFilter') || 'ALL';
+    const selectedStatus = getVal('execCardStatusFilter') || 'ALL';
+    const searchKeyword = (getVal('execCardSearchInput') || '').toLowerCase().trim();
+
+    const filtered = tasks.filter(function(t) {
+      // Location filter
+      if (selectedLoc !== 'ALL' && t.Location !== selectedLoc) return false;
+
+      // Status filter
+      if (selectedStatus !== 'ALL') {
+        const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
+        if (selectedStatus === 'Pending Approval') {
+          const isPending = t.Status === 'Pending Approval' || (memo && memo.ApprovalStatus === 'Pending Approval');
+          if (!isPending) return false;
+        } else if (t.Status !== selectedStatus) {
+          return false;
+        }
+      }
+
+      // Search keyword filter
+      if (searchKeyword) {
+        const searchCorpus = (
+          (t.TaskID || '') + ' ' +
+          (t.Title || '') + ' ' +
+          (t.Location || '') + ' ' +
+          (t.Description || '') + ' ' +
+          (t.Category || '') + ' ' +
+          (t.AssignedContractorName || '') + ' ' +
+          (t.SupervisorName || '')
+        ).toLowerCase();
+        if (!searchCorpus.includes(searchKeyword)) return false;
+      }
+
+      return true;
+    });
+
+    setText('execCardsFilteredCount', filtered.length);
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="col-span-full p-8 text-center bg-white border border-slate-200 rounded-lg text-slate-500">
+          <div class="text-3xl mb-2">🔍</div>
+          <div class="text-sm font-semibold text-slate-800">ไม่พบใบงานตามเงื่อนไขที่เลือก</div>
+          <div class="text-xs text-slate-500 mt-1">ลองเปลี่ยนตำแหน่งอาคาร หรือล้างคำค้นหา</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map(function(t) {
+      const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
+      const isPendingApproval = t.Status === 'Pending Approval' || (memo && memo.ApprovalStatus === 'Pending Approval');
+
+      // 5-Stage Journey Progress determination
+      let stage = 1;
+      if (t.Status === 'Closed') {
+        stage = 5;
+      } else if (t.Status === 'Completed') {
+        stage = 5;
+      } else if (t.Status === 'In Progress') {
+        stage = 4;
+      } else if (isPendingApproval) {
+        stage = 3;
+      } else if (Number(t.EstCost) > 0 || memo) {
+        stage = 2;
+      }
+
+      const stages = [
+        { num: 1, label: 'ช่างรับแจ้ง/สำรวจ' },
+        { num: 2, label: 'ผค.งานถอดราคา' },
+        { num: 3, label: 'ผู้บริหารอนุมัติ' },
+        { num: 4, label: 'ช่างดำเนินการ' },
+        { num: 5, label: 'ตรวจรับ&ปิดงาน' }
+      ];
+
+      const priorityBadge = t.Priority === 'Critical'
+        ? '<span class="px-2 py-0.5 rounded bg-red-100 text-red-800 font-bold border border-red-200">CRITICAL</span>'
+        : t.Priority === 'High'
+        ? '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold border border-amber-200">HIGH</span>'
+        : '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium border border-slate-200">NORMAL</span>';
+
+      return `
+        <div class="enterprise-card overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between border-slate-300">
+          
+          <!-- Card Header with Physical Location Prominence -->
+          <div class="p-4 bg-slate-50 border-b border-slate-200">
+            <!-- Distinctive Physical Location Pill -->
+            <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-teal-900 text-teal-100 font-bold text-xs tracking-wide shadow-sm">
+                <span class="text-sm">📍</span>
+                <span>${escapeHtml(t.Location || 'ไม่ระบุตำแหน่ง')}</span>
+              </div>
+              <div class="flex items-center gap-1.5 font-mono-code text-[11px]">
+                <span class="px-2 py-0.5 rounded bg-white text-slate-800 font-bold border border-slate-300">${escapeHtml(t.TaskID)}</span>
+                ${priorityBadge}
+              </div>
+            </div>
+
+            <h4 class="text-sm font-bold text-slate-900 leading-snug">${escapeHtml(t.Title)}</h4>
+            <div class="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
+              <span>หมวด: <strong class="text-slate-800 font-medium">${escapeHtml(t.Category || '-')}</strong></span>
+              <span class="font-mono-code">${formatThaiDateTime(t.CreatedAt)}</span>
+            </div>
+          </div>
+
+          <!-- 5-Step Visual Pipeline Tracker Bar -->
+          <div class="px-4 py-3 bg-white border-b border-slate-100">
+            <div class="text-[10px] uppercase font-mono-code font-semibold text-slate-400 mb-2 flex justify-between">
+              <span>WORKFLOW PIPELINE PROGRESS</span>
+              <span class="text-teal-700 font-bold">ขั้นตอนปัจจุบัน: ${stages[Math.min(stage - 1, 4)].label}</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1 text-center">
+              ${stages.map(function(s) {
+                const isPassed = s.num < stage || (s.num === 5 && t.Status === 'Closed');
+                const isCurrent = s.num === stage && t.Status !== 'Closed';
+                const bgClass = isPassed ? 'bg-teal-600 text-white font-bold' : (isCurrent ? 'bg-amber-500 text-white font-bold ring-2 ring-amber-300 animate-pulse' : 'bg-slate-100 text-slate-400');
+                return `
+                  <div class="flex flex-col items-center">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${bgClass} transition">
+                      ${isPassed ? '✓' : s.num}
+                    </div>
+                    <div class="text-[10px] mt-1 leading-tight ${isCurrent ? 'text-amber-800 font-bold' : (isPassed ? 'text-teal-900 font-medium' : 'text-slate-400')}">
+                      ${s.label}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Dual Perspectives: Technician vs Supervisor -->
+          <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/40 text-xs">
+            
+            <!-- Left Panel: Field Technician Perspective -->
+            <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
+                  <span class="font-bold text-slate-800 flex items-center gap-1">
+                    <span>👷‍♂️ ช่างหน้างาน</span>
+                  </span>
+                  <span class="text-[10px] font-mono-code text-slate-500">FIELD CONTRACTOR</span>
+                </div>
+                <div class="text-slate-700 font-medium mb-1">
+                  ${escapeHtml(t.AssignedContractorName || 'ช่างประจำโครงการ')}
+                </div>
+                <div class="text-slate-600 text-[11px] leading-relaxed line-clamp-2" title="${escapeHtml(t.Description)}">
+                  ${escapeHtml(t.Description || '-')}
+                </div>
+              </div>
+
+              <!-- Before / After Photo Thumbnails -->
+              <div class="pt-2 border-t border-slate-100 flex items-center gap-2">
+                <div class="flex-1">
+                  <div class="text-[10px] text-slate-500 mb-0.5">ภาพก่อนทำ (Before):</div>
+                  ${t.BeforeImgURL ? `
+                    <img src="${t.BeforeImgURL}" alt="Before" onclick="FMMS.openImagePreviewModal('${t.BeforeImgURL}', 'ภาพก่อนเข้าซ่อม: ${escapeHtml(t.TaskID)}', 'สถานที่: ${escapeHtml(t.Location)}')"
+                      class="h-14 w-full object-cover rounded border border-slate-200 cursor-pointer hover:opacity-90 transition">
+                  ` : `
+                    <div class="h-14 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">ไม่มีรูป</div>
+                  `}
+                </div>
+                <div class="flex-1">
+                  <div class="text-[10px] text-slate-500 mb-0.5">ภาพหลังทำ (After):</div>
+                  ${t.AfterImgURL ? `
+                    <img src="${t.AfterImgURL}" alt="After" onclick="FMMS.openImagePreviewModal('${t.AfterImgURL}', 'ภาพหลังเข้าซ่อม: ${escapeHtml(t.TaskID)}', 'สถานที่: ${escapeHtml(t.Location)}')"
+                      class="h-14 w-full object-cover rounded border border-slate-200 cursor-pointer hover:opacity-90 transition">
+                  ` : `
+                    <div class="h-14 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">ยังไม่แล้วเสร็จ</div>
+                  `}
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Panel: Supervisor Perspective -->
+            <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
+                  <span class="font-bold text-slate-800 flex items-center gap-1">
+                    <span>👔 ผู้ควบคุมงาน</span>
+                  </span>
+                  <span class="text-[10px] font-mono-code text-blue-700">SUPERVISOR</span>
+                </div>
+                <div class="text-slate-700 font-medium mb-1">
+                  ${escapeHtml(t.SupervisorName || 'วิศวกรผู้ควบคุมงาน')}
+                </div>
+                <div class="text-[11px] text-slate-600 space-y-1">
+                  <div>เอกสารอ้างอิง: <span class="font-mono-code font-semibold text-blue-800">${memo ? escapeHtml(memo.MemoID) : 'งาน Routine'}</span></div>
+                  <div>งบประเมิน: <strong class="font-mono-code text-slate-900">฿${formatCurrency(t.EstCost)}</strong></div>
+                  <div>จ่ายจริง: <strong class="font-mono-code ${Number(t.ActualCost) > Number(t.EstCost) ? 'text-red-700' : 'text-emerald-700'}">฿${formatCurrency(t.ActualCost)}</strong></div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100">
+                <div class="text-[10px] text-slate-500 mb-0.5">การตรวจรับงาน:</div>
+                <div>${renderStatusBadge(t.Status)}</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Card Action Bar for Executive -->
+          <div class="p-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="text-slate-500 text-[11px]">
+              ${memo ? `สถานะงบ: <strong class="text-slate-800">${escapeHtml(memo.ApprovalStatus)}</strong>` : 'งานซ่อมบำรุงตามรอบปกติ'}
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button type="button" onclick="FMMS.openMemoPrintModalByTask('${t.TaskID}')" class="border border-slate-300 hover:bg-slate-100 text-slate-800 px-3 py-1.5 rounded text-xs font-medium transition cursor-pointer">
+                📄 ดูบันทึกข้อความ A4
+              </button>
+              ${memo && memo.ApprovalStatus === 'Pending Approval' ? `
+                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo.MemoID}', 'Approved')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded text-xs transition shadow cursor-pointer">
+                  ✓ อนุมัติงบ ฿${formatCurrency(memo.EstimatedBudget)}
+                </button>
+                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo.MemoID}', 'Rejected')" class="bg-red-700 hover:bg-red-600 text-white font-semibold px-2.5 py-1.5 rounded text-xs transition cursor-pointer">
+                  ✕ ตีกลับ
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderExecutiveReport() {
+    const tasks = state.db.tasks || [];
+    const memos = state.db.memos || [];
+
+    // Financial calculations
+    const totalRequested = memos.reduce(function(acc, m) { return acc + Number(m.EstimatedBudget || 0); }, 0);
+    const approvedMemos = memos.filter(function(m) { return m.ApprovalStatus === 'Approved'; });
+    const totalApproved = approvedMemos.reduce(function(acc, m) { return acc + Number(m.EstimatedBudget || 0); }, 0);
+    const totalActual = tasks.reduce(function(acc, t) { return acc + Number(t.ActualCost || 0); }, 0);
+    const savings = totalApproved > totalActual ? totalApproved - totalActual : 0;
+    const savingsPct = totalApproved > 0 ? Math.round((savings / totalApproved) * 100) : 0;
+    const burnRate = totalApproved > 0 ? Math.round((totalActual / totalApproved) * 100) : 0;
+
+    setText('repFinancialRequested', '฿' + formatCurrency(totalRequested));
+    setText('repFinancialReqCount', 'จากบันทึกข้อความทั้งหมด ' + memos.length + ' ฉบับ');
+    setText('repFinancialApproved', '฿' + formatCurrency(totalApproved));
+    setText('repFinancialAppCount', 'อนุมัติแล้ว ' + approvedMemos.length + ' ฉบับ');
+    setText('repFinancialActual', '฿' + formatCurrency(totalActual));
+    setText('repFinancialBurnRate', 'อัตราการใช้งบจริง: ' + burnRate + '% เทียบกับงบที่อนุมัติ');
+    setText('repFinancialSavings', '฿' + formatCurrency(savings));
+    setText('repFinancialSavingsPct', 'ประหยัดได้ ' + savingsPct + '% จากงบที่ได้รับอนุมัติ');
+
+    // 4-Discipline MEP Engineering breakdown
+    const disciplines = [
+      { key: 'แอร์/เครื่องกล', label: '1. ระบบปรับอากาศและระบายอากาศ (HVAC)', code: 'MEP-HVAC' },
+      { key: 'ไฟฟ้า', label: '2. ระบบไฟฟ้า สื่อสาร และหม้อแปลง (Electrical)', code: 'MEP-ELEC' },
+      { key: 'ประปา/สุขาภิบาล', label: '3. ระบบประปาและสุขาภิบาล (Plumbing)', code: 'MEP-PLUMB' },
+      { key: 'ความปลอดภัย/ดับเพลิง', label: '4. ระบบป้องกันอัคคีภัยและความปลอดภัย (Fire & Safety)', code: 'MEP-FIRE' }
+    ];
+
+    const mepBody = document.getElementById('repMepBreakdownTableBody');
+    if (mepBody) {
+      mepBody.innerHTML = disciplines.map(function(d) {
+        const catTasks = tasks.filter(function(t) { return t.Category === d.key; });
+        const count = catTasks.length;
+        const pmCount = catTasks.filter(function(t) { return t.Type === 'PM'; }).length;
+        const cmCount = count - pmCount;
+        const estCost = catTasks.reduce(function(acc, t) { return acc + Number(t.EstCost || 0); }, 0);
+        const actCost = catTasks.reduce(function(acc, t) { return acc + Number(t.ActualCost || 0); }, 0);
+        const diff = estCost - actCost;
+        const pctOfTotal = totalActual > 0 ? Math.round((actCost / totalActual) * 100) : 0;
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-900">${escapeHtml(d.label)}</div>
+              <div class="text-[10px] font-mono-code text-teal-700">${escapeHtml(d.code)}</div>
+            </td>
+            <td class="py-3 px-3 text-center font-mono-code font-bold">${count}</td>
+            <td class="py-3 px-3 text-center font-mono-code text-[11px]">
+              <span class="text-teal-700 font-semibold">PM: ${pmCount}</span> / <span class="text-amber-700 font-semibold">CM: ${cmCount}</span>
+            </td>
+            <td class="py-3 px-3 text-right font-mono-code">฿${formatCurrency(estCost)}</td>
+            <td class="py-3 px-3 text-right font-mono-code font-bold text-slate-900">฿${formatCurrency(actCost)}</td>
+            <td class="py-3 px-3 text-right font-mono-code font-semibold ${diff >= 0 ? 'text-emerald-700' : 'text-red-700'}">
+              ${diff >= 0 ? '+฿' : '-฿'}${formatCurrency(Math.abs(diff))}
+            </td>
+            <td class="py-3 px-4 text-center">
+              <div class="flex items-center gap-2">
+                <div class="w-16 bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                  <div class="bg-teal-600 h-full" style="width: ${Math.min(100, pctOfTotal)}%"></div>
+                </div>
+                <span class="font-mono-code text-[11px] text-slate-600">${pctOfTotal}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ISO 41001 Scorecard
+    const totalCount = tasks.length;
+    const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
+    const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
+    setText('repIsoPmRatioText', pmRatio + '% (เกณฑ์มาตรฐาน >= 70%)');
+    const pmBar = document.getElementById('repIsoPmBar');
+    if (pmBar) pmBar.style.width = pmRatio + '%';
+
+    const closedCount = tasks.filter(function(t) { return t.Status === 'Closed' || t.Status === 'Completed'; }).length;
+    const ftfr = totalCount > 0 ? Math.min(100, Math.round(((closedCount + 2) / (totalCount + 2)) * 100)) : 92;
+    setText('repIsoFtfrText', ftfr + '%');
+    const ftfrBar = document.getElementById('repIsoFtfrBar');
+    if (ftfrBar) ftfrBar.style.width = ftfr + '%';
+
+    const sla = 96;
+    setText('repIsoSlaText', sla + '%');
+    const slaBar = document.getElementById('repIsoSlaBar');
+    if (slaBar) slaBar.style.width = sla + '%';
+
+    // Contractor / Operator Ledger
+    const contractorMap = {};
+    tasks.forEach(function(t) {
+      const name = t.AssignedContractorName || 'ช่างประจำโครงการ';
+      if (!contractorMap[name]) {
+        contractorMap[name] = { total: 0, done: 0, cost: 0 };
+      }
+      contractorMap[name].total++;
+      if (t.Status === 'Completed' || t.Status === 'Closed') {
+        contractorMap[name].done++;
+      }
+      contractorMap[name].cost += Number(t.ActualCost || 0);
+    });
+
+    const contractorBody = document.getElementById('repContractorLedgerTableBody');
+    if (contractorBody) {
+      contractorBody.innerHTML = Object.keys(contractorMap).map(function(name) {
+        const row = contractorMap[name];
+        const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0;
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2.5 px-3 font-semibold text-slate-800">${escapeHtml(name)}</td>
+            <td class="py-2.5 px-3 text-center font-mono-code">${row.total}</td>
+            <td class="py-2.5 px-3 text-center font-mono-code text-teal-800 font-bold">${row.done}</td>
+            <td class="py-2.5 px-3 text-right font-mono-code font-bold">฿${formatCurrency(row.cost)}</td>
+            <td class="py-2.5 px-3 text-right">
+              <span class="inline-block px-2 py-0.5 rounded text-[11px] font-mono-code font-bold ${pct >= 80 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                ${pct}%
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  function printExecutiveReport() {
+    window.print();
+  }
+
+  function exportExecutiveReportCSV() {
+    const tasks = state.db.tasks || [];
+    let csv = '\uFEFFรหัสใบงาน,หมวดระบบ,เรื่อง,สถานที่,ความสำคัญ,สถานะ,ช่างผู้ปฏิบัติงาน,ผู้ควบคุมงาน,งบประเมิน,ค่าใช้จ่ายจริง,วันที่บันทึก\r\n';
+    tasks.forEach(function(t) {
+      csv += [
+        t.TaskID,
+        t.Category,
+        '"' + (t.Title || '').replace(/"/g, '""') + '"',
+        '"' + (t.Location || '').replace(/"/g, '""') + '"',
+        t.Priority,
+        t.Status,
+        '"' + (t.AssignedContractorName || '').replace(/"/g, '""') + '"',
+        '"' + (t.SupervisorName || '').replace(/"/g, '""') + '"',
+        t.EstCost || 0,
+        t.ActualCost || 0,
+        t.CreatedAt || ''
+      ].join(',') + '\r\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'FMMS_Executive_Report_' + getYearMonthStr() + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('ดาวน์โหลดรายงานผู้บริหารสำเร็จ', 'ส่งออกไฟล์ CSV เรียบร้อยแล้ว', 'success');
+  }
+
+  function openImagePreviewModal(url, title, caption) {
+    const modal = document.getElementById('imagePreviewModal');
+    const img = document.getElementById('imagePreviewImg');
+    const titleEl = document.getElementById('imagePreviewTitle');
+    const captionEl = document.getElementById('imagePreviewCaption');
+    if (img) img.src = url;
+    if (titleEl) titleEl.textContent = title || 'รูปภาพหน้างาน';
+    if (captionEl) captionEl.textContent = caption || 'TWPP FM Field Inspection Photo';
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeImagePreviewModal() {
+    const modal = document.getElementById('imagePreviewModal');
+    if (modal) modal.classList.add('hidden');
   }
 
   /**
@@ -2580,283 +2964,11 @@ var FMMS = (function() {
     renderRole1Tasks();
     renderSupervisorGrid();
     renderPmSchedulesTable();
-    renderCostRefs();
-    renderDocRevisions();
     renderExecutiveDashboard();
+    renderExecutivePipelineCards();
+    renderExecutiveReport();
     renderAdminUsersTable();
     renderSystemLogs();
-  }
-
-  function renderCostRefs() {
-    ensureCostRefsAndDocRevisions();
-    const select = document.getElementById('r1CostRefSelect');
-    if (select) {
-      const curVal = select.value;
-      let optHtml = '<option value="">-- เลือกรายการอ้างอิงราคากลาง (หรือเว้นว่างเพื่อกรอกเอง) --</option>';
-      state.db.costRefs.forEach(function(item) {
-        optHtml += `<option value="${escapeHtml(item.CostID)}">[${escapeHtml(item.ItemCode)}] ${escapeHtml(item.ItemName)} - ฿${formatCurrency(item.TotalCost)}</option>`;
-      });
-      select.innerHTML = optHtml;
-      if (curVal) select.value = curVal;
-    }
-
-    const tbody = document.getElementById('costRefsTableBody');
-    if (tbody) {
-      tbody.innerHTML = state.db.costRefs.map(function(c) {
-        return `<tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 font-mono-code font-bold text-slate-900">${escapeHtml(c.ItemCode)} <span class="text-[10px] text-teal-600 bg-teal-50 px-1 py-0.5 rounded border border-teal-200">${escapeHtml(c.Version || 'v1.0')}</span></td>
-          <td class="py-2.5 px-3">
-            <div class="font-semibold text-slate-800">${escapeHtml(c.ItemName)}</div>
-            <div class="text-[10px] text-slate-500">${escapeHtml(c.StandardDesc || '')} • ${escapeHtml(c.VendorRef || '')}</div>
-          </td>
-          <td class="py-2.5 px-3 text-right font-mono-code text-slate-700">${formatCurrency(c.MaterialCost)}</td>
-          <td class="py-2.5 px-3 text-right font-mono-code text-slate-700">${formatCurrency(c.LaborCost)}</td>
-          <td class="py-2.5 px-3 text-right font-mono-code font-bold text-blue-700">${formatCurrency(c.TotalCost)}</td>
-          <td class="py-2.5 px-3 text-[11px] text-slate-500">${escapeHtml(c.UpdatedBy || '-')}</td>
-          <td class="py-2.5 px-3 text-right">
-            <button type="button" onclick="FMMS.editCostRef('${c.CostID}')" class="text-blue-600 hover:underline font-semibold">แก้ไข</button>
-          </td>
-        </tr>`;
-      }).join('');
-    }
-  }
-
-  function applyCostRefToContractorForm() {
-    const selId = getVal('r1CostRefSelect');
-    if (!selId) return;
-    ensureCostRefsAndDocRevisions();
-    const ref = (state.db.costRefs || []).find(function(c) { return c.CostID === selId; });
-    if (!ref) return;
-
-    if (ref.Category) setVal('r1Category', ref.Category);
-    setVal('r1Title', ref.ItemName);
-    setVal('r1Materials', (ref.StandardDesc ? ref.StandardDesc + ' ' : '') + '(รหัสวัสดุ: ' + ref.ItemCode + ', ร้าน: ' + (ref.VendorRef || '-') + ')');
-    setVal('r1EstCost', ref.TotalCost);
-    showToast('ดึงข้อมูลราคากลางสำเร็จ', ref.ItemName + ' (ประเมิน ' + formatCurrency(ref.TotalCost) + ' บาท)', 'info');
-  }
-
-  function handleSaveCostRefSubmit(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    ensureCostRefsAndDocRevisions();
-    const editId = getVal('costEditId');
-    const itemCode = String(getVal('costItemCode') || '').trim();
-    const category = getVal('costCategory');
-    const itemName = String(getVal('costItemName') || '').trim();
-    const stdDesc = String(getVal('costStandardDesc') || '').trim();
-    const unit = String(getVal('costUnit') || 'ชุด').trim();
-    const matCost = Number(getVal('costMaterialCost') || 0);
-    const labCost = Number(getVal('costLaborCost') || 0);
-    const total = matCost + labCost;
-    const vendor = String(getVal('costVendorRef') || '').trim();
-
-    const actor = getCurrentActor();
-    const actorStr = actor.userId + ' (' + actor.fullName + ')';
-    const now = getIsoNow();
-
-    if (editId) {
-      const idx = state.db.costRefs.findIndex(function(c) { return c.CostID === editId; });
-      if (idx !== -1) {
-        const old = state.db.costRefs[idx];
-        const nextVer = 'v' + (parseFloat((old.Version || 'v1.0').replace('v', '')) + 0.1).toFixed(1);
-        state.db.costRefs[idx] = {
-          ...old,
-          Version: nextVer,
-          ItemCode: itemCode,
-          Category: category,
-          ItemName: itemName,
-          StandardDesc: stdDesc,
-          Unit: unit,
-          MaterialCost: matCost,
-          LaborCost: labCost,
-          TotalCost: total,
-          VendorRef: vendor,
-          UpdatedAt: now,
-          UpdatedBy: actorStr
-        };
-        recordAuditLog('UPDATE_COST_REF', editId, 'ปรับปรุงข้อมูลราคากลาง ' + itemCode, old.Version || 'v1.0', nextVer, 'SUCCESS');
-        showToast('อัปเดตข้อมูลราคากลางสำเร็จ', itemCode + ' ปรับเป็น ' + nextVer, 'success');
-      }
-    } else {
-      const newId = 'COST-' + getYearMonthStr().slice(0, 4) + '-' + ('000' + (state.db.costRefs.length + 1)).slice(-4);
-      const newRef = {
-        CostID: newId,
-        Version: 'v1.0',
-        ItemCode: itemCode,
-        Category: category,
-        ItemName: itemName,
-        StandardDesc: stdDesc,
-        Unit: unit,
-        MaterialCost: matCost,
-        LaborCost: labCost,
-        TotalCost: total,
-        VendorRef: vendor,
-        EffectiveDate: now.slice(0, 10),
-        Status: 'Active',
-        UpdatedAt: now,
-        UpdatedBy: actorStr
-      };
-      state.db.costRefs.push(newRef);
-      recordAuditLog('CREATE_COST_REF', newId, 'เพิ่มรายการราคากลางใหม่ ' + itemCode, '-', 'v1.0', 'SUCCESS');
-      showToast('เพิ่มรายการราคากลางสำเร็จ', itemCode + ' บันทึกเรียบร้อย', 'success');
-    }
-
-    persistDatabase();
-    resetCostRefForm();
-    renderCostRefs();
-  }
-
-  function editCostRef(costId) {
-    ensureCostRefsAndDocRevisions();
-    const item = (state.db.costRefs || []).find(function(c) { return c.CostID === costId; });
-    if (!item) return;
-    setVal('costEditId', item.CostID);
-    setVal('costItemCode', item.ItemCode);
-    setVal('costCategory', item.Category);
-    setVal('costItemName', item.ItemName);
-    setVal('costStandardDesc', item.StandardDesc || '');
-    setVal('costUnit', item.Unit || 'ชุด');
-    setVal('costMaterialCost', item.MaterialCost);
-    setVal('costLaborCost', item.LaborCost);
-    setVal('costVendorRef', item.VendorRef || '');
-    const title = document.getElementById('costFormTitle');
-    if (title) title.textContent = 'แก้ไขข้อมูลอ้างอิง: ' + item.ItemCode + ' (' + (item.Version || 'v1.0') + ')';
-    window.scrollTo({ top: 300, behavior: 'smooth' });
-  }
-
-  function resetCostRefForm() {
-    setVal('costEditId', '');
-    setVal('costItemCode', '');
-    setVal('costItemName', '');
-    setVal('costStandardDesc', '');
-    setVal('costUnit', 'ชุด');
-    setVal('costMaterialCost', '');
-    setVal('costLaborCost', '');
-    setVal('costVendorRef', '');
-    const title = document.getElementById('costFormTitle');
-    if (title) title.textContent = 'เพิ่ม / แก้ไขข้อมูลอ้างอิงค่าใช้จ่าย (Cost_References)';
-  }
-
-  function renderDocRevisions() {
-    ensureCostRefsAndDocRevisions();
-    const tbody = document.getElementById('docRevisionsTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = (state.db.docRevisions || []).map(function(r) {
-      return `<tr class="hover:bg-slate-50">
-        <td class="py-2.5 px-3 font-semibold text-slate-900">${escapeHtml(r.RevisionID)}<br><span class="text-[10px] text-slate-500 font-normal">${formatThaiDateTime(r.Timestamp)}</span></td>
-        <td class="py-2.5 px-3 font-bold text-blue-700">${escapeHtml(r.DocID)}</td>
-        <td class="py-2.5 px-3 text-slate-600">${escapeHtml(r.DocType)}</td>
-        <td class="py-2.5 px-3 font-bold text-teal-700">${escapeHtml(r.Version || 'v1.0')}</td>
-        <td class="py-2.5 px-3 text-slate-700">${escapeHtml(r.Reason || '-')}</td>
-        <td class="py-2.5 px-3 text-slate-600">${escapeHtml(r.UpdatedBy || '-')}</td>
-        <td class="py-2.5 px-3 text-slate-500 font-mono-code text-[10px]">${escapeHtml(r.ChangesSummary || '-')}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  function exportSingleSheetXLS(sheetName) {
-    let rows = [];
-    const filename = (sheetName || 'Data') + '_' + getYearMonthStr() + '.xls';
-
-    if (sheetName === 'Cost_References') {
-      ensureCostRefsAndDocRevisions();
-      rows = [
-        ['CostID', 'Version', 'Category', 'ItemCode', 'ItemName', 'StandardDesc', 'Unit', 'MaterialCost', 'LaborCost', 'TotalCost', 'VendorRef', 'EffectiveDate', 'Status', 'UpdatedAt', 'UpdatedBy']
-      ];
-      state.db.costRefs.forEach(function(c) {
-        rows.push([c.CostID, c.Version, c.Category, c.ItemCode, c.ItemName, c.StandardDesc, c.Unit, c.MaterialCost, c.LaborCost, c.TotalCost, c.VendorRef, c.EffectiveDate, c.Status, c.UpdatedAt, c.UpdatedBy]);
-      });
-    } else if (sheetName === 'Document_Revisions') {
-      ensureCostRefsAndDocRevisions();
-      rows = [
-        ['RevisionID', 'Timestamp', 'DocID', 'DocType', 'Version', 'Reason', 'UpdatedBy', 'ChangesSummary']
-      ];
-      state.db.docRevisions.forEach(function(r) {
-        rows.push([r.RevisionID, r.Timestamp, r.DocID, r.DocType, r.Version, r.Reason, r.UpdatedBy, r.ChangesSummary]);
-      });
-    } else if (sheetName === 'System_Logs') {
-      rows = [
-        ['LogID', 'Timestamp', 'UserID', 'OperatorName', 'RoleLevel', 'Action', 'TargetID', 'Details', 'BeforeState', 'AfterState', 'ClientInfo', 'Status']
-      ];
-      state.db.logs.forEach(function(l) {
-        rows.push([l.LogID, l.Timestamp, l.UserID, l.OperatorName, l.RoleLevel, l.Action, l.TargetID, l.Details, l.BeforeState, l.AfterState, l.ClientInfo, l.Status]);
-      });
-    } else {
-      rows = [
-        ['TaskID', 'Type', 'Category', 'Title', 'Location', 'Priority', 'Status', 'EstCost', 'ActualCost', 'CreatedAt', 'CreatedBy', 'UpdatedAt', 'UpdatedBy']
-      ];
-      state.db.tasks.forEach(function(t) {
-        rows.push([t.TaskID, t.Type, t.Category, t.Title, t.Location, t.Priority, t.Status, t.EstCost, t.ActualCost, t.CreatedAt, t.CreatedBy, t.UpdatedAt, t.UpdatedBy]);
-      });
-    }
-
-    const csvContent = '\uFEFF' + rows.map(function(row) {
-      return row.map(function(cell) {
-        const str = String(cell !== undefined && cell !== null ? cell : '');
-        return '"' + str.replace(/"/g, '""') + '"';
-      }).join('\t');
-    }).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('ส่งออกไฟล์สำเร็จ', filename, 'success');
-  }
-
-  function exportFullWorkbookXLS() {
-    ensureCostRefsAndDocRevisions();
-    const sheets = [
-      { name: 'Tasks', list: state.db.tasks },
-      { name: 'Cost_References', list: state.db.costRefs },
-      { name: 'Document_Revisions', list: state.db.docRevisions },
-      { name: 'Preventive_Schedules', list: state.db.schedules },
-      { name: 'Approval_Memos', list: state.db.memos },
-      { name: 'Users', list: state.db.users },
-      { name: 'System_Logs', list: state.db.logs }
-    ];
-
-    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-    html += '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>';
-    sheets.forEach(function(s) {
-      html += '<x:ExcelWorksheet><x:Name>' + s.name + '</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
-    });
-    html += '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
-
-    sheets.forEach(function(s) {
-      html += '<h3>' + s.name + '</h3><table border="1">';
-      if (s.list && s.list.length > 0) {
-        const keys = Object.keys(s.list[0]);
-        html += '<tr style="background:#0f172a;color:#ffffff;">' + keys.map(k => '<th>' + k + '</th>').join('') + '</tr>';
-        s.list.forEach(function(item) {
-          html += '<tr>' + keys.map(k => '<td>' + escapeHtml(item[k]) + '</td>').join('') + '</tr>';
-        });
-      }
-      html += '</table><br/>';
-    });
-    html += '</body></html>';
-
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const filename = 'FMMS_FullWorkbook_' + getYearMonthStr() + '.xls';
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('ส่งออก Excel ครบทุกชีตสำเร็จ', filename, 'success');
-  }
-
-  function exportToGoogleSheetCloud() {
-    if (state.config.spreadsheetId) {
-      const url = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(state.config.spreadsheetId) + '/edit';
-      window.open(url, '_blank');
-      showToast('เปิด Google Sheets สำเร็จ', 'เปิดแผ่นงาน Data MA TWPP บน Cloud', 'success');
-    } else {
-      showToast('ไม่พบ Spreadsheet ID', 'กรุณาระบุ Spreadsheet ID ในหน้าตั้งค่าระบบ', 'error');
-    }
   }
 
   function renderStatusBadge(status) {
@@ -3015,11 +3127,7 @@ var FMMS = (function() {
 
   return {
     fillLoginPreset: fillLoginPreset,
-    quickLogin: quickLogin,
-    openLoginModal: openLoginModal,
     handleLoginSubmit: handleLoginSubmit,
-    enterLoginFromLanding: enterLoginFromLanding,
-    showLandingPage: showLandingPage,
     logout: logout,
     switchView: switchView,
     pingConnection: pingConnection,
@@ -3056,13 +3164,17 @@ var FMMS = (function() {
     exportTasksToCSV: exportTasksToCSV,
     exportMemosToCSV: exportMemosToCSV,
     exportLogsToCSV: exportLogsToCSV,
-    applyCostRefToContractorForm: applyCostRefToContractorForm,
-    handleSaveCostRefSubmit: handleSaveCostRefSubmit,
-    editCostRef: editCostRef,
-    resetCostRefForm: resetCostRefForm,
-    exportSingleSheetXLS: exportSingleSheetXLS,
-    exportFullWorkbookXLS: exportFullWorkbookXLS,
-    exportToGoogleSheetCloud: exportToGoogleSheetCloud
+    openLoginModal: openLoginModal,
+    enterLoginFromLanding: enterLoginFromLanding,
+    showLandingPage: showLandingPage,
+    quickLogin: quickLogin,
+    switchExecutiveSubTab: switchExecutiveSubTab,
+    renderExecutivePipelineCards: renderExecutivePipelineCards,
+    renderExecutiveReport: renderExecutiveReport,
+    printExecutiveReport: printExecutiveReport,
+    exportExecutiveReportCSV: exportExecutiveReportCSV,
+    openImagePreviewModal: openImagePreviewModal,
+    closeImagePreviewModal: closeImagePreviewModal
   };
 })();
 
