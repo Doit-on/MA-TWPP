@@ -13,7 +13,7 @@ const FMMS = (function() {
   'use strict';
 
   const DEFAULT_CONFIG = {
-    gasWebAppUrl: '', // User can paste their deployed Code.gs URL or scan QR code
+    gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbwfBDxHrVGtMuWjz1FkP0B8eL83jAp66E-JYFvB7EvQs_QjZnXnteLKUspE4dAEGpFM/exec',
     spreadsheetId: '1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ',
     driveFolderId: '1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx',
     orgName: 'ฝ่ายบริหารงานวิศวกรรมและซ่อมบำรุงอาคาร (Data MA TWPP)',
@@ -122,6 +122,13 @@ const FMMS = (function() {
     } catch (e) {
       console.warn('Failed to load config:', e);
     }
+
+    // Auto-migrate: Ensure valid deployed gasWebAppUrl is used even if old cached config has empty URL
+    if (!state.config.gasWebAppUrl || !state.config.gasWebAppUrl.startsWith('https://script.google.com')) {
+      state.config.gasWebAppUrl = DEFAULT_CONFIG.gasWebAppUrl;
+      saveConfig();
+    }
+
     syncConfigInputs();
   }
 
