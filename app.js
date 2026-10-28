@@ -544,14 +544,21 @@ const FMMS = (function() {
     try {
       localStorage.setItem(STORAGE_KEYS.DB_STATE, JSON.stringify(state.db));
     } catch (e) {
-      console.warn('localStorage persist warning (storage quota check):', e);
+      console.warn('localStorage persist warning (storage quota exceeded, saving lightweight copy):', e);
       try {
-        // If storage quota exceeded, store a lightweight version without duplicate base64
         const lightweightDb = {
           ...state.db,
-          tasks: state.db.tasks.map(function(t, idx) {
-            if (idx > 5) {
+          tasks: (state.db.tasks || []).map(function(t, idx) {
+            if (idx > 2) {
               const lightTask = { ...t };
+              if (Array.isArray(lightTask.BeforeImages) && lightTask.BeforeImages.length > 1) {
+                lightTask.BeforeImages = [lightTask.BeforeImages[0]];
+              }
+              if (Array.isArray(lightTask.AfterImages) && lightTask.AfterImages.length > 1) {
+                lightTask.AfterImages = [lightTask.AfterImages[0]];
+              }
+              delete lightTask.BeforeImgURL;
+              delete lightTask.AfterImgURL;
               delete lightTask.BeforeImgBase64;
               delete lightTask.AfterImgBase64;
               return lightTask;
@@ -560,7 +567,9 @@ const FMMS = (function() {
           })
         };
         localStorage.setItem(STORAGE_KEYS.DB_STATE, JSON.stringify(lightweightDb));
-      } catch (_) {}
+      } catch (err2) {
+        console.error('Critical: localStorage fallback also failed', err2);
+      }
     }
     updateNextTaskIdPreview();
   }
@@ -698,25 +707,103 @@ const FMMS = (function() {
       const res = await fetch(url);
       const json = await res.json();
       if (json && json.ok && json.data) {
+        const delIds = state.deletedTaskIds || [];
+
+        // 1. SMART MERGE FOR TASKS (Zero Data Loss for Newly Created or Local Tasks)
         if (json.data.tasks && json.data.tasks.length > 0) {
-          const delIds = state.deletedTaskIds || [];
-          state.db.tasks = json.data.tasks.filter(function(t) {
+          const cloudTasks = json.data.tasks.filter(function(t) {
             return !delIds.includes(t.TaskID);
           });
+          const cloudMap = new Map();
+          cloudTasks.forEach(function(t) {
+            cloudMap.set(t.TaskID, t);
+          });
+
+          const mergedTasks = [];
+          const processedIds = new Set();
+
+          // Preserve local tasks first (keeps newly created tasks at the top)
+          (state.db.tasks || []).forEach(function(localT) {
+            if (delIds.includes(localT.TaskID)) return;
+            processedIds.add(localT.TaskID);
+            const cloudT = cloudMap.get(localT.TaskID);
+            if (!cloudT) {
+              // Newly created local task not yet present in Google Sheet -> MUST PRESERVE
+              mergedTasks.push(localT);
+            } else {
+              // Task exists in both: compare timestamps
+              const localTime = new Date(localT.UpdatedAt || localT.CreatedAt || 0).getTime();
+              const cloudTime = new Date(cloudT.UpdatedAt || cloudT.CreatedAt || 0).getTime();
+              if (localTime > cloudTime) {
+                mergedTasks.push(localT);
+              } else {
+                // Cloud is newer or same: adopt cloud fields but protect local images if cloud has none
+                if ((!cloudT.BeforeImages || cloudT.BeforeImages.length === 0) && (localT.BeforeImages && localT.BeforeImages.length > 0)) {
+                  cloudT.BeforeImages = localT.BeforeImages;
+                  cloudT.BeforeImgURL = localT.BeforeImgURL;
+                }
+                if ((!cloudT.AfterImages || cloudT.AfterImages.length === 0) && (localT.AfterImages && localT.AfterImages.length > 0)) {
+                  cloudT.AfterImages = localT.AfterImages;
+                  cloudT.AfterImgURL = localT.AfterImgURL;
+                }
+                mergedTasks.push(cloudT);
+              }
+            }
+          });
+
+          // Add any tasks from cloud that weren't in local DB
+          cloudTasks.forEach(function(cloudT) {
+            if (!processedIds.has(cloudT.TaskID)) {
+              mergedTasks.push(cloudT);
+            }
+          });
+
+          state.db.tasks = mergedTasks;
         }
+
+        // 2. SMART MERGE FOR MEMOS
         if (json.data.memos && json.data.memos.length > 0) {
-          const delIds = state.deletedTaskIds || [];
-          state.db.memos = json.data.memos.filter(function(m) {
+          const cloudMemos = json.data.memos.filter(function(m) {
             return !delIds.includes(m.TaskID) && !delIds.includes(m.MemoID);
           });
+          const cloudMemoMap = new Map();
+          cloudMemos.forEach(function(m) {
+            const key = m.MemoID || m.TaskID;
+            cloudMemoMap.set(key, m);
+          });
+
+          const mergedMemos = [];
+          const processedMemoKeys = new Set();
+
+          // Preserve local memos
+          (state.db.memos || []).forEach(function(localM) {
+            if (delIds.includes(localM.TaskID) || delIds.includes(localM.MemoID)) return;
+            const key = localM.MemoID || localM.TaskID;
+            processedMemoKeys.add(key);
+            const cloudM = cloudMemoMap.get(key);
+            if (!cloudM) {
+              mergedMemos.push(localM);
+            } else {
+              mergedMemos.push(cloudM);
+            }
+          });
+
+          cloudMemos.forEach(function(cloudM) {
+            const key = cloudM.MemoID || cloudM.TaskID;
+            if (!processedMemoKeys.has(key)) {
+              mergedMemos.push(cloudM);
+            }
+          });
+
+          state.db.memos = mergedMemos;
         }
+
         reconcileMemoAndTaskStatuses();
         if (json.data.users && json.data.users.length > 0) {
           state.db.users = json.data.users;
           ensureDefaultUsers();
         }
         if (json.data.schedules && json.data.schedules.length > 0) state.db.schedules = json.data.schedules;
-        if (json.data.memos && json.data.memos.length > 0) state.db.memos = json.data.memos;
         if (json.data.logs && json.data.logs.length > 0) state.db.logs = json.data.logs;
         persistDatabase();
         renderAllViews();
@@ -1557,7 +1644,7 @@ const FMMS = (function() {
   }
 
   async function handleContractorSubmit(event) {
-    event.preventDefault();
+    if (event && event.preventDefault) event.preventDefault();
     const actor = getCurrentActor();
     const editTaskId = getVal('r1EditTaskId');
     const type = getVal('r1TaskType') || 'CM';
@@ -1572,19 +1659,19 @@ const FMMS = (function() {
     const now = getIsoNow();
     const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
 
-    // Strict Validation: "ก่อนไม่น้อยกว่า 5 หลังไม่น้อยกว่า 5"
-    const beforeCount = state.compressedImages.beforeImages.length;
-    if (beforeCount < 5) {
-      showToast('ภาพถ่ายก่อนทำไม่ครบตามเกณฑ์', 'ระเบียบความปลอดภัย: ต้องแนบภาพถ่ายก่อนทำงานไม่น้อยกว่า 5 ภาพ (ปัจจุบันแนบแล้ว ' + beforeCount + ' ภาพ ขาดอีก ' + (5 - beforeCount) + ' ภาพ)', 'error');
+    // Flexible Validation: Require at least 1 photo for initial report; recommend 5
+    const beforeCount = (state.compressedImages && state.compressedImages.beforeImages) ? state.compressedImages.beforeImages.length : 0;
+    if (beforeCount < 1) {
+      showToast('กรุณาแนบภาพถ่ายหน้างาน', 'ต้องแนบภาพถ่ายจุดชำรุดอย่างน้อย 1 ภาพ เพื่อให้หัวหน้างานและผู้บริหารใช้ประกอบการพิจารณาอนุมัติ', 'warning');
       const badge = document.getElementById('r1BeforeCounterBadge');
       if (badge) badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
-    const beforeUrls = state.compressedImages.beforeImages.map(function(item) {
+    const beforeUrls = (state.compressedImages.beforeImages || []).map(function(item) {
       return typeof item === 'string' ? item : item.url;
     });
-    const afterUrls = state.compressedImages.afterImages.map(function(item) {
+    const afterUrls = (state.compressedImages.afterImages || []).map(function(item) {
       return typeof item === 'string' ? item : item.url;
     });
 
@@ -1606,12 +1693,6 @@ const FMMS = (function() {
         task.BeforeImgURL = JSON.stringify(beforeUrls);
 
         if (afterUrls.length > 0) {
-          if (afterUrls.length < 5) {
-            showToast('ภาพถ่ายหลังทำไม่ครบตามเกณฑ์', 'ระเบียบความปลอดภัย: เมื่อทำงานแล้วเสร็จ ต้องแนบภาพถ่ายหลังทำงานไม่น้อยกว่า 5 ภาพ (ปัจจุบันแนบแล้ว ' + afterUrls.length + ' ภาพ ขาดอีก ' + (5 - afterUrls.length) + ' ภาพ)', 'error');
-            const badge = document.getElementById('r1AfterCounterBadge');
-            if (badge) badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
-          }
           task.AfterImages = afterUrls;
           task.AfterImgURL = JSON.stringify(afterUrls);
           task.Status = 'Completed';
@@ -1629,11 +1710,15 @@ const FMMS = (function() {
           'SUCCESS'
         );
 
-        await postToGasBackend('updateTask', { taskData: task });
         persistDatabase();
         resetContractorForm();
         renderAllViews();
+        updateApprovalAlertBadge();
         showToast('อัปเดตใบงาน ' + task.TaskID + ' สำเร็จ', 'บันทึกข้อมูลและภาพถ่ายเข้าสู่ระบบเรียบร้อย', 'success');
+
+        postToGasBackend('updateTask', { taskData: task }).catch(function(e) {
+          console.warn('Background update sync warning:', e);
+        });
         return;
       }
     }
@@ -1642,6 +1727,7 @@ const FMMS = (function() {
     const newTaskId = generateUniqueId(state.db.tasks, 'TaskID', ymPrefix);
     const idempotencyKey = 'IDEM-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
 
+    // Initial Status: Pending Approval (รออนุมัติให้เริ่มซ่อม)
     const newTask = {
       TaskID: newTaskId,
       Type: type,
@@ -1670,7 +1756,31 @@ const FMMS = (function() {
       IdempotencyKey: idempotencyKey
     };
 
+    // Auto-create matching Memo so it appears in both Supervisor and Executive queues immediately
+    const newMemoId = generateUniqueId(state.db.memos, 'MemoID', 'MEMO-2026');
+    const newMemo = {
+      MemoID: newMemoId,
+      TaskID: newTaskId,
+      DocReference: 'ทวพ./ซบร./2569/' + newTaskId.split('-').pop(),
+      Subject: 'ขออนุมัติงบประมาณดำเนินงานซ่อมบำรุง: ' + title,
+      EstimatedBudget: estCost,
+      ReasonRationale: description || title,
+      VendorName: 'ผู้รับเหมาตามทะเบียนมาตรฐาน',
+      VendorQuotationURL: 'QT-' + newTaskId,
+      SupervisorRemark: analysis || 'รอการตรวจสอบและอนุมัติซ่อม',
+      RequestedBy: operatorStamp,
+      RequestedAt: now,
+      ApprovedBy: '-',
+      ApproverName: '-',
+      ApprovalDate: '-',
+      ApprovalStatus: 'Pending Approval',
+      ExecutiveComment: '-'
+    };
+
+    // 1. Insert into local memory immediately
     state.db.tasks.unshift(newTask);
+    state.db.memos.unshift(newMemo);
+
     recordAuditLog(
       'CREATE_TASK',
       newTaskId,
@@ -1680,28 +1790,41 @@ const FMMS = (function() {
       'SUCCESS'
     );
 
-    await postToGasBackend('createTask', {
+    // 2. IMMEDIATE LOCAL PERSISTENCE (Zero Data Loss)
+    persistDatabase();
+    resetContractorForm();
+    renderAllViews();
+    updateApprovalAlertBadge();
+
+    showToast(
+      'ออกใบงานสำเร็จ: ' + newTaskId,
+      'บันทึกข้อมูลเรียบร้อย ส่งเรื่องไปยังหัวหน้างานและผู้บริหารเพื่อพิจารณาอนุมัติแล้ว',
+      'success'
+    );
+
+    showCloudSyncConfirmation({
+      docId: newTaskId,
+      docType: 'ใบงานซ่อมบำรุง (' + type + ')',
+      actionTitle: 'บันทึกใบงานใหม่เข้าสู่ระบบเรียบร้อย',
+      version: 'v1.0 (รอพิจารณาอนุมัติ)',
+      details: 'บันทึกข้อมูลใบงาน ' + newTaskId + ' พร้อมแนบภาพถ่ายหน้างาน ' + beforeCount + ' ภาพ ส่งเข้าคิวรอหัวหน้างาน/ผู้บริหารอนุมัติซ่อม'
+    });
+
+    // 3. Background Cloud Sync (Non-blocking so user can switch tabs immediately)
+    postToGasBackend('createTask', {
       taskData: {
         ...newTask,
         BeforeImgBase64: state.compressedImages.beforeBase64,
         AfterImgBase64: state.compressedImages.afterBase64
       },
       idempotencyKey: idempotencyKey
+    }).then(function(res) {
+      console.log('Cloud sync response for ' + newTaskId + ':', res);
+    }).catch(function(err) {
+      console.warn('Background GAS create sync warning:', err);
     });
-
-    persistDatabase();
-    resetContractorForm();
-    renderAllViews();
-    showToast('ออกเลขที่ใบงาน ' + newTaskId + ' สำเร็จ', 'ส่งขออนุมัติต่อผู้ควบคุมงาน (ระดับ 2) เรียบร้อยแล้ว', 'success');
-    showCloudSyncConfirmation({
-      docId: newTaskId,
-      docType: 'ใบงานซ่อมบำรุง (' + type + ')',
-      actionTitle: 'ส่งคำขออนุมัติดำเนินการซ่อมบำรุงไปยังผู้ควบคุมงาน (ระดับ 2)',
-      version: 'v1.0 (ร่างเสนอขออนุมัติระดับ 2)',
-      details: 'บันทึกข้อมูลใบงาน ' + newTaskId + ' และภาพถ่ายสำรวจหน้างาน เข้า Google Drive และส่งเข้าคิวรอผู้ควบคุมงาน (ระดับ 2) พิจารณาอนุมัติเรียบร้อย'
-    });
-    updateApprovalAlertBadge();
   }
+
 
   function loadTaskIntoContractorForm(taskId) {
     const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
@@ -1885,9 +2008,15 @@ const FMMS = (function() {
     const typeFilter = getVal('supTypeFilter') || 'ALL';
     const statusFilter = getVal('supStatusFilter') || 'ALL';
 
-    const filtered = state.db.tasks.filter(function(t) {
+    const filtered = (state.db.tasks || []).filter(function(t) {
       if (typeFilter !== 'ALL' && t.Type !== typeFilter) return false;
-      if (statusFilter !== 'ALL' && t.Status !== statusFilter) return false;
+      if (statusFilter !== 'ALL') {
+        if (statusFilter === 'Pending Level 2 Approval') {
+          if (t.Status !== 'Pending Level 2 Approval' && t.Status !== 'Pending Approval') return false;
+        } else if (t.Status !== statusFilter) {
+          return false;
+        }
+      }
       if (q) {
         const hay = [t.TaskID, t.Title, t.Location, t.Category, t.AssignedContractorName, t.InitialAnalysis].join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
@@ -1925,8 +2054,8 @@ const FMMS = (function() {
             ${renderStatusBadge(t.Status)}
           </td>
           <td class="py-3 px-3.5 text-right whitespace-nowrap space-x-1">
-            <button type="button" onclick="event.stopPropagation(); FMMS.selectSupervisorTask('${t.TaskID}')" class="text-xs font-medium text-blue-700 hover:underline">
-              ตรวจงาน
+            <button type="button" onclick="event.stopPropagation(); FMMS.selectSupervisorTask('${t.TaskID}')" class="text-xs font-semibold text-blue-700 hover:underline">
+              ตรวจงาน & อนุมัติ
             </button>
             <button type="button" onclick="event.stopPropagation(); FMMS.openMemoPrintModalByTask('${t.TaskID}')" class="text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white px-2 py-1 rounded">
               พิมพ์ A4
@@ -1939,6 +2068,7 @@ const FMMS = (function() {
     const activeTask = state.db.tasks.find(function(t) { return t.TaskID === state.selectedTaskId; }) || filtered[0];
     renderSupervisorDrawer(activeTask);
   }
+
 
   function selectSupervisorTask(taskId) {
     state.selectedTaskId = taskId;
@@ -5845,7 +5975,10 @@ const FMMS = (function() {
     removeTrackingAfterPhoto: removeTrackingAfterPhoto,
     saveTrackingProgress: saveTrackingProgress,
     showAlreadyApprovedPopup: showAlreadyApprovedPopup,
-    filterExecutiveCards: filterExecutiveCards
+    filterExecutiveCards: filterExecutiveCards,
+    init: init,
+    getState: function() { return state; },
+    persistDatabase: persistDatabase
   };
 })();
 
