@@ -43,6 +43,8 @@ const FMMS = (function() {
     },
     executiveSubTab: 'cards',
     compressedImages: {
+      beforeImages: [],
+      afterImages: [],
       beforeBase64: null,
       afterBase64: null
     },
@@ -147,6 +149,20 @@ const FMMS = (function() {
       { CostID: 'COST-003', ItemCode: 'MAT-ELEC-003', Category: 'ไฟฟ้า', ItemName: 'สเปรย์ทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner', Spec: 'CRC ElectroX 400g', Unit: 'กระป๋อง', UnitPrice: 650, LaborRate: 500, PreferredVendor: 'บจก. ไฟฟ้าธนบุรี เอ็นจิเนียริ่ง' },
       { CostID: 'COST-004', ItemCode: 'MAT-FIRE-004', Category: 'ความปลอดภัย/ดับเพลิง', ItemName: 'น้ำกลั่นและแบตเตอรี่ตู้คอนโทรลปั๊มดับเพลิง', Spec: 'GS Battery 12V 100Ah', Unit: 'ชุด', UnitPrice: 4200, LaborRate: 800, PreferredVendor: 'บจก. ไฟร์เซฟตี้ แอนด์ เทค' }
     ];
+    const DEFAULT_5_BEFORE_PHOTOS = [
+      'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092162384-8987c1d64718?auto=format&fit=crop&w=600&q=75'
+    ];
+    const DEFAULT_5_AFTER_PHOTOS = [
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=600&q=75'
+    ];
     const now = getIsoNow();
     state.db = {
       costs: defaultCosts,
@@ -215,7 +231,9 @@ const FMMS = (function() {
           SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
           EstCost: 8500,
           ActualCost: 0,
-          BeforeImgURL: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=800&q=75',
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: [],
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
           AfterImgURL: '',
           CreatedAt: '2026-10-27T08:00:00+07:00',
           CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
@@ -239,8 +257,10 @@ const FMMS = (function() {
           SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
           EstCost: 14500,
           ActualCost: 13800,
-          BeforeImgURL: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=75',
-          AfterImgURL: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=75',
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: DEFAULT_5_AFTER_PHOTOS,
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
           CreatedAt: '2026-10-24T09:20:00+07:00',
           CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
           UpdatedAt: '2026-10-25T14:10:00+07:00',
@@ -263,7 +283,9 @@ const FMMS = (function() {
           SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
           EstCost: 38500,
           ActualCost: 0,
-          BeforeImgURL: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=800&q=75',
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: [],
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
           AfterImgURL: '',
           CreatedAt: '2026-10-25T11:05:00+07:00',
           CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
@@ -287,8 +309,10 @@ const FMMS = (function() {
           SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
           EstCost: 12000,
           ActualCost: 12000,
-          BeforeImgURL: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=800&q=75',
-          AfterImgURL: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=75',
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: DEFAULT_5_AFTER_PHOTOS,
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
           CreatedAt: '2026-10-18T08:45:00+07:00',
           CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)',
           UpdatedAt: '2026-10-20T17:00:00+07:00',
@@ -311,8 +335,10 @@ const FMMS = (function() {
           SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
           EstCost: 4500,
           ActualCost: 4200,
-          BeforeImgURL: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=800&q=75',
-          AfterImgURL: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=75',
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: DEFAULT_5_AFTER_PHOTOS,
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
           CreatedAt: '2026-10-22T09:00:00+07:00',
           CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)',
           UpdatedAt: '2026-10-26T16:15:00+07:00',
@@ -1091,72 +1117,175 @@ const FMMS = (function() {
 
   /**
    * ==========================================================================
-   * 5. CLIENT-SIDE IMAGE COMPRESSION (< 1MB) & LEVEL 1 FIELD WORKFLOW
+   * 5. CLIENT-SIDE MULTI-IMAGE COMPRESSION (< 1MB) & LEVEL 1 GALLERY ENGINE
+   *    (Strict Quality Control: Minimum 5 Before Photos & Minimum 5 After Photos)
    * ==========================================================================
    */
 
-  function handleImageUploadPreview(event, type) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
+  function parseImageUrls(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.filter(Boolean);
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const arr = JSON.parse(trimmed);
+          if (Array.isArray(arr)) return arr.filter(Boolean);
+        } catch (_) {}
+      }
+      if (trimmed.includes('|')) {
+        return trimmed.split('|').map(function(s) { return s.trim(); }).filter(Boolean);
+      }
+      if (trimmed.includes('\n')) {
+        return trimmed.split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+      }
+      return [trimmed];
+    }
+    return [];
+  }
+
+  function getTaskBeforeImages(task) {
+    if (!task) return [];
+    if (task.BeforeImages && Array.isArray(task.BeforeImages) && task.BeforeImages.length > 0) {
+      return task.BeforeImages;
+    }
+    return parseImageUrls(task.BeforeImgURL);
+  }
+
+  function getTaskAfterImages(task) {
+    if (!task) return [];
+    if (task.AfterImages && Array.isArray(task.AfterImages) && task.AfterImages.length > 0) {
+      return task.AfterImages;
+    }
+    return parseImageUrls(task.AfterImgURL);
+  }
+
+  function renderImageGallery(type) {
+    const list = type === 'before' ? state.compressedImages.beforeImages : state.compressedImages.afterImages;
+    const galleryEl = document.getElementById(type === 'before' ? 'r1BeforeGallery' : 'r1AfterGallery');
+    const badgeEl = document.getElementById(type === 'before' ? 'r1BeforeCounterBadge' : 'r1AfterCounterBadge');
+    const metaEl = document.getElementById(type === 'before' ? 'r1BeforeMeta' : 'r1AfterMeta');
+
+    const count = list.length;
+    const isPassing = count >= 5;
+
+    if (badgeEl) {
+      if (isPassing) {
+        badgeEl.textContent = count + ' / 5 ภาพ ✅ (ครบเกณฑ์)';
+        badgeEl.className = 'text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300';
+      } else {
+        const remaining = 5 - count;
+        badgeEl.textContent = count + ' / 5 ภาพ ⚠️ (ขาดอีก ' + remaining + ')';
+        badgeEl.className = 'text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300';
+      }
+    }
+
+    if (metaEl) {
+      if (count === 0) {
+        metaEl.textContent = 'ยังไม่ได้เลือกรูป (แตะเพื่อถ่ายรูปหรือเลือกหลายภาพพร้อมกันได้)';
+        metaEl.className = 'text-[11px] text-slate-500 mb-2';
+      } else if (isPassing) {
+        metaEl.textContent = 'แนบรูปครบตามเกณฑ์มาตรฐานแล้ว (' + count + ' ภาพ)';
+        metaEl.className = 'text-[11px] text-emerald-700 font-semibold mb-2';
+      } else {
+        metaEl.textContent = 'ยังขาดอีก ' + (5 - count) + ' ภาพ (ต้องแนบภาพถ่ายไม่น้อยกว่า 5 ภาพ)';
+        metaEl.className = 'text-[11px] text-rose-600 font-semibold mb-2';
+      }
+    }
+
+    if (!galleryEl) return;
+    if (count === 0) {
+      galleryEl.innerHTML = '<div class="col-span-3 sm:col-span-5 text-center py-6 text-xs text-slate-400">ยังไม่มีรูปภาพ' + (type === 'before' ? 'ก่อนซ่อม' : 'หลังซ่อม') + ' (ต้องแนบอย่างน้อย 5 ภาพ)</div>';
+      return;
+    }
+
+    galleryEl.innerHTML = list.map(function(item, idx) {
+      const url = typeof item === 'string' ? item : item.url;
+      const title = 'ภาพ' + (type === 'before' ? 'ก่อนซ่อม' : 'หลังซ่อม') + ' #' + (idx + 1);
+      return `
+        <div class="relative group rounded border border-slate-300 overflow-hidden bg-slate-100 h-24 flex items-center justify-center">
+          <img src="${url}" alt="${title}" onclick="FMMS.openImagePreviewModal('${url}', '${title}', 'ลำดับที่ ${idx+1} จาก ${count} ภาพ')" class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition">
+          <span class="absolute bottom-1 left-1 bg-black/75 text-white font-mono-code text-[10px] px-1 rounded">#${idx+1}</span>
+          <button type="button" onclick="FMMS.removeImage('${type}', ${idx})" class="absolute top-1 right-1 bg-rose-600 hover:bg-rose-700 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow cursor-pointer transition" title="ลบภาพนี้">✕</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function handleMultiImageUpload(event, type) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
     const metaEl = document.getElementById(type === 'before' ? 'r1BeforeMeta' : 'r1AfterMeta');
-    const imgEl = document.getElementById(type === 'before' ? 'r1BeforePreview' : 'r1AfterPreview');
+    if (metaEl) {
+      metaEl.textContent = 'กำลังประมวลผลและบีบอัดรูปภาพ (' + files.length + ' ไฟล์)...';
+      metaEl.className = 'text-[11px] text-blue-600 font-semibold mb-2';
+    }
 
-    if (metaEl) metaEl.textContent = 'กำลังบีบอัดรูปภาพ...';
+    const targetList = type === 'before' ? state.compressedImages.beforeImages : state.compressedImages.afterImages;
+    let processed = 0;
+    const totalFiles = files.length;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const maxDim = 1280;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
+    Array.from(files).forEach(function(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 1280;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
           }
-        }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
 
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+          // Watermark stamp
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+          ctx.fillRect(0, height - 28, width, 28);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '12px monospace';
+          const seq = targetList.length + 1;
+          ctx.fillText('FMMS TWPP | ' + type.toUpperCase() + ' #' + seq + ' | ' + formatThaiDateTime(getIsoNow()), 10, height - 10);
 
-        // Stamp timestamp & system watermark in bottom corner of field photo
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-        ctx.fillRect(0, height - 28, width, 28);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '12px monospace';
-        ctx.fillText('FMMS TWPP | ' + type.toUpperCase() + ' | ' + formatThaiDateTime(getIsoNow()), 10, height - 10);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+          const approxKb = Math.round((dataUrl.length * 3) / 4 / 1024);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
-        const approxKb = Math.round((dataUrl.length * 3) / 4 / 1024);
+          targetList.push({
+            id: 'IMG-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+            url: dataUrl,
+            name: file.name,
+            sizeKb: approxKb,
+            timestamp: getIsoNow()
+          });
 
-        if (type === 'before') {
-          state.compressedImages.beforeBase64 = dataUrl;
-        } else {
-          state.compressedImages.afterBase64 = dataUrl;
-        }
-
-        if (metaEl) {
-          metaEl.textContent = 'ย่อขนาดสำเร็จ: ' + width + 'x' + height + 'px (~' + approxKb + ' KB)';
-          metaEl.className = 'text-[11px] font-mono-code text-emerald-700 font-semibold mt-1.5';
-        }
-        if (imgEl) {
-          imgEl.src = dataUrl;
-          imgEl.classList.remove('hidden');
-        }
+          processed++;
+          if (processed === totalFiles) {
+            if (type === 'before') {
+              state.compressedImages.beforeBase64 = (targetList[0] && targetList[0].url) || null;
+            } else {
+              state.compressedImages.afterBase64 = (targetList[0] && targetList[0].url) || null;
+            }
+            renderImageGallery(type);
+            event.target.value = '';
+          }
+        };
+        img.src = e.target.result;
       };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    });
   }
+
+  // handleImageUploadPreview integrated into handleMultiImageUpload
 
   async function handleContractorSubmit(event) {
     event.preventDefault();
@@ -1174,6 +1303,22 @@ const FMMS = (function() {
     const now = getIsoNow();
     const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
 
+    // Strict Validation: "ก่อนไม่น้อยกว่า 5 หลังไม่น้อยกว่า 5"
+    const beforeCount = state.compressedImages.beforeImages.length;
+    if (beforeCount < 5) {
+      showToast('ภาพถ่ายก่อนทำไม่ครบตามเกณฑ์', 'ระเบียบความปลอดภัย: ต้องแนบภาพถ่ายก่อนทำงานไม่น้อยกว่า 5 ภาพ (ปัจจุบันแนบแล้ว ' + beforeCount + ' ภาพ ขาดอีก ' + (5 - beforeCount) + ' ภาพ)', 'error');
+      const badge = document.getElementById('r1BeforeCounterBadge');
+      if (badge) badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const beforeUrls = state.compressedImages.beforeImages.map(function(item) {
+      return typeof item === 'string' ? item : item.url;
+    });
+    const afterUrls = state.compressedImages.afterImages.map(function(item) {
+      return typeof item === 'string' ? item : item.url;
+    });
+
     if (editTaskId) {
       const task = state.db.tasks.find(function(t) { return t.TaskID === editTaskId; });
       if (task) {
@@ -1187,11 +1332,22 @@ const FMMS = (function() {
         task.InitialAnalysis = analysis;
         task.MaterialsRequired = materials;
         if (estCost > 0) task.EstCost = estCost;
-        if (state.compressedImages.beforeBase64) task.BeforeImgURL = state.compressedImages.beforeBase64;
-        if (state.compressedImages.afterBase64) {
-          task.AfterImgURL = state.compressedImages.afterBase64;
+        
+        task.BeforeImages = beforeUrls;
+        task.BeforeImgURL = JSON.stringify(beforeUrls);
+
+        if (afterUrls.length > 0) {
+          if (afterUrls.length < 5) {
+            showToast('ภาพถ่ายหลังทำไม่ครบตามเกณฑ์', 'ระเบียบความปลอดภัย: เมื่อทำงานแล้วเสร็จ ต้องแนบภาพถ่ายหลังทำงานไม่น้อยกว่า 5 ภาพ (ปัจจุบันแนบแล้ว ' + afterUrls.length + ' ภาพ ขาดอีก ' + (5 - afterUrls.length) + ' ภาพ)', 'error');
+            const badge = document.getElementById('r1AfterCounterBadge');
+            if (badge) badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+          }
+          task.AfterImages = afterUrls;
+          task.AfterImgURL = JSON.stringify(afterUrls);
           task.Status = 'Completed';
         }
+
         task.UpdatedAt = now;
         task.UpdatedBy = operatorStamp;
 
@@ -1227,15 +1383,17 @@ const FMMS = (function() {
       InitialAnalysis: analysis,
       MaterialsRequired: materials,
       Priority: priority,
-      Status: state.compressedImages.afterBase64 ? 'Completed' : 'Pending Level 2 Approval',
+      Status: afterUrls.length >= 5 ? 'Completed' : 'Pending Level 2 Approval',
       AssignedContractorID: actor.userId,
       AssignedContractorName: actor.fullName,
       SupervisorID: 'USR-2026-0002',
       SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
       EstCost: estCost,
       ActualCost: 0,
-      BeforeImgURL: state.compressedImages.beforeBase64 || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=75',
-      AfterImgURL: state.compressedImages.afterBase64 || '',
+      BeforeImages: beforeUrls,
+      AfterImages: afterUrls,
+      BeforeImgURL: JSON.stringify(beforeUrls),
+      AfterImgURL: afterUrls.length > 0 ? JSON.stringify(afterUrls) : '',
       CreatedAt: now,
       CreatedBy: operatorStamp,
       UpdatedAt: now,
@@ -1292,22 +1450,20 @@ const FMMS = (function() {
     setVal('r1Materials', task.MaterialsRequired);
     setVal('r1EstCost', task.EstCost || 0);
 
-    if (task.BeforeImgURL) {
-      const bImg = document.getElementById('r1BeforePreview');
-      if (bImg) {
-        bImg.src = task.BeforeImgURL;
-        bImg.classList.remove('hidden');
-      }
-      setText('r1BeforeMeta', 'มีรูปภาพก่อนซ่อมในระบบแล้ว');
-    }
-    if (task.AfterImgURL) {
-      const aImg = document.getElementById('r1AfterPreview');
-      if (aImg) {
-        aImg.src = task.AfterImgURL;
-        aImg.classList.remove('hidden');
-      }
-      setText('r1AfterMeta', 'มีรูปภาพหลังซ่อมในระบบแล้ว');
-    }
+    const bList = getTaskBeforeImages(task);
+    const aList = getTaskAfterImages(task);
+
+    state.compressedImages.beforeImages = bList.map(function(url, idx) {
+      return { id: 'IMG-B-' + idx, url: url, name: 'ภาพก่อนทำ #' + (idx + 1) };
+    });
+    state.compressedImages.afterImages = aList.map(function(url, idx) {
+      return { id: 'IMG-A-' + idx, url: url, name: 'ภาพหลังทำ #' + (idx + 1) };
+    });
+    state.compressedImages.beforeBase64 = bList[0] || null;
+    state.compressedImages.afterBase64 = aList[0] || null;
+
+    renderImageGallery('before');
+    renderImageGallery('after');
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1317,14 +1473,12 @@ const FMMS = (function() {
     if (form) form.reset();
     setVal('r1EditTaskId', '');
     setText('r1FormModeBadge', 'NEW TASK');
+    state.compressedImages.beforeImages = [];
+    state.compressedImages.afterImages = [];
     state.compressedImages.beforeBase64 = null;
     state.compressedImages.afterBase64 = null;
-    setText('r1BeforeMeta', 'ยังไม่ได้เลือกรูป');
-    setText('r1AfterMeta', 'ยังไม่ได้เลือกรูป');
-    const bImg = document.getElementById('r1BeforePreview');
-    const aImg = document.getElementById('r1AfterPreview');
-    if (bImg) bImg.classList.add('hidden');
-    if (aImg) aImg.classList.add('hidden');
+    renderImageGallery('before');
+    renderImageGallery('after');
   }
 
   function renderRole1Tasks() {
@@ -1493,21 +1647,58 @@ const FMMS = (function() {
           <div class="text-slate-500 font-mono-code text-[11px]">แก้ไขล่าสุด: ${escapeHtml(task.UpdatedBy)} เมื่อ ${formatThaiDateTime(task.UpdatedAt)}</div>
         </div>
 
-        <!-- Before / After Field Photos -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="border border-slate-200 rounded p-2 bg-slate-50">
-            <div class="font-semibold text-slate-700 mb-1 text-[11px]">ภาพก่อนซ่อม (Before)</div>
-            ${task.BeforeImgURL
-              ? `<img src="${task.BeforeImgURL}" alt="Before" class="w-full h-28 object-cover rounded border border-slate-300">`
-              : `<div class="h-28 flex items-center justify-center text-slate-400 bg-slate-100 rounded">ไม่มีรูปภาพ</div>`
-            }
+        <!-- Before / After Field Photos (Min 5 photos each) -->
+        <div class="space-y-3">
+          <!-- BEFORE GALLERY -->
+          <div class="border border-slate-200 rounded p-2.5 bg-slate-50">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="font-semibold text-slate-800 text-[11px] flex items-center gap-1">
+                <span>📸 ภาพก่อนซ่อม (BEFORE)</span>
+              </span>
+              <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded font-bold ${getTaskBeforeImages(task).length >= 5 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'}">
+                ${getTaskBeforeImages(task).length} ภาพ ${getTaskBeforeImages(task).length >= 5 ? '✅' : '⚠️'}
+              </span>
+            </div>
+            ${getTaskBeforeImages(task).length > 0 ? `
+              <div class="grid grid-cols-5 gap-1.5">
+                ${getTaskBeforeImages(task).map(function(url, idx) {
+                  return `
+                    <div class="relative group aspect-square rounded overflow-hidden border border-slate-300 bg-white">
+                      <img src="${url}" alt="Before #${idx+1}" onclick="FMMS.openImagePreviewModal('${url}', 'ภาพก่อนซ่อม #${idx+1} : ${escapeHtml(task.TaskID)}', 'ลำดับที่ ${idx+1} จาก ${getTaskBeforeImages(task).length} ภาพ')" class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition">
+                      <span class="absolute bottom-0.5 left-0.5 bg-black/70 text-white font-mono-code text-[9px] px-0.5 rounded">#${idx+1}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div class="h-16 flex items-center justify-center text-xs text-slate-400 bg-slate-100 rounded">ไม่มีรูปภาพ</div>
+            `}
           </div>
-          <div class="border border-slate-200 rounded p-2 bg-slate-50">
-            <div class="font-semibold text-slate-700 mb-1 text-[11px]">ภาพหลังซ่อม (After)</div>
-            ${task.AfterImgURL
-              ? `<img src="${task.AfterImgURL}" alt="After" class="w-full h-28 object-cover rounded border border-slate-300">`
-              : `<div class="h-28 flex items-center justify-center text-slate-400 bg-slate-100 rounded">รอส่งรูปหลังซ่อม</div>`
-            }
+
+          <!-- AFTER GALLERY -->
+          <div class="border border-slate-200 rounded p-2.5 bg-slate-50">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="font-semibold text-slate-800 text-[11px] flex items-center gap-1">
+                <span>📸 ภาพหลังซ่อม (AFTER)</span>
+              </span>
+              <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded font-bold ${getTaskAfterImages(task).length >= 5 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-700'}">
+                ${getTaskAfterImages(task).length} ภาพ ${getTaskAfterImages(task).length >= 5 ? '✅' : ''}
+              </span>
+            </div>
+            ${getTaskAfterImages(task).length > 0 ? `
+              <div class="grid grid-cols-5 gap-1.5">
+                ${getTaskAfterImages(task).map(function(url, idx) {
+                  return `
+                    <div class="relative group aspect-square rounded overflow-hidden border border-slate-300 bg-white">
+                      <img src="${url}" alt="After #${idx+1}" onclick="FMMS.openImagePreviewModal('${url}', 'ภาพหลังซ่อม #${idx+1} : ${escapeHtml(task.TaskID)}', 'ลำดับที่ ${idx+1} จาก ${getTaskAfterImages(task).length} ภาพ')" class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition">
+                      <span class="absolute bottom-0.5 left-0.5 bg-black/70 text-white font-mono-code text-[9px] px-0.5 rounded">#${idx+1}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div class="h-16 flex items-center justify-center text-xs text-slate-400 bg-slate-100 rounded">ยังไม่ส่งรูปหลังซ่อม (ต้องไม่น้อยกว่า 5 ภาพ)</div>
+            `}
           </div>
         </div>
 
@@ -2215,24 +2406,42 @@ const FMMS = (function() {
                 </div>
               </div>
 
-              <!-- Before / After Photo Thumbnails -->
-              <div class="pt-2 border-t border-slate-100 flex items-center gap-2">
-                <div class="flex-1">
-                  <div class="text-[10px] text-slate-500 mb-0.5">ภาพก่อนทำ (Before):</div>
-                  ${t.BeforeImgURL ? `
-                    <img src="${t.BeforeImgURL}" alt="Before" onclick="FMMS.openImagePreviewModal('${t.BeforeImgURL}', 'ภาพก่อนเข้าซ่อม: ${escapeHtml(t.TaskID)}', 'สถานที่: ${escapeHtml(t.Location)}')"
-                      class="h-14 w-full object-cover rounded border border-slate-200 cursor-pointer hover:opacity-90 transition">
+              <!-- Before / After Photo Galleries (Min 5 Photos) -->
+              <div class="pt-2 border-t border-slate-100 space-y-2">
+                <div>
+                  <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                    <span>ภาพก่อนทำ (Before):</span>
+                    <span class="font-mono-code font-bold ${getTaskBeforeImages(t).length >= 5 ? 'text-emerald-700' : 'text-rose-600'}">${getTaskBeforeImages(t).length} ภาพ ${getTaskBeforeImages(t).length >= 5 ? '✅' : '⚠️'}</span>
+                  </div>
+                  ${getTaskBeforeImages(t).length > 0 ? `
+                    <div class="grid grid-cols-5 gap-1">
+                      ${getTaskBeforeImages(t).slice(0, 5).map(function(url, idx) {
+                        return `
+                          <img src="${url}" alt="Before #${idx+1}" onclick="FMMS.openImagePreviewModal('${url}', 'ภาพก่อนเข้าซ่อม #${idx+1}: ${escapeHtml(t.TaskID)}', 'สถานที่: ${escapeHtml(t.Location)}')"
+                            class="h-10 w-full object-cover rounded border border-slate-200 cursor-pointer hover:opacity-90 hover:scale-105 transition">
+                        `;
+                      }).join('')}
+                    </div>
                   ` : `
-                    <div class="h-14 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">ไม่มีรูป</div>
+                    <div class="h-10 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">ไม่มีรูป</div>
                   `}
                 </div>
-                <div class="flex-1">
-                  <div class="text-[10px] text-slate-500 mb-0.5">ภาพหลังทำ (After):</div>
-                  ${t.AfterImgURL ? `
-                    <img src="${t.AfterImgURL}" alt="After" onclick="FMMS.openImagePreviewModal('${t.AfterImgURL}', 'ภาพหลังเข้าซ่อม: ${escapeHtml(t.TaskID)}', 'สถานที่: ${escapeHtml(t.Location)}')"
-                      class="h-14 w-full object-cover rounded border border-slate-200 cursor-pointer hover:opacity-90 transition">
+                <div>
+                  <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                    <span>ภาพหลังทำ (After):</span>
+                    <span class="font-mono-code font-bold ${getTaskAfterImages(t).length >= 5 ? 'text-emerald-700' : 'text-slate-500'}">${getTaskAfterImages(t).length} ภาพ ${getTaskAfterImages(t).length >= 5 ? '✅' : ''}</span>
+                  </div>
+                  ${getTaskAfterImages(t).length > 0 ? `
+                    <div class="grid grid-cols-5 gap-1">
+                      ${getTaskAfterImages(t).slice(0, 5).map(function(url, idx) {
+                        return `
+                          <img src="${url}" alt="After #${idx+1}" onclick="FMMS.openImagePreviewModal('${url}', 'ภาพหลังเข้าซ่อม #${idx+1}: ${escapeHtml(t.TaskID)}', 'สถานที่: ${escapeHtml(t.Location)}')"
+                            class="h-10 w-full object-cover rounded border border-slate-200 cursor-pointer hover:opacity-90 hover:scale-105 transition">
+                        `;
+                      }).join('')}
+                    </div>
                   ` : `
-                    <div class="h-14 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">ยังไม่แล้วเสร็จ</div>
+                    <div class="h-10 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">ยังไม่แล้วเสร็จ</div>
                   `}
                 </div>
               </div>
@@ -2641,23 +2850,49 @@ const FMMS = (function() {
           </table>
         </div>
 
-        <!-- Section 3: Photographic Evidence -->
+        <!-- Section 3: Photographic Evidence (Minimum 5 Before & 5 After) -->
         <div class="mt-4">
-          <h3 style="font-size: 14pt; font-weight: 700; color: #000000;" class="mb-1.5">ภาพถ่ายประกอบหลักฐานหน้างาน (Field Photographic Evidence)</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="border border-slate-400 p-2 text-center">
-              <div class="text-xs font-bold mb-1">ภาพก่อนดำเนินการ (BEFORE)</div>
-              ${task.BeforeImgURL
-                ? `<img src="${task.BeforeImgURL}" class="w-full h-36 object-cover border border-slate-300 mx-auto">`
-                : `<div class="h-36 flex items-center justify-center text-xs text-slate-400 bg-slate-100">ไม่มีภาพก่อนซ่อม</div>`
-              }
+          <h3 style="font-size: 14pt; font-weight: 700; color: #000000;" class="mb-1.5">ภาพถ่ายประกอบหลักฐานหน้างาน (Field Photographic Evidence - ก่อนและหลังไม่น้อยกว่า 5 ภาพ)</h3>
+          
+          <div class="space-y-2">
+            <!-- 5 Before Photos -->
+            <div class="border border-slate-400 p-2 bg-slate-50/50">
+              <div class="flex justify-between items-center text-xs font-bold mb-1.5">
+                <span>1. ภาพถ่ายก่อนดำเนินการ (BEFORE INSPECTION - ${getTaskBeforeImages(task).length} ภาพ)</span>
+                <span class="font-mono-code text-[10px] text-slate-600">เกณฑ์มาตรฐาน: ≥ 5 ภาพ</span>
+              </div>
+              <div class="grid grid-cols-5 gap-1.5">
+                ${getTaskBeforeImages(task).slice(0, 5).map(function(url, idx) {
+                  return `
+                    <div class="border border-slate-300 bg-white p-1 text-center">
+                      <img src="${url}" class="w-full h-20 object-cover border border-slate-200 mx-auto">
+                      <div class="text-[9px] font-mono-code text-slate-600 mt-0.5">ภาพที่ ${idx+1}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
             </div>
-            <div class="border border-slate-400 p-2 text-center">
-              <div class="text-xs font-bold mb-1">ภาพหลังดำเนินการ / ปัจจุบัน (AFTER)</div>
-              ${task.AfterImgURL
-                ? `<img src="${task.AfterImgURL}" class="w-full h-36 object-cover border border-slate-300 mx-auto">`
-                : `<div class="h-36 flex items-center justify-center text-xs text-slate-400 bg-slate-100">อยู่ระหว่างดำเนินการซ่อมบำรุง</div>`
-              }
+
+            <!-- 5 After Photos -->
+            <div class="border border-slate-400 p-2 bg-slate-50/50">
+              <div class="flex justify-between items-center text-xs font-bold mb-1.5">
+                <span>2. ภาพถ่ายหลังดำเนินการแล้วเสร็จ (AFTER COMPLETION - ${getTaskAfterImages(task).length} ภาพ)</span>
+                <span class="font-mono-code text-[10px] text-slate-600">เกณฑ์มาตรฐาน: ≥ 5 ภาพ</span>
+              </div>
+              ${getTaskAfterImages(task).length > 0 ? `
+                <div class="grid grid-cols-5 gap-1.5">
+                  ${getTaskAfterImages(task).slice(0, 5).map(function(url, idx) {
+                    return `
+                      <div class="border border-slate-300 bg-white p-1 text-center">
+                        <img src="${url}" class="w-full h-20 object-cover border border-slate-200 mx-auto">
+                        <div class="text-[9px] font-mono-code text-slate-600 mt-0.5">ภาพที่ ${idx+1}</div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : `
+                <div class="h-16 flex items-center justify-center text-xs text-slate-400 bg-white border border-slate-200">อยู่ระหว่างดำเนินการซ่อมบำรุง (เมื่อแล้วเสร็จต้องแนบหลักฐานไม่น้อยกว่า 5 ภาพ)</div>
+              `}
             </div>
           </div>
         </div>
@@ -4174,6 +4409,8 @@ const FMMS = (function() {
     renderReportTasksTable();
     renderCostReferences();
     updateNextTaskIdPreview();
+    renderImageGallery('before');
+    renderImageGallery('after');
     renderRole1Tasks();
     renderSupervisorGrid();
     renderPmSchedulesTable();
@@ -4397,6 +4634,12 @@ const FMMS = (function() {
     openImagePreviewModal: openImagePreviewModal,
     closeImagePreviewModal: closeImagePreviewModal,
     downloadCurrentImage: downloadCurrentImage,
+    handleMultiImageUpload: handleMultiImageUpload,
+    renderImageGallery: renderImageGallery,
+    removeImage: removeImage,
+    clearImages: clearImages,
+    getTaskBeforeImages: getTaskBeforeImages,
+    getTaskAfterImages: getTaskAfterImages,
     showAccessDeniedModal: showAccessDeniedModal,
     closeAccessDeniedModal: closeAccessDeniedModal,
     showCloudSyncConfirmation: showCloudSyncConfirmation,
