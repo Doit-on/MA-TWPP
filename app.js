@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (FMMS Enterprise v2.9.1-ENT)
+ * Facility Maintenance Management System (FMMS Enterprise v2.9.2-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -71,9 +71,9 @@ const FMMS = (function() {
   function init() {
     try {
       const hV = document.getElementById('headerSysVersion');
-      if (hV) hV.textContent = 'v2.9.1-ENT';
+      if (hV) hV.textContent = 'v2.9.2-ENT';
       const lV = document.getElementById('landingBuildVer');
-      if (lV) lV.textContent = 'v2.9.1-ENT';
+      if (lV) lV.textContent = 'v2.9.2-ENT';
     } catch (_) {}
     try {
       // Clear legacy permanent deletion blocklist so live Google Sheet records are never suppressed
@@ -3588,7 +3588,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // FMMS Engineering Performance Scorecard (v2.9.1-ENT)
+    // FMMS Engineering Performance Scorecard (v2.9.2-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -3884,7 +3884,7 @@ const FMMS = (function() {
           <img src="logo-cropped.png" alt="TWPP Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
         </div>
         <div class="flex-1 min-w-0 pr-2">
-          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
+          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.2-ENT (DATA MA TWPP)</div>
           <h1 class="doc-title" style="font-size: 13.5pt; font-weight: 700; color: #000000; line-height: 1.15; margin: 1px 0;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
@@ -4049,7 +4049,7 @@ const FMMS = (function() {
             <div class="flex items-center gap-2">
               <img src="logo-cropped.png" alt="TWPP" class="w-8 h-8 object-contain">
               <div>
-                <div class="text-[10px] font-mono-code text-teal-600 font-bold">FMMS TWPP • v2.9.1-ENT</div>
+                <div class="text-[10px] font-mono-code text-teal-600 font-bold">FMMS TWPP • v2.9.2-ENT</div>
                 <div class="text-xs font-bold text-slate-800">${isClosed ? 'ใบรายงานตรวจรับและปิดงาน' : 'บันทึกข้อความขออนุมัติ'}</div>
               </div>
             </div>
@@ -4358,7 +4358,7 @@ const FMMS = (function() {
         docId: userId,
         docType: 'ข้อมูลผู้ใช้งาน (Sheet: Users)',
         actionTitle: 'ลบบัญชีผู้ใช้งานออกจากระบบถาวร',
-        version: 'v2.9.1-ENT',
+        version: 'v2.9.2-ENT',
         details: 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจาก Google Sheets เรียบร้อยแล้ว'
       });
     } catch (err) {
@@ -4468,7 +4468,7 @@ const FMMS = (function() {
       docId: 'CFG-TWPP-SYSTEM',
       docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
       actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
-      version: 'v2.9.1-ENT (Enterprise Config Updated)',
+      version: 'v2.9.2-ENT (Enterprise Config Updated)',
       details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
     });
     showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
@@ -4959,7 +4959,7 @@ const FMMS = (function() {
       docId: 'GSHEET-FULL-SYNC',
       docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
       actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
-      version: 'v2.9.1-ENT (Multi-Tab Master Database)',
+      version: 'v2.9.2-ENT (Multi-Tab Master Database)',
       details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
     });
   }
@@ -5446,7 +5446,7 @@ const FMMS = (function() {
           <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
             <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
             <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
-            <div class="text-teal-900 font-bold">SYS VER: v2.9.1-ENT</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.9.2-ENT</div>
           </div>
         </div>
 
@@ -5615,7 +5615,7 @@ const FMMS = (function() {
         <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
           <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
           <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
-          <span>System Version: v2.9.1-ENT</span>
+          <span>System Version: v2.9.2-ENT</span>
         </div>
       </div>
     `;
