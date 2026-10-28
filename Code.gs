@@ -24,7 +24,7 @@ const CONFIG = {
   SPREADSHEET_ID: '1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ',
   DRIVE_FOLDER_ID: '1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx',
   SYSTEM_NAME: 'FMMS - Data MA TWPP',
-  VERSION: '2.5.0-ENT',
+  VERSION: '2.6.0-ENT',
   TIMEZONE: 'Asia/Bangkok',
   SHEETS: {
     USERS: 'Users',
