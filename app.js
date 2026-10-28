@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (FMMS Enterprise v2.7.0-ENT)
+ * Facility Maintenance Management System (FMMS Enterprise v2.8.0-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -70,9 +70,9 @@ const FMMS = (function() {
   function init() {
     try {
       const hV = document.getElementById('headerSysVersion');
-      if (hV) hV.textContent = 'v2.7.0-ENT';
+      if (hV) hV.textContent = 'v2.8.0-ENT';
       const lV = document.getElementById('landingBuildVer');
-      if (lV) lV.textContent = 'v2.7.0-ENT';
+      if (lV) lV.textContent = 'v2.8.0-ENT';
     } catch (_) {}
     try { initDeviceId(); } catch (e) { console.warn('initDeviceId error:', e); }
     try { loadConfig(); } catch (e) { console.warn('loadConfig error:', e); }
@@ -1496,35 +1496,33 @@ const FMMS = (function() {
     const metaEl = document.getElementById(type === 'before' ? 'r1BeforeMeta' : 'r1AfterMeta');
 
     const count = list.length;
-    const isPassing = count >= 5;
 
     if (badgeEl) {
-      if (isPassing) {
-        badgeEl.textContent = count + ' / 5 ภาพ ✅ (ครบเกณฑ์)';
-        badgeEl.className = 'text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300';
+      if (count === 0) {
+        badgeEl.textContent = '0 / 5 ภาพ ⚠️ (ยังไม่ได้แนบ)';
+        badgeEl.className = 'text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300';
       } else {
-        const remaining = 5 - count;
-        badgeEl.textContent = count + ' / 5 ภาพ ⚠️ (ขาดอีก ' + remaining + ')';
-        badgeEl.className = 'text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300';
+        badgeEl.textContent = count + ' / 5 ภาพ ✅ (แนบแล้ว ' + count + ' ภาพ)';
+        badgeEl.className = 'text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300';
       }
     }
 
     if (metaEl) {
       if (count === 0) {
-        metaEl.textContent = 'ยังไม่ได้เลือกรูป (แตะเพื่อถ่ายรูปหรือเลือกหลายภาพพร้อมกันได้)';
+        metaEl.textContent = 'ยังไม่ได้เลือกรูป (สามารถเลือกได้มากกว่า 1 รูป แต่ไม่เกิน 5 รูป)';
         metaEl.className = 'text-[11px] text-slate-500 mb-2';
-      } else if (isPassing) {
-        metaEl.textContent = 'แนบรูปครบตามเกณฑ์มาตรฐานแล้ว (' + count + ' ภาพ)';
+      } else if (count >= 5) {
+        metaEl.textContent = 'แนบครบ 5 ภาพแล้ว (สูงสุดตามเกณฑ์)';
         metaEl.className = 'text-[11px] text-emerald-700 font-semibold mb-2';
       } else {
-        metaEl.textContent = 'ยังขาดอีก ' + (5 - count) + ' ภาพ (ต้องแนบภาพถ่ายไม่น้อยกว่า 5 ภาพ)';
-        metaEl.className = 'text-[11px] text-rose-600 font-semibold mb-2';
+        metaEl.textContent = 'แนบภาพเรียบร้อยแล้ว (' + count + ' ภาพ • สามารถเพิ่มได้อีก ' + (5 - count) + ' ภาพ สูงสุด 5 ภาพ)';
+        metaEl.className = 'text-[11px] text-emerald-700 font-semibold mb-2';
       }
     }
 
     if (!galleryEl) return;
     if (count === 0) {
-      galleryEl.innerHTML = '<div class="col-span-3 sm:col-span-5 text-center py-6 text-xs text-slate-400">ยังไม่มีรูปภาพ' + (type === 'before' ? 'ก่อนซ่อม' : 'หลังซ่อม') + ' (ต้องแนบอย่างน้อย 5 ภาพ)</div>';
+      galleryEl.innerHTML = '<div class="col-span-3 sm:col-span-5 text-center py-6 text-xs text-slate-400">ยังไม่มีรูปภาพ' + (type === 'before' ? 'ก่อนซ่อม' : 'หลังซ่อม') + ' (แนบได้มากกว่า 1 รูป แต่ไม่เกิน 5 รูป)</div>';
       return;
     }
 
@@ -1545,17 +1543,32 @@ const FMMS = (function() {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    const targetList = type === 'before' ? state.compressedImages.beforeImages : state.compressedImages.afterImages;
+
+    // Check maximum 5 images limit
+    if (targetList.length >= 5) {
+      showToast('แนบภาพครบ 5 ภาพแล้ว', 'สามารถแนบภาพได้สูงสุดไม่เกิน 5 ภาพต่อหมวด กรุณาลบภาพเดิมออกก่อนเพิ่มภาพใหม่', 'warning');
+      event.target.value = '';
+      return;
+    }
+
+    const availableSlots = 5 - targetList.length;
+    let filesToProcess = Array.from(files);
+    if (filesToProcess.length > availableSlots) {
+      showToast('จำกัดไม่เกิน 5 ภาพ', 'เลือกมา ' + filesToProcess.length + ' ภาพ ระบบนำเข้าเฉพาะ ' + availableSlots + ' ภาพแรก เพื่อไม่ให้เกินขีดจำกัดสูงสุด 5 ภาพ', 'info');
+      filesToProcess = filesToProcess.slice(0, availableSlots);
+    }
+
     const metaEl = document.getElementById(type === 'before' ? 'r1BeforeMeta' : 'r1AfterMeta');
     if (metaEl) {
-      metaEl.textContent = 'กำลังประมวลผลและบีบอัดรูปภาพ (' + files.length + ' ไฟล์)...';
+      metaEl.textContent = 'กำลังประมวลผลและบีบอัดรูปภาพ (' + filesToProcess.length + ' ไฟล์)...';
       metaEl.className = 'text-[11px] text-blue-600 font-semibold mb-2';
     }
 
-    const targetList = type === 'before' ? state.compressedImages.beforeImages : state.compressedImages.afterImages;
     let processed = 0;
-    const totalFiles = files.length;
+    const totalFiles = filesToProcess.length;
 
-    Array.from(files).forEach(function(file) {
+    filesToProcess.forEach(function(file) {
       const reader = new FileReader();
       reader.onload = function(e) {
         const img = new Image();
@@ -2110,8 +2123,8 @@ const FMMS = (function() {
               <span class="font-semibold text-slate-800 text-[11px] flex items-center gap-1">
                 <span>📸 ภาพก่อนซ่อม (BEFORE)</span>
               </span>
-              <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded font-bold ${getTaskBeforeImages(task).length >= 5 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'}">
-                ${getTaskBeforeImages(task).length} ภาพ ${getTaskBeforeImages(task).length >= 5 ? '✅' : '⚠️'}
+              <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded font-bold ${getTaskBeforeImages(task).length >= 1 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'}">
+                ${getTaskBeforeImages(task).length} / 5 ภาพ ${getTaskBeforeImages(task).length >= 1 ? '✅' : '⚠️'}
               </span>
             </div>
             ${getTaskBeforeImages(task).length > 0 ? `
@@ -2136,8 +2149,8 @@ const FMMS = (function() {
               <span class="font-semibold text-slate-800 text-[11px] flex items-center gap-1">
                 <span>📸 ภาพหลังซ่อม (AFTER)</span>
               </span>
-              <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded font-bold ${getTaskAfterImages(task).length >= 5 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-700'}">
-                ${getTaskAfterImages(task).length} ภาพ ${getTaskAfterImages(task).length >= 5 ? '✅' : ''}
+              <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded font-bold ${getTaskAfterImages(task).length >= 1 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-700'}">
+                ${getTaskAfterImages(task).length} / 5 ภาพ ${getTaskAfterImages(task).length >= 1 ? '✅' : ''}
               </span>
             </div>
             ${getTaskAfterImages(task).length > 0 ? `
@@ -2152,7 +2165,7 @@ const FMMS = (function() {
                 }).join('')}
               </div>
             ` : `
-              <div class="h-16 flex items-center justify-center text-xs text-slate-400 bg-slate-100 rounded">ยังไม่ส่งรูปหลังซ่อม (ต้องไม่น้อยกว่า 5 ภาพ)</div>
+              <div class="h-16 flex items-center justify-center text-xs text-slate-400 bg-slate-100 rounded">ยังไม่ส่งรูปหลังซ่อม (แนบได้มากกว่า 1 รูป แต่ไม่เกิน 5 ภาพ)</div>
             `}
           </div>
         </div>
@@ -3586,7 +3599,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // FMMS Engineering Performance Scorecard (v2.7.0-ENT)
+    // FMMS Engineering Performance Scorecard (v2.8.0-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -3802,7 +3815,7 @@ const FMMS = (function() {
       <!-- Top Official Document Header -->
       <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-start justify-between">
         <div>
-          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.7.0-ENT (DATA MA TWPP)</div>
+          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.8.0-ENT (DATA MA TWPP)</div>
           <h1 class="doc-title mt-1" style="font-size: 16pt; font-weight: 700; color: #000000; line-height: 1.3;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
@@ -4172,7 +4185,7 @@ const FMMS = (function() {
       docId: 'CFG-TWPP-SYSTEM',
       docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
       actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
-      version: 'v2.7.0-ENT (Enterprise Config Updated)',
+      version: 'v2.8.0-ENT (Enterprise Config Updated)',
       details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
     });
     showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
@@ -4663,7 +4676,7 @@ const FMMS = (function() {
       docId: 'GSHEET-FULL-SYNC',
       docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
       actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
-      version: 'v2.7.0-ENT (Multi-Tab Master Database)',
+      version: 'v2.8.0-ENT (Multi-Tab Master Database)',
       details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
     });
   }
@@ -5124,7 +5137,7 @@ const FMMS = (function() {
           <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
             <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
             <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
-            <div class="text-teal-900 font-bold">SYS VER: v2.7.0-ENT</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.8.0-ENT</div>
           </div>
         </div>
 
@@ -5293,7 +5306,7 @@ const FMMS = (function() {
         <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
           <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
           <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
-          <span>System Version: v2.7.0-ENT</span>
+          <span>System Version: v2.8.0-ENT</span>
         </div>
       </div>
     `;
@@ -5750,7 +5763,7 @@ const FMMS = (function() {
 
     // Render Before photos
     const beforeUrls = getTaskBeforeImages(currentTrackingTask);
-    setText('trackBeforeCount', beforeUrls.length + ' ภาพ');
+    setText('trackBeforeCount', beforeUrls.length + ' / 5 ภาพ ' + (beforeUrls.length >= 1 ? '✅' : '⚠️'));
     const beforeContainer = document.getElementById('trackBeforeThumbnails');
     if (beforeContainer) {
       if (beforeUrls.length === 0) {
@@ -5766,11 +5779,12 @@ const FMMS = (function() {
     }
 
     // Render After photos
-    setText('trackAfterCount', tempTrackingAfterImages.length + ' ภาพ ' + (tempTrackingAfterImages.length >= 5 ? '✅' : '⚠️'));
+    const afterCount = tempTrackingAfterImages.length;
+    setText('trackAfterCount', afterCount + ' / 5 ภาพ ' + (afterCount >= 1 ? '✅' : '⚠️'));
     const afterContainer = document.getElementById('trackAfterThumbnails');
     if (afterContainer) {
-      if (tempTrackingAfterImages.length === 0) {
-        afterContainer.innerHTML = '<div class="col-span-5 text-center text-slate-400 py-3 text-[11px]">ยังไม่มีภาพหลังซ่อม (กดแนบภาพด้านล่าง)</div>';
+      if (afterCount === 0) {
+        afterContainer.innerHTML = '<div class="col-span-5 text-center text-slate-400 py-3 text-[11px]">ยังไม่มีภาพหลังซ่อม (กดแนบภาพด้านล่าง 1 - 5 ภาพ)</div>';
       } else {
         afterContainer.innerHTML = tempTrackingAfterImages.map(function(url, idx) {
           return `
@@ -5778,7 +5792,7 @@ const FMMS = (function() {
               <img src="${url}" onclick="FMMS.openImagePreviewModal('${url}', 'ภาพหลังซ่อม #${idx+1}')"
                 class="w-full h-12 object-cover rounded border border-slate-200 cursor-pointer hover:scale-105 transition" title="คลิกดูภาพใหญ่">
               <button type="button" onclick="FMMS.removeTrackingAfterPhoto(${idx})"
-                class="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow cursor-pointer opacity-90 hover:opacity-100">✕</button>
+                class="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow cursor-pointer opacity-90 hover:opacity-100" title="ลบภาพนี้">✕</button>
             </div>
           `;
         }).join('');
@@ -5790,16 +5804,66 @@ const FMMS = (function() {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach(function(file) {
+    if (tempTrackingAfterImages.length >= 5) {
+      showToast('แนบภาพครบ 5 ภาพแล้ว', 'สามารถแนบภาพหลังซ่อมได้สูงสุดไม่เกิน 5 ภาพ กรุณาลบภาพเดิมออกก่อนเพิ่มภาพใหม่', 'warning');
+      event.target.value = '';
+      return;
+    }
+
+    const availableSlots = 5 - tempTrackingAfterImages.length;
+    let filesToProcess = Array.from(files);
+    if (filesToProcess.length > availableSlots) {
+      showToast('จำกัดไม่เกิน 5 ภาพ', 'เลือกมา ' + filesToProcess.length + ' ภาพ ระบบนำเข้าเฉพาะ ' + availableSlots + ' ภาพแรก เพื่อไม่ให้เกินขีดจำกัดสูงสุด 5 ภาพ', 'info');
+      filesToProcess = filesToProcess.slice(0, availableSlots);
+    }
+
+    let processed = 0;
+    const totalFiles = filesToProcess.length;
+
+    filesToProcess.forEach(function(file) {
       const reader = new FileReader();
       reader.onload = function(e) {
-        tempTrackingAfterImages.push(e.target.result);
-        renderTrackingModalPhotos();
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 1280;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Watermark stamp
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+          ctx.fillRect(0, height - 28, width, 28);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '12px monospace';
+          const seq = tempTrackingAfterImages.length + 1;
+          ctx.fillText('FMMS TWPP | AFTER #' + seq + ' | ' + formatThaiDateTime(getIsoNow()), 10, height - 10);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+          tempTrackingAfterImages.push(dataUrl);
+
+          processed++;
+          if (processed === totalFiles) {
+            renderTrackingModalPhotos();
+            event.target.value = '';
+          }
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     });
-
-    event.target.value = '';
   }
 
   function removeTrackingAfterPhoto(index) {
@@ -5831,6 +5895,11 @@ const FMMS = (function() {
     task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
 
     const memo = state.db.memos.find(function(m) { return m.TaskID === taskId; });
+
+    if (isClosingJob && tempTrackingAfterImages.length === 0) {
+      showToast('กรุณาแนบภาพหลังซ่อม', 'ต้องแนบภาพถ่ายหลังซ่อมเสร็จอย่างน้อย 1 ภาพ (และไม่เกิน 5 ภาพ) ก่อนลงนามตรวจรับและปิดงานสมบูรณ์', 'warning');
+      return;
+    }
 
     let actionLabel = 'บันทึกความคืบหน้างานซ่อม';
     if (isClosingJob) {

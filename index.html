@@ -31,9 +31,9 @@
     <div class="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
       <div class="flex items-center gap-2 text-xs font-mono-code text-slate-300">
         <span class="w-2 h-2 rounded-full bg-emerald-400 status-dot-live"></span>
-        <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.7.0-ENT</strong></span>
+        <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.8.0-ENT</strong></span>
         <span class="text-slate-600">|</span>
-        <span>FMMS ENTERPRISE VERSION: <strong class="text-teal-300">v2.7.0-ENT</strong></span>
+        <span>FMMS ENTERPRISE VERSION: <strong class="text-teal-300">v2.8.0-ENT</strong></span>
       </div>
       <div class="flex items-center gap-3 text-xs font-mono-code">
         <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition cursor-pointer">
@@ -63,7 +63,7 @@
         <!-- v2.6.0 Release Feature Highlights Pill -->
         <div class="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 text-teal-200 text-xs font-mono-code">
           <span class="w-2 h-2 rounded-full bg-teal-400"></span>
-          <span>RELEASE v2.7.0-ENT: ปลดล็อกสิทธิ์ผู้บริหารอนุมัติงานทันที • ตรวจรับ&ปิดงาน (Sign-off) • ลบใบงานตรงสู่ชีต</span>
+          <span>RELEASE v2.8.0-ENT: ปรับระบบอัปโหลดรูปภาพเลือกได้มากกว่า 1 รูปพร้อมกัน แต่ไม่เกิน 5 รูป • Dual-Authority 4-Step Lifecycle</span>
         </div>
       </div>
 
@@ -151,7 +151,7 @@
           FMMS ENTERPRISE
         </div>
         <div class="text-[11px] font-mono-code uppercase tracking-widest text-teal-700 mt-1">
-          DATA MA TWPP • SYS VER: v2.7.0-ENT
+          DATA MA TWPP • SYS VER: v2.8.0-ENT
         </div>
       </div>
 
@@ -238,7 +238,7 @@
         </span>
         <span class="text-slate-600">|</span>
         <span class="font-mono-code text-teal-300">
-          SYS VER: <strong id="headerSysVersion">v2.7.0-ENT</strong>
+          SYS VER: <strong id="headerSysVersion">v2.8.0-ENT</strong>
         </span>
         <span class="text-slate-600 hidden sm:inline">|</span>
         <span class="font-mono-code text-slate-400 hidden sm:inline">
@@ -484,10 +484,10 @@
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
                   <span class="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-mono-code font-bold flex items-center justify-center">3</span>
-                  <span class="text-xs font-bold uppercase tracking-wider text-slate-800">📸 บันทึกหลักฐานภาพถ่ายหน้างาน (Photo Gallery - บังคับก่อน ≥ 5 ภาพ และหลัง ≥ 5 ภาพ)</span>
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-800">📸 บันทึกหลักฐานภาพถ่ายหน้างาน (Photo Gallery - แนบได้มากกว่า 1 ภาพ แต่ไม่เกิน 5 ภาพ)</span>
                 </div>
                 <span class="text-[11px] font-mono-code font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
-                  * กฎความปลอดภัย: ก่อนซ่อม ≥ 5 ภาพ / หลังซ่อม ≥ 5 ภาพ
+                  * มาตรฐานภาพถ่าย: แนบได้ 1 ถึง 5 ภาพ (เลือกมากกว่า 1 ภาพพร้อมกันได้)
                 </span>
               </div>
 
@@ -500,23 +500,23 @@
                         <span>📸 ภาพก่อนซ่อม (BEFORE)</span>
                       </label>
                       <span id="r1BeforeCounterBadge" class="text-[11px] font-mono-code font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300">
-                        0 / 5 ภาพ ⚠️ (ขาดอีก 5)
+                        0 / 5 ภาพ ⚠️ (ยังไม่ได้แนบ)
                       </span>
                     </div>
                     <input type="file" id="r1BeforeFile" accept="image/*" multiple capture="environment" onchange="FMMS.handleMultiImageUpload(event, 'before')" class="hidden">
                     <div class="flex items-center gap-2 mb-2">
                       <button type="button" onclick="document.getElementById('r1BeforeFile').click()" class="flex-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-xs font-semibold py-2 px-3 rounded-md transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
-                        <span>📷 ถ่ายภาพ / เพิ่มรูปก่อนซ่อม</span>
+                        <span>📷 ถ่ายภาพ / เพิ่มรูปก่อนซ่อม (สูงสุด 5 ภาพ)</span>
                       </button>
                       <button type="button" onclick="FMMS.clearImages('before')" class="px-2.5 py-2 text-xs bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-md border border-slate-200 transition" title="ล้างรูปก่อนซ่อมทั้งหมด">
                         🗑️ ล้าง
                       </button>
                     </div>
-                    <div id="r1BeforeMeta" class="text-[11px] text-slate-500 mb-2">ยังไม่ได้เลือกรูป (แตะเพื่อถ่ายรูปหรือเลือกหลายภาพพร้อมกันได้)</div>
+                    <div id="r1BeforeMeta" class="text-[11px] text-slate-500 mb-2">ยังไม่ได้เลือกรูป (แตะเพื่อถ่ายรูปหรือเลือกมากกว่า 1 ภาพพร้อมกันได้ สูงสุด 5 ภาพ)</div>
                   </div>
                   <!-- Gallery Grid Container -->
                   <div id="r1BeforeGallery" class="grid grid-cols-3 sm:grid-cols-5 gap-2 min-h-[90px] p-2 bg-white rounded border border-slate-200">
-                    <div class="col-span-3 sm:col-span-5 text-center py-6 text-xs text-slate-400">ยังไม่มีรูปภาพก่อนทำ (ต้องแนบอย่างน้อย 5 ภาพ)</div>
+                    <div class="col-span-3 sm:col-span-5 text-center py-6 text-xs text-slate-400">ยังไม่มีรูปภาพก่อนทำ (แนบได้มากกว่า 1 ภาพ แต่ไม่เกิน 5 ภาพ)</div>
                   </div>
                 </div>
 
@@ -534,17 +534,17 @@
                     <input type="file" id="r1AfterFile" accept="image/*" multiple capture="environment" onchange="FMMS.handleMultiImageUpload(event, 'after')" class="hidden">
                     <div class="flex items-center gap-2 mb-2">
                       <button type="button" onclick="document.getElementById('r1AfterFile').click()" class="flex-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-xs font-semibold py-2 px-3 rounded-md transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
-                        <span>📷 ถ่ายภาพ / เพิ่มรูปหลังซ่อม</span>
+                        <span>📷 ถ่ายภาพ / เพิ่มรูปหลังซ่อม (สูงสุด 5 ภาพ)</span>
                       </button>
                       <button type="button" onclick="FMMS.clearImages('after')" class="px-2.5 py-2 text-xs bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-md border border-slate-200 transition" title="ล้างรูปหลังซ่อมทั้งหมด">
                         🗑️ ล้าง
                       </button>
                     </div>
-                    <div id="r1AfterMeta" class="text-[11px] text-slate-500 mb-2">ยังไม่ได้เลือกรูป (แนบเมื่อปฏิบัติงานเสร็จสิ้น ไม่น้อยกว่า 5 ภาพ)</div>
+                    <div id="r1AfterMeta" class="text-[11px] text-slate-500 mb-2">ยังไม่ได้เลือกรูป (แนบเมื่อปฏิบัติงานเสร็จสิ้น 1 ถึง 5 ภาพ)</div>
                   </div>
                   <!-- Gallery Grid Container -->
                   <div id="r1AfterGallery" class="grid grid-cols-3 sm:grid-cols-5 gap-2 min-h-[90px] p-2 bg-white rounded border border-slate-200">
-                    <div class="col-span-3 sm:col-span-5 text-center py-6 text-xs text-slate-400">ยังไม่มีรูปภาพหลังทำ (เมื่อปิดงานต้องแนบอย่างน้อย 5 ภาพ)</div>
+                    <div class="col-span-3 sm:col-span-5 text-center py-6 text-xs text-slate-400">ยังไม่มีรูปภาพหลังทำ (แนบได้มากกว่า 1 ภาพ แต่ไม่เกิน 5 ภาพ)</div>
                   </div>
                 </div>
               </div>
@@ -1001,7 +1001,7 @@
           <div class="enterprise-card overflow-hidden">
             <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
               <h3 class="text-sm font-bold text-slate-900">สรุปงบประมาณและปริมาณงานแยกตามหมวดวิศวกรรม (MEP Breakdown)</h3>
-              <span class="text-[11px] font-mono-code text-slate-500">SYS VER: v2.7.0-ENT</span>
+              <span class="text-[11px] font-mono-code text-slate-500">SYS VER: v2.8.0-ENT</span>
             </div>
             <div class="p-4 overflow-x-auto">
               <table class="w-full text-xs text-left border-collapse">
@@ -1115,7 +1115,7 @@
         </div>
       </div>
 
-      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & PERFORMANCE REPORT (SYS VER: v2.7.0-ENT) -->
+      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & PERFORMANCE REPORT (SYS VER: v2.8.0-ENT) -->
       <div id="execSubViewReport" class="hidden space-y-6">
         <!-- Report Header & Actions -->
         <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
@@ -1125,7 +1125,7 @@
               <span class="text-xs text-slate-500">รายงานสรุปผลการบริหารงานซ่อมบำรุงและควบคุมต้นทุนวิศวกรรมอาคาร</span>
             </div>
             <h3 class="text-base font-bold text-slate-900 mt-1">รายงานสรุปผู้บริหารเชิงลึก (Executive Analytical & Financial Report)</h3>
-            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ ระบบบริหารงานซ่อมบำรุงวิศวกรรมอาคาร Version v2.7.0-ENT</p>
+            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ ระบบบริหารงานซ่อมบำรุงวิศวกรรมอาคาร Version v2.8.0-ENT</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button type="button" onclick="FMMS.printExecutiveReport()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow flex items-center gap-1.5 cursor-pointer">
@@ -1168,7 +1168,7 @@
               <h4 class="text-sm font-bold text-slate-900">การวิเคราะห์ต้นทุนและปริมาณงานแยกตาม 4 หมวดวิศวกรรมหลัก (MEP Breakdown)</h4>
               <p class="text-xs text-slate-500">HVAC (ปรับอากาศ) • Electrical (ไฟฟ้า) • Plumbing (สุขาภิบาล) • Fire & Safety (ดับเพลิง)</p>
             </div>
-            <span class="text-xs font-mono-code bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 font-semibold">SYS VER: v2.7.0-ENT</span>
+            <span class="text-xs font-mono-code bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 font-semibold">SYS VER: v2.8.0-ENT</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -1191,12 +1191,12 @@
           </div>
         </div>
 
-        <!-- Section 3: FMMS Engineering Performance Scorecards (v2.7.0-ENT) & Contractor Ledger -->
+        <!-- Section 3: FMMS Engineering Performance Scorecards (v2.8.0-ENT) & Contractor Ledger -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- FMMS Engineering Operational Health (v2.7.0-ENT) -->
+          <!-- FMMS Engineering Operational Health (v2.8.0-ENT) -->
           <div class="lg:col-span-5 enterprise-card overflow-hidden flex flex-col justify-between">
             <div class="enterprise-panel-header px-5 py-3.5">
-              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพงานวิศวกรรม (FMMS Performance Scorecard v2.7.0-ENT)</h4>
+              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพงานวิศวกรรม (FMMS Performance Scorecard v2.8.0-ENT)</h4>
               <p class="text-xs text-slate-500">เกณฑ์ประเมินการบำรุงรักษาเชิงป้องกันและประสิทธิผลงาน</p>
             </div>
             <div class="p-5 space-y-4 text-xs">
@@ -1311,7 +1311,7 @@
 
           <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500 font-mono-code">
             <div>พบข้อมูลในรายงาน: <strong id="repTasksCountText" class="text-slate-900">0</strong> รายการ</div>
-            <div>SYS VER: <strong class="text-teal-700">v2.7.0-ENT</strong> | FONT: TH Sarabun New (12pt / 14pt / 16pt)</div>
+            <div>SYS VER: <strong class="text-teal-700">v2.8.0-ENT</strong> | FONT: TH Sarabun New (12pt / 14pt / 16pt)</div>
           </div>
         </div>
       </div>
@@ -1990,7 +1990,7 @@
             <label class="block cursor-pointer">
               <input type="file" id="trackAfterFileInput" multiple accept="image/*" class="hidden" onchange="FMMS.handleTrackingAfterPhotoUpload(event)">
               <div class="w-full py-2 px-3 border border-dashed border-teal-400 rounded bg-white hover:bg-teal-50 text-teal-800 font-semibold text-center transition">
-                + เพิ่ม/แนบภาพหลังซ่อม (เกณฑ์ ≥ 5 ภาพ)
+                + เพิ่ม/แนบภาพหลังซ่อม (แนบได้มากกว่า 1 ภาพ แต่ไม่เกิน 5 ภาพ)
               </div>
             </label>
           </div>
@@ -2165,6 +2165,6 @@
   <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 max-w-md w-full px-4 pointer-events-none no-print"></div>
 
   <!-- Main Application Controller -->
-  <script src="app.js?v=2.7.0"></script>
+  <script src="app.js?v=2.8.0"></script>
 </body>
 </html>
