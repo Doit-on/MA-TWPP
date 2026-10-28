@@ -716,7 +716,7 @@ function handleSaveCostReference(payload, actor) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
-    if (Number(actor.roleLevel) !== 2) {
+    if (Number(actor.roleLevel) < 2) {
       throw new Error('เฉพาะระดับ 2 ผู้ควบคุมงาน (Supervisor) เท่านั้นที่สามารถเพิ่มหรือแก้ไขตารางอ้างอิงค่าใช้จ่ายได้');
     }
 
@@ -1091,6 +1091,34 @@ function handleAdminManageUser(payload, actor) {
       ];
       sheet.appendRow(newRow);
       return { ok: true, userId: newUserId, recordedBy: operatorStamp, recordedAt: now };
+    } else if (mode === 'delete') {
+      const targetUserId = payload.userId || userData.UserID;
+      if (!targetUserId) throw new Error('ไม่ระบุรหัสผู้ใช้ที่ต้องการลบ');
+      if (targetUserId === 'USR-2026-0001') {
+        throw new Error('ไม่อนุญาตให้ลบบัญชีผู้ดูแลระบบหลัก (Super Admin USR-2026-0001)');
+      }
+      if (targetUserId === actor.userId) {
+        throw new Error('ไม่อนุญาตให้ลบบัญชีของตนเองที่กำลังเข้าสู่ระบบอยู่');
+      }
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].UserID === targetUserId) {
+          const removedName = rows[i].FullName;
+          sheet.deleteRow(i + 2);
+          writeAuditLog({
+            userId: actor.userId,
+            operatorName: actor.fullName,
+            roleLevel: actor.roleLevel,
+            action: 'DELETE_USER',
+            targetId: targetUserId,
+            docVersion: '-',
+            details: 'ลบบัญชีผู้ใช้งาน ' + targetUserId + ' (' + removedName + ') ออกจากระบบเรียบร้อย',
+            beforeState: JSON.stringify(rows[i]),
+            afterState: 'DELETED'
+          });
+          return { ok: true, userId: targetUserId, message: 'ลบบัญชีผู้ใช้ ' + targetUserId + ' เรียบร้อยแล้ว' };
+        }
+      }
+      throw new Error('ไม่พบรหัสผู้ใช้ ' + targetUserId);
     } else {
       const targetUserId = userData.UserID;
       for (let i = 0; i < rows.length; i++) {

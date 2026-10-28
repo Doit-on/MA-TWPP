@@ -833,6 +833,20 @@ const FMMS = (function() {
         }
         if (json.data.schedules && json.data.schedules.length > 0) state.db.schedules = json.data.schedules;
         if (json.data.logs && json.data.logs.length > 0) state.db.logs = json.data.logs;
+        if (json.data.costRefs && json.data.costRefs.length > 0) {
+          state.db.costs = json.data.costRefs.map(function(cr) {
+            return {
+              CostID: cr.CostRefID || cr.CostID || ('COST-' + Math.random().toString(36).slice(2, 6)),
+              ItemCode: cr.ItemCode || '-',
+              ItemName: cr.ItemName || '-',
+              Category: cr.Category || 'ทั่วไป',
+              UnitPrice: Number(cr.StandardUnitPrice || cr.UnitPrice || 0),
+              LaborRate: Number(cr.LaborRate || 0),
+              EffectiveDate: cr.EffectiveDate || cr.UpdatedAt || getIsoNow(),
+              PreferredVendor: cr.PreferredVendor || cr.Vendor || '-'
+            };
+          });
+        }
         persistDatabase();
         renderAllViews();
         updateApprovalAlertBadge();
@@ -3823,6 +3837,83 @@ const FMMS = (function() {
     openMemoPrintModal(memo.MemoID);
   }
 
+  // ==========================================================================
+  // A4 MEMO & WORK REPORT PRINT PREVIEW CONTROLLER (DS APP STANDARD)
+  // ==========================================================================
+  let currentMemoZoom = 1.0;
+  let memoViewMode = 'a4'; // 'a4' or 'mobile_card'
+
+  function calculateFitZoom() {
+    const screenWidth = window.innerWidth;
+    if (screenWidth < 850) {
+      // 794px is A4 width at 96 DPI. Provide 20px padding
+      const availableWidth = screenWidth - 20;
+      const ratio = availableWidth / 794;
+      return Math.min(1.0, Math.max(0.35, Number(ratio.toFixed(2))));
+    }
+    return 1.0;
+  }
+
+  function fitMemoToScreen() {
+    currentMemoZoom = calculateFitZoom();
+    updateMemoZoomDisplay();
+    const viewport = document.querySelector('.memo-viewport-container');
+    if (viewport) viewport.scrollTop = 0;
+  }
+
+  function toggleMemoViewMode() {
+    memoViewMode = memoViewMode === 'a4' ? 'mobile_card' : 'a4';
+    const a4Wrapper = document.getElementById('memoZoomWrapper');
+    const mobileCard = document.getElementById('memoMobileCardContainer');
+    const btn = document.getElementById('memoViewModeToggleBtn');
+    
+    if (memoViewMode === 'mobile_card') {
+      if (a4Wrapper) a4Wrapper.classList.add('hidden');
+      if (mobileCard) mobileCard.classList.remove('hidden');
+      if (btn) btn.innerHTML = '<span>📄 สลับเป็นโหมด A4</span>';
+    } else {
+      if (a4Wrapper) a4Wrapper.classList.remove('hidden');
+      if (mobileCard) mobileCard.classList.add('hidden');
+      if (btn) btn.innerHTML = '<span>📱 โหมดการ์ดมือถือ</span>';
+      fitMemoToScreen();
+    }
+  }
+
+  function updateMemoZoomDisplay() {
+    const display = document.getElementById('memoZoomDisplay');
+    const wrapper = document.getElementById('memoZoomWrapper');
+    if (display) {
+      display.textContent = Math.round(currentMemoZoom * 100) + '%';
+    }
+    if (wrapper) {
+      wrapper.style.transform = 'scale(' + currentMemoZoom + ')';
+      if (currentMemoZoom > 1.0) {
+        wrapper.style.marginBottom = Math.round((currentMemoZoom - 1.0) * 1150) + 'px';
+      } else {
+        wrapper.style.marginBottom = '0px';
+      }
+    }
+  }
+
+  function zoomInMemo() {
+    if (currentMemoZoom < 1.6) {
+      currentMemoZoom = Math.min(1.6, Number((currentMemoZoom + 0.1).toFixed(1)));
+      updateMemoZoomDisplay();
+    }
+  }
+
+  function zoomOutMemo() {
+    if (currentMemoZoom > 0.5) {
+      currentMemoZoom = Math.max(0.5, Number((currentMemoZoom - 0.1).toFixed(1)));
+      updateMemoZoomDisplay();
+    }
+  }
+
+  function resetMemoZoom() {
+    currentMemoZoom = 1.0;
+    updateMemoZoomDisplay();
+  }
+
   function openMemoPrintModal(memoId) {
     const memo = state.db.memos.find(function(m) { return m.MemoID === memoId; });
     const task = (memo ? state.db.tasks.find(function(t) { return t.TaskID === memo.TaskID; }) : null) || state.db.tasks.find(function(t) { return t.TaskID === memoId; }) || {};
@@ -3842,16 +3933,19 @@ const FMMS = (function() {
     const afterImages = getTaskAfterImages(task);
 
     container.innerHTML = `
-      <!-- Top Official Document Header -->
-      <div class="border-b-2 border-slate-900 pb-2 mb-2 flex items-start justify-between">
-        <div class="pr-2">
-          <div style="font-size: 10pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
-          <h1 class="doc-title mt-0.5" style="font-size: 14pt; font-weight: 700; color: #000000; line-height: 1.2;">
+      <!-- Top Official Document Header with Authentic TWPP Emblem -->
+      <div class="flex items-center gap-3 pb-2 mb-2 border-b-2 border-slate-900">
+        <div class="flex-shrink-0 flex items-center justify-center p-1 bg-white rounded border border-slate-300 shadow-sm" style="width: 52px; height: 46px;">
+          <img src="logo-cropped.png" alt="TWPP Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        </div>
+        <div class="flex-1 min-w-0 pr-2">
+          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
+          <h1 class="doc-title" style="font-size: 13.5pt; font-weight: 700; color: #000000; line-height: 1.15; margin: 1px 0;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
-          <div class="doc-subheading text-slate-800" style="font-size: 12pt; font-weight: 700;">${escapeHtml(state.config.orgName || 'บริษัทบริหารจัดการอาคารและวิศวกรรม ทวพ. จำกัด')}</div>
+          <div class="doc-subheading text-slate-800" style="font-size: 11pt; font-weight: 700;">${escapeHtml(state.config.orgName || 'บริษัทบริหารจัดการอาคารและวิศวกรรม ทวพ. จำกัด')}</div>
         </div>
-        <div class="text-right font-mono-code border border-slate-500 p-1.5 rounded flex-shrink-0" style="font-size: 10pt; min-width: 175px;">
+        <div class="text-right font-mono-code border border-slate-500 p-1.5 rounded flex-shrink-0 bg-slate-50" style="font-size: 9.5pt; min-width: 175px; line-height: 1.3;">
           <div><strong>รหัสใบงาน:</strong> ${escapeHtml(task.TaskID || '-')}</div>
           <div><strong>เลขที่เอกสาร:</strong> ${escapeHtml(memo ? memo.MemoID : task.TaskID)}</div>
           <div><strong>วันที่ออกเอกสาร:</strong> ${formatThaiDateOnly(task.CreatedAt || getIsoNow())}</div>
@@ -3880,10 +3974,10 @@ const FMMS = (function() {
       </div>
 
       <!-- Section 1: Details & Engineering Cause -->
-      <div class="space-y-1.5 text-xs mb-2">
+      <div class="space-y-1 text-xs mb-2">
         <div class="border border-slate-300 rounded p-2 bg-white space-y-0.5">
           <div><strong class="text-slate-800">1. รายละเอียดปัญหา / อาการชำรุด:</strong> ${escapeHtml(task.Description || '-')}</div>
-          <div><strong class="text-slate-800">2. การวิเคราะห์สาเหตุและวิธีแก้ไข:</strong> ${escapeHtml(task.InitialAnalysis || 'เข้าดำเนินการตรวจซ่อม เปลี่ยนอะไหล่ และทดสอบระบบตามมาตรฐาน')}</div>
+          <div><strong class="text-slate-800">2. การวิเคราะห์สาเหตุและวิธีแก้ไข:</strong> ${escapeHtml(task.InitialAnalysis || 'เข้าดำเนินการตรวจซ่อม เปลี่ยนอะไหล่ และทดสอบระบบตามมาตรฐานวิศวกรรม')}</div>
           ${task.TestResult ? `<div><strong class="text-slate-800">3. ผลการทดสอบหลังซ่อมเสร็จ:</strong> <span class="text-emerald-700 font-semibold">${escapeHtml(task.TestResult)}</span></div>` : ''}
         </div>
       </div>
@@ -3969,7 +4063,7 @@ const FMMS = (function() {
         
         <!-- Party 1: Field Contractor -->
         <div class="border border-slate-300 p-1.5 rounded bg-white">
-          <div class="font-bold text-slate-800 mb-2">1. ผู้ส่งมอบงาน / ช่างเทคนิค</div>
+          <div class="font-bold text-slate-800 mb-1.5">1. ผู้ส่งมอบงาน / ช่างเทคนิค</div>
           <div class="font-bold text-slate-900">${escapeHtml(task.AssignedContractorName || 'ช่างประจำโครงการ')}</div>
           <div class="text-[10px] text-slate-500">ผู้รับเหมาดำเนินงานซ่อมแซม</div>
           <div class="font-mono-code text-[9px] text-slate-400 mt-0.5">${formatThaiDateTime(task.CreatedAt || getIsoNow())}</div>
@@ -3977,7 +4071,7 @@ const FMMS = (function() {
 
         <!-- Party 2: Approver to Repair -->
         <div class="border border-slate-300 p-1.5 rounded bg-white relative overflow-hidden">
-          <div class="font-bold text-slate-800 mb-2">2. ผู้อนุมัติให้เริ่มงานซ่อมแซม</div>
+          <div class="font-bold text-slate-800 mb-1.5">2. ผู้อนุมัติให้เริ่มงานซ่อมแซม</div>
           <div class="font-bold text-slate-900">${escapeHtml(task.ApproverName || (memo && memo.ApproverName) || 'วิศวกรผู้ควบคุมงาน')}</div>
           <div class="text-[10px] text-slate-500">${escapeHtml(task.ApprovalRole || 'ผู้มีอำนาจอนุมัติ')}</div>
           <div class="font-mono-code text-[9px] text-emerald-700 mt-0.5">✓ อนุมัติ: ${formatThaiDateTime(task.ApprovalDate || (memo && memo.ApprovalDate) || task.CreatedAt || getIsoNow())}</div>
@@ -3990,7 +4084,7 @@ const FMMS = (function() {
               CLOSED
             </div>
           ` : ''}
-          <div class="font-bold text-slate-800 mb-2">3. ผู้ตรวจรับงานและปิดงานสมบูรณ์</div>
+          <div class="font-bold text-slate-800 mb-1.5">3. ผู้ตรวจรับงานและปิดงานสมบูรณ์</div>
           <div class="font-bold ${isClosed ? 'text-emerald-900' : 'text-slate-400'}">${isClosed ? escapeHtml(task.InspectorName || task.ApproverName || 'ผู้ตรวจรับงาน') : '(รอลงนามตรวจรับ)'}</div>
           <div class="text-[10px] text-slate-500">${isClosed ? escapeHtml(task.InspectorRole || 'ผู้มีอำนาจตรวจรับ') : 'หัวหน้างาน / ผู้บริหาร'}</div>
           <div class="font-mono-code text-[9px] ${isClosed ? 'text-emerald-700 font-bold' : 'text-slate-400'} mt-0.5">
@@ -4001,20 +4095,132 @@ const FMMS = (function() {
       </div>
     `;
 
+    // Populate Mobile Card Container for small phone screens
+    const mobileCardEl = document.getElementById('memoMobileCardContainer');
+    if (mobileCardEl) {
+      mobileCardEl.innerHTML = `
+        <div class="space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+            <div class="flex items-center gap-2">
+              <img src="logo-cropped.png" alt="TWPP" class="w-8 h-8 object-contain">
+              <div>
+                <div class="text-[10px] font-mono-code text-teal-600 font-bold">FMMS TWPP • v2.9.1-ENT</div>
+                <div class="text-xs font-bold text-slate-800">${isClosed ? 'ใบรายงานตรวจรับและปิดงาน' : 'บันทึกข้อความขออนุมัติ'}</div>
+              </div>
+            </div>
+            <span class="${isClosed ? 'bg-emerald-100 text-emerald-800' : 'bg-teal-100 text-teal-800'} text-[11px] font-bold px-2 py-0.5 rounded">
+              ${isClosed ? '🏁 ปิดงานแล้ว' : '⏳ รออนุมัติ'}
+            </span>
+          </div>
+
+          <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs space-y-1">
+            <div class="font-bold text-slate-900">${escapeHtml(task.Title || (memo ? memo.Subject : '-'))}</div>
+            <div class="text-slate-600">📍 พิกัด: ${escapeHtml(task.Location || 'ไม่ระบุ')} | ระบบ: ${escapeHtml(task.Category || 'ทั่วไป')}</div>
+            <div class="text-slate-600">👷 ผู้รับผิดชอบ: ${escapeHtml(task.AssignedContractorName || 'ช่างประจำโครงการ')}</div>
+            <div class="font-mono-code text-[11px] text-slate-500">เลขที่: ${escapeHtml(memo ? memo.MemoID : task.TaskID)} • ${formatThaiDateOnly(task.CreatedAt || getIsoNow())}</div>
+          </div>
+
+          <div class="p-2.5 bg-white border border-slate-200 rounded text-xs space-y-1">
+            <div class="font-bold text-slate-700">รายละเอียด & สาเหตุ:</div>
+            <div class="text-slate-800">${escapeHtml(task.Description || '-')}</div>
+            <div class="text-slate-600 text-[11px]">การแก้ไข: ${escapeHtml(task.InitialAnalysis || 'ตรวจซ่อมและเปลี่ยนอะไหล่ตามมาตรฐาน')}</div>
+          </div>
+
+          <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs">
+            <div class="font-bold text-slate-700 mb-1">สรุปงบประมาณ:</div>
+            <div class="flex justify-between py-0.5 border-b border-slate-200">
+              <span>งบขออนุมัติ:</span>
+              <span class="font-mono-code font-bold">฿${formatCurrency(estCost)}</span>
+            </div>
+            <div class="flex justify-between py-0.5 border-b border-slate-200">
+              <span>ค่าใช้จ่ายจริง:</span>
+              <span class="font-mono-code font-bold ${actualCost > estCost ? 'text-rose-600' : 'text-emerald-700'}">฿${formatCurrency(actualCost || estCost)}</span>
+            </div>
+          </div>
+
+          <!-- Mobile Photos Grid -->
+          <div class="space-y-2">
+            <div class="font-bold text-xs text-slate-800">หลักฐานภาพถ่ายหน้างาน:</div>
+            ${beforeImages.length > 0 ? `
+              <div>
+                <div class="text-[11px] text-slate-600 font-semibold mb-1">📷 ภาพก่อนซ่อม (${beforeImages.length} ภาพ):</div>
+                <div class="grid grid-cols-3 gap-1.5">
+                  ${beforeImages.map(function(url, idx) {
+                    return `<div class="h-16 rounded overflow-hidden border border-slate-200 bg-slate-100"><img src="${url}" class="w-full h-full object-cover"></div>`;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${afterImages.length > 0 ? `
+              <div>
+                <div class="text-[11px] text-slate-600 font-semibold mb-1">📷 ภาพหลังซ่อม (${afterImages.length} ภาพ):</div>
+                <div class="grid grid-cols-3 gap-1.5">
+                  ${afterImages.map(function(url, idx) {
+                    return `<div class="h-16 rounded overflow-hidden border border-slate-200 bg-slate-100"><img src="${url}" class="w-full h-full object-cover"></div>`;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Mobile Signatures -->
+          <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs space-y-1">
+            <div class="font-bold text-slate-700">การลงนามดิจิทัล 3 ฝ่าย:</div>
+            <div class="text-[11px]">1. ช่างเทคนิค: ${escapeHtml(task.AssignedContractorName || 'ช่างประจำโครงการ')}</div>
+            <div class="text-[11px]">2. ผู้อนุมัติ: ${escapeHtml(task.ApproverName || 'วิศวกรผู้ควบคุมงาน')}</div>
+            <div class="text-[11px] font-bold ${isClosed ? 'text-emerald-800' : 'text-slate-500'}">
+              3. ผู้ตรวจรับ: ${isClosed ? escapeHtml(task.InspectorName || task.ApproverName || 'ผู้ตรวจรับงาน') + ' (ปิดงานแล้ว)' : 'รอตรวจรับ'}
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <button type="button" onclick="window.print()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2.5 rounded-md text-xs shadow flex items-center justify-center gap-1.5">
+              <span>🖨 สั่งพิมพ์ A4 / บันทึก PDF เต็มรูปแบบ</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Auto-fit zoom on mobile screens (<850px)
+    if (window.innerWidth < 850) {
+      currentMemoZoom = calculateFitZoom();
+    } else {
+      currentMemoZoom = 1.0;
+    }
+    updateMemoZoomDisplay();
+
+    // Default to A4 sheet view
+    memoViewMode = 'a4';
+    const a4Wrapper = document.getElementById('memoZoomWrapper');
+    const mobileCard = document.getElementById('memoMobileCardContainer');
+    const btn = document.getElementById('memoViewModeToggleBtn');
+    if (a4Wrapper) a4Wrapper.classList.remove('hidden');
+    if (mobileCard) mobileCard.classList.add('hidden');
+    if (btn) btn.innerHTML = '<span>📱 โหมดการ์ดมือถือ</span>';
+
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
-  }
 
+    // Scroll viewport to top
+    const viewport = modal.querySelector('.memo-viewport-container');
+    if (viewport) {
+      viewport.scrollTop = 0;
+    }
+  }
 
   function closeMemoPrintModal() {
     const modal = document.getElementById('memoPrintModal');
     if (modal) {
       modal.classList.add('hidden');
       modal.style.display = 'none';
+      currentMemoZoom = 1.0;
+      updateMemoZoomDisplay();
     }
   }
-
-  /**
+  
+/**
    * ==========================================================================
    * 10. ADMIN BACKEND SETTINGS, USER GOVERNANCE & QR PROVISIONING
    * ==========================================================================
@@ -4127,6 +4333,15 @@ const FMMS = (function() {
     setVal('usrStatus', u.Status);
     setVal('usrDept', u.Department || '');
     setVal('usrPhone', u.Phone || '');
+
+    const deleteBtn = document.getElementById('btnAdminDeleteUser');
+    if (deleteBtn) {
+      if (u.UserID === 'USR-2026-0001') {
+        deleteBtn.classList.add('hidden');
+      } else {
+        deleteBtn.classList.remove('hidden');
+      }
+    }
   }
 
   function resetAdminUserForm() {
@@ -4134,6 +4349,73 @@ const FMMS = (function() {
     if (form) form.reset();
     setVal('usrEditId', '');
     setText('adminUserFormTitle', 'เพิ่ม / แก้ไขผู้ใช้งานระบบ (โดย Admin)');
+    const deleteBtn = document.getElementById('btnAdminDeleteUser');
+    if (deleteBtn) deleteBtn.classList.add('hidden');
+  }
+
+  async function deleteAdminUser(userId) {
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 3) {
+      showToast('จำกัดสิทธิ์เฉพาะ Admin (ระดับ 3)', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถลบบัญชีผู้ใช้ได้', 'error');
+      return;
+    }
+
+    if (userId === 'USR-2026-0001') {
+      showToast('ไม่อนุญาตให้ลบบัญชีนี้', 'บัญชี USR-2026-0001 เป็นบัญชีผู้ดูแลระบบหลัก (Super Admin) ไม่สามารถลบได้', 'warning');
+      return;
+    }
+
+    if (userId === actor.userId) {
+      showToast('ไม่อนุญาตให้ลบบัญชีตนเอง', 'คุณกำลังเข้าสู่ระบบด้วยบัญชีนี้อยู่ ไม่สามารถลบบัญชีที่กำลังใช้งานได้', 'warning');
+      return;
+    }
+
+    const targetUser = state.db.users.find(function(u) { return u.UserID === userId; });
+    const targetName = targetUser ? targetUser.FullName : userId;
+
+    const confirmed = confirm('⚠️ ยืนยันการลบผู้ใช้งาน: ' + userId + ' (' + targetName + ') หรือไม่?\n\nข้อมูลผู้ใช้นี้จะถูกลบออกจากฐานข้อมูล Google Sheets อย่างถาวร');
+    if (!confirmed) return;
+
+    // Remove from local array
+    state.db.users = state.db.users.filter(function(u) { return u.UserID !== userId; });
+    persistDatabase();
+    renderAdminUsersTable();
+
+    // Reset form if currently editing this user
+    if (getVal('usrEditId') === userId) {
+      resetAdminUserForm();
+    }
+
+    showToast('ลบผู้ใช้งานเรียบร้อย', 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจากระบบแล้ว', 'success');
+
+    // Sync to GAS backend
+    try {
+      syncToGasBackend('adminManageUser', {
+        mode: 'delete',
+        userId: userId
+      }).then(function(res) {
+        showCloudSyncConfirmation({
+          docId: userId,
+          docType: 'ข้อมูลผู้ใช้งาน (Sheet: Users)',
+          actionTitle: 'ลบบัญชีผู้ใช้งานออกจากระบบ',
+          version: 'v2.9.1-ENT',
+          details: 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจาก Google Sheets สำเร็จ'
+        });
+      }).catch(function(err) {
+        console.warn('Backend sync error:', err);
+      });
+    } catch (e) {
+      console.warn('Sync call error:', e);
+    }
+  }
+
+  function handleDeleteCurrentUserFromForm() {
+    const editId = getVal('usrEditId');
+    if (!editId) {
+      showToast('ไม่ได้เลือกผู้ใช้', 'กรุณาเลือกผู้ใช้งานที่ต้องการลบจากตารางด้านขวาก่อน', 'warning');
+      return;
+    }
+    deleteAdminUser(editId);
   }
 
   function renderAdminUsersTable() {
@@ -4168,9 +4450,16 @@ const FMMS = (function() {
             <div class="text-slate-500">เวลา: ${formatThaiDateTime(u.UpdatedAt || u.CreatedAt)}</div>
           </td>
           <td class="py-3 px-3 text-right whitespace-nowrap">
-            <button type="button" onclick="FMMS.editAdminUser('${u.UserID}')" class="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded text-xs">
-              แก้ไขสิทธิ์
-            </button>
+            <div class="flex items-center justify-end gap-1.5">
+              <button type="button" onclick="FMMS.editAdminUser('${u.UserID}')" class="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded text-xs transition cursor-pointer">
+                แก้ไขสิทธิ์
+              </button>
+              ${u.UserID !== 'USR-2026-0001' ? `
+                <button type="button" onclick="FMMS.deleteAdminUser('${u.UserID}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 px-2 py-1 rounded text-xs transition cursor-pointer font-medium" title="ลบผู้ใช้งานนี้ออกจากระบบ">
+                  🗑 ลบทิ้ง
+                </button>
+              ` : ''}
+            </div>
           </td>
         </tr>
       `;
@@ -4887,6 +5176,35 @@ const FMMS = (function() {
     resetCostRefForm();
     renderCostReferences();
     showToast('บันทึกข้อมูลราคากลางสำเร็จ', itemName + ' บันทึกลง Cost_References เรียบร้อย', 'success');
+
+    // Sync to Google Sheets Sheet: Cost_References
+    try {
+      syncToGasBackend('saveCostReference', {
+        costData: {
+          CostRefID: costId,
+          ItemCode: itemCode,
+          Category: category,
+          ItemName: itemName,
+          Specification: spec,
+          Unit: unit,
+          StandardUnitPrice: unitPrice,
+          LaborRate: laborRate,
+          PreferredVendor: vendor
+        }
+      }).then(function(res) {
+        showCloudSyncConfirmation({
+          docId: costId,
+          docType: 'ข้อมูลราคากลางอ้างอิง (Sheet: Cost_References)',
+          actionTitle: 'บันทึกราคากลางอ้างอิงลง Google Sheets',
+          version: 'v1.0',
+          details: itemName + ' (' + itemCode + ') ซิงค์ลงฐานข้อมูล Google Sheets เรียบร้อย'
+        });
+      }).catch(function(e) {
+        console.warn('Cost ref sync error:', e);
+      });
+    } catch (e) {
+      console.warn('Cost ref sync error:', e);
+    }
   }
 
   function resetCostRefForm() {
@@ -6004,6 +6322,9 @@ const FMMS = (function() {
     handleExecutiveDecision: handleExecutiveDecision,
     openMemoPrintModalByTask: openMemoPrintModalByTask,
     openMemoPrintModal: openMemoPrintModal,
+    zoomInMemo: zoomInMemo,
+    zoomOutMemo: zoomOutMemo,
+    resetMemoZoom: resetMemoZoom,
     closeMemoPrintModal: closeMemoPrintModal,
     handleAdminSaveUser: handleAdminSaveUser,
     editAdminUser: editAdminUser,
@@ -6069,6 +6390,10 @@ const FMMS = (function() {
     closeReportEditTaskModal: closeReportEditTaskModal,
     handleSaveEditTaskFromReport: handleSaveEditTaskFromReport,
     deleteTask: deleteTask,
+    deleteAdminUser: deleteAdminUser,
+    handleDeleteCurrentUserFromForm: handleDeleteCurrentUserFromForm,
+    fitMemoToScreen: fitMemoToScreen,
+    toggleMemoViewMode: toggleMemoViewMode,
     approveTaskToRepair: approveTaskToRepair,
     signOffAndCloseTask: signOffAndCloseTask,
     rejectTaskBackToRepair: rejectTaskBackToRepair,

@@ -1494,6 +1494,9 @@
               <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-md transition">
                 บันทึกข้อมูลผู้ใช้งาน
               </button>
+              <button type="button" id="btnAdminDeleteUser" onclick="FMMS.handleDeleteCurrentUserFromForm()" class="hidden bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-semibold px-3 py-2.5 rounded-md transition cursor-pointer" title="ลบผู้ใช้งานที่กำลังเลือกออกจากระบบ">
+                🗑 ลบทิ้ง
+              </button>
               <button type="button" onclick="FMMS.resetAdminUserForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2.5 rounded-md transition">
                 ล้างค่า
               </button>
@@ -1567,23 +1570,57 @@
   <!-- ========================================================================
        5. VIEW 5: A4 OFFICIAL APPROVAL MEMO PRINT PREVIEW MODAL (@media print)
        ======================================================================== -->
-  <div id="memoPrintModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-start">
-    <div class="w-full max-w-[210mm] mx-auto mb-4 bg-slate-900 text-white border border-slate-700 rounded-md p-3 flex flex-wrap items-center justify-between gap-3 no-print">
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-mono-code bg-teal-800 text-teal-200 px-2 py-0.5 rounded">A4 STANDARD DOCUMENT</span>
-        <span class="text-xs text-slate-300">พรีวิวบันทึกข้อความขออนุมัติงบประมาณซ่อมบำรุง (แสดงเลข Version เอกสารชัดเจน)</span>
+  <div id="memoPrintModal" class="hidden memo-print-overlay">
+    <!-- Top Fixed Action & Zoom Toolbar (Responsive Mobile / Desktop) -->
+    <header class="memo-modal-topbar no-print">
+      <div class="memo-topbar-left">
+        <span class="memo-badge">A4 STANDARD</span>
+        <div class="memo-topbar-title">
+          พรีวิวเอกสารทางการ (A4 Standard Report) • FMMS <span class="text-teal-400 font-mono-code">v2.9.1-ENT</span>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button type="button" onclick="window.print()" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2 rounded-md transition">
-          🖨 สั่งพิมพ์เอกสาร A4 / Save as PDF
-        </button>
-        <button type="button" onclick="FMMS.closeMemoPrintModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-2 rounded-md transition">
-          ปิดหน้าต่าง ✕
-        </button>
-      </div>
-    </div>
 
-    <div id="a4PaperContainer" class="a4-paper-sheet"></div>
+      <!-- Center: Zoom Controller (พอดีจอ / ย่อ / ขยาย / 100%) & Mode Switch -->
+      <div class="memo-zoom-controls">
+        <button type="button" onclick="FMMS.fitMemoToScreen()" class="memo-btn memo-btn-secondary" title="ปรับขนาดเอกสารให้พอดีหน้าจอมือถือ/แท็บเล็ต">
+          <span>📱</span>
+          <span>พอดีจอ</span>
+        </button>
+        <button type="button" onclick="FMMS.zoomOutMemo()" class="memo-btn memo-btn-secondary" title="ย่อขนาดเอกสาร (-10%)">
+          <span>🔍−</span>
+          <span class="hidden sm:inline">ย่อ</span>
+        </button>
+        <span id="memoZoomDisplay" class="memo-zoom-value">100%</span>
+        <button type="button" onclick="FMMS.zoomInMemo()" class="memo-btn memo-btn-secondary" title="ขยายขนาดเอกสาร (+10%)">
+          <span>🔍+</span>
+          <span class="hidden sm:inline">ขยาย</span>
+        </button>
+        <button type="button" onclick="FMMS.resetMemoZoom()" class="memo-btn memo-btn-ghost" title="คืนค่าขนาดมาตรฐาน 100%">
+          100%
+        </button>
+        <button type="button" id="memoViewModeToggleBtn" onclick="FMMS.toggleMemoViewMode()" class="memo-btn memo-btn-secondary hidden sm:inline-flex" title="สลับระหว่างหน้ากระดาษ A4 หรือการ์ดอ่านบนมือถือ">
+          <span>📱 โหมดการ์ดมือถือ</span>
+        </button>
+      </div>
+
+      <!-- Right: Print and Close Actions -->
+      <div class="memo-topbar-right">
+        <button type="button" onclick="window.print()" class="memo-btn memo-btn-primary" title="สั่งพิมพ์เอกสาร A4 หรือบันทึกเป็น PDF">
+          🖨 <span class="hidden sm:inline">สั่งพิมพ์ A4 / PDF</span><span class="sm:hidden">พิมพ์ A4</span>
+        </button>
+        <button type="button" onclick="FMMS.closeMemoPrintModal()" class="memo-btn memo-btn-danger" title="ปิดหน้าต่างพรีวิว">
+          ✕
+        </button>
+      </div>
+    </header>
+
+    <!-- Centered Document Viewport with Smooth Zoom Scaling & Mobile Card Mode -->
+    <div class="memo-viewport-container">
+      <div id="memoZoomWrapper" class="memo-zoom-wrapper">
+        <div id="a4PaperContainer" class="a4-paper-sheet"></div>
+      </div>
+      <div id="memoMobileCardContainer" class="memo-mobile-card hidden"></div>
+    </div>
   </div>
 
   <!-- ========================================================================

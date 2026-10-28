@@ -152,22 +152,208 @@ body {
   -webkit-backdrop-filter: blur(4px);
 }
 
+/* ==========================================================================
+   A4 PRINT PREVIEW MODAL & ZOOM CONTROLLER (DS APP STANDARD)
+   ========================================================================== */
+
+#memoPrintModal.memo-print-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.88) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  flex-direction: column !important; /* Strictly top-to-bottom layout: Menu on top, Paper below */
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+#memoPrintModal.hidden {
+  display: none !important;
+}
+
+/* Top Sticky Control Toolbar */
+.memo-modal-topbar {
+  width: 100% !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  background: #0f172a !important; /* Slate 900 */
+  border-bottom: 1px solid #334155 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 16px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  z-index: 100 !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  gap: 12px !important;
+}
+
+.memo-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.memo-badge {
+  background: #0d9488 !important; /* Teal 600 */
+  color: #ffffff !important;
+  font-family: 'SF Mono', Menlo, Consolas, Monaco, monospace !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.5px !important;
+  white-space: nowrap !important;
+}
+
+.memo-topbar-title {
+  color: #f8fafc !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Zoom Controls Bar */
+.memo-zoom-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+}
+
+.memo-zoom-value {
+  font-family: 'SF Mono', Menlo, Consolas, Monaco, monospace !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #38bdf8 !important; /* Sky 400 */
+  min-width: 48px !important;
+  text-align: center !important;
+  user-select: none !important;
+}
+
+.memo-topbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Action Buttons */
+.memo-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+.memo-btn-primary {
+  background: #0d9488 !important; /* Teal 600 */
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.3) !important;
+}
+.memo-btn-primary:hover {
+  background: #0f766e !important; /* Teal 700 */
+}
+
+.memo-btn-secondary {
+  background: #334155 !important;
+  color: #f1f5f9 !important;
+  padding: 4px 10px !important;
+  border: 1px solid #475569 !important;
+}
+.memo-btn-secondary:hover {
+  background: #475569 !important;
+  color: #ffffff !important;
+}
+
+.memo-btn-ghost {
+  background: transparent !important;
+  color: #94a3b8 !important;
+  padding: 4px 8px !important;
+}
+.memo-btn-ghost:hover {
+  color: #ffffff !important;
+  background: #334155 !important;
+}
+
+.memo-btn-danger {
+  background: #ef4444 !important; /* Rose 500 */
+  color: #ffffff !important;
+}
+.memo-btn-danger:hover {
+  background: #dc2626 !important; /* Rose 600 */
+}
+
+/* Scrollable Viewport Below Toolbar */
+.memo-viewport-container {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: calc(100vh - 56px) !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  padding: 24px 16px 60px 16px !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+.memo-zoom-wrapper {
+  display: inline-block !important;
+  text-align: left !important;
+  margin: 0 auto !important;
+  transform-origin: top center !important;
+  transition: transform 0.12s ease-out !important;
+}
+
+/* A4 Paper Dimensions and Sheet Styling */
 .a4-paper-sheet {
-  width: 210mm;
-  min-height: 297mm;
-  max-width: 210mm;
-  box-sizing: border-box;
-  margin: 0 auto;
-  background: #ffffff;
-  color: #000000;
-  padding: 12mm 15mm;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.28);
-  position: relative;
-  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
-  font-size: 12pt !important;
-  line-height: 1.35 !important;
-  overflow: hidden;
+  width: 210mm !important;
+  min-height: 297mm !important;
+  max-width: 210mm !important;
+  box-sizing: border-box !important;
+  margin: 0 auto !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  padding: 10mm 12mm 12mm 12mm !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 2px !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.45) !important;
+  position: relative !important;
+  font-family: 'TH Sarabun New', 'Sarabun', Tahoma, sans-serif !important;
+  font-size: 11pt !important;
+  line-height: 1.25 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
 }
 
 .a4-paper-sheet,
@@ -176,32 +362,32 @@ body {
 .a4-paper-sheet span,
 .a4-paper-sheet td,
 .a4-paper-sheet li {
-  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
-  font-size: 12pt;
-  line-height: 1.35;
+  font-family: 'TH Sarabun New', 'Sarabun', Tahoma, sans-serif !important;
+  font-size: 11pt;
+  line-height: 1.25;
   color: #000000;
   box-sizing: border-box;
 }
 
-/* Headings 2 sizes larger than body (12pt -> 14pt) + Bold */
+/* Headings: 2 sizes larger than body (11pt -> 13pt) + Bold */
 .a4-paper-sheet h3,
 .a4-paper-sheet h4,
 .a4-paper-sheet .doc-subheading {
-  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+  font-family: 'TH Sarabun New', 'Sarabun', Tahoma, sans-serif !important;
   font-size: 13pt !important;
   font-weight: 700 !important;
-  line-height: 1.25 !important;
+  line-height: 1.2 !important;
   color: #000000 !important;
 }
 
-/* Main Document Title 4 sizes larger (12pt -> 16pt) + Bold */
+/* Main Document Title: 4 sizes larger (11pt -> 15pt) + Bold */
 .a4-paper-sheet h1,
 .a4-paper-sheet h2,
 .a4-paper-sheet .doc-title {
-  font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+  font-family: 'TH Sarabun New', 'Sarabun', Tahoma, sans-serif !important;
   font-size: 15pt !important;
   font-weight: 700 !important;
-  line-height: 1.2 !important;
+  line-height: 1.15 !important;
   color: #000000 !important;
 }
 
@@ -209,12 +395,12 @@ body {
 .a4-paper-sheet table {
   width: 100% !important;
   border-collapse: collapse !important;
-  font-size: 11pt !important;
+  font-size: 10.5pt !important;
   table-layout: fixed;
 }
 
 .a4-paper-sheet table th {
-  font-size: 11pt !important;
+  font-size: 10.5pt !important;
   font-weight: 700 !important;
   padding: 4px 6px !important;
   border: 1px solid #333333 !important;
@@ -225,8 +411,8 @@ body {
 }
 
 .a4-paper-sheet table td {
-  font-size: 11pt !important;
-  padding: 4px 6px !important;
+  font-size: 10.5pt !important;
+  padding: 3.5px 6px !important;
   border: 1px solid #333333 !important;
   word-break: break-word;
 }
@@ -234,7 +420,7 @@ body {
 /* A4 Evidence Photo Grid */
 .a4-paper-sheet .evidence-img-container {
   width: 100%;
-  height: 60px;
+  height: 52px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -250,15 +436,24 @@ body {
   display: block;
 }
 
+/* Screen Responsiveness on small screens */
 @media (max-width: 860px) {
-  .a4-paper-sheet {
-    width: 100%;
-    max-width: 100%;
-    min-height: auto;
-    padding: 12px;
+  .memo-modal-topbar {
+    padding: 0 10px !important;
+    gap: 6px !important;
+  }
+  .memo-topbar-title {
+    display: none !important;
+  }
+  .memo-btn {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
   }
 }
 
+/* ==========================================================================
+   PRINT MEDIA RULES (@media print)
+   ========================================================================== */
 @media print {
   @page {
     size: A4 portrait;
@@ -274,23 +469,25 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
-    font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+    font-family: 'TH Sarabun New', 'Sarabun', Tahoma, sans-serif !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Hide application shell elements */
+  /* Hide application shell elements & modal toolbar */
   header, main, footer, .no-print,
   #landingOverlay, #authOverlay, #accessDeniedModal,
   #cloudSyncConfirmationModal, #approvalAlertModal,
   #qrScannerModal, #imagePreviewModal, #toastContainer,
   #reportEditTaskModal,
-  body > main {
+  body > main,
+  .memo-modal-topbar {
     display: none !important;
   }
 
   /* Ensure modal and A4 paper render with 100% visibility & exact A4 fit */
-  #memoPrintModal {
+  #memoPrintModal,
+  #memoPrintModal.memo-print-overlay {
     position: static !important;
     inset: auto !important;
     background: #ffffff !important;
@@ -315,8 +512,20 @@ body {
     visibility: visible !important;
   }
 
-  #memoPrintModal > div.no-print {
-    display: none !important;
+  .memo-viewport-container {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    text-align: left !important;
+  }
+
+  .memo-zoom-wrapper {
+    transform: none !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    display: block !important;
   }
 
   .a4-paper-sheet {
@@ -334,9 +543,9 @@ body {
     flex-direction: column !important;
     justify-content: space-between !important;
     visibility: visible !important;
-    font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+    font-family: 'TH Sarabun New', 'Sarabun', Tahoma, sans-serif !important;
     font-size: 11pt !important;
-    line-height: 1.3 !important;
+    line-height: 1.25 !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
   }
@@ -362,7 +571,7 @@ body {
   }
 
   .a4-paper-sheet .evidence-img-container {
-    height: 52px !important;
+    height: 48px !important;
   }
 }
 
@@ -371,4 +580,56 @@ body {
   .touch-target {
     min-height: 44px;
   }
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE RULES & MOBILE CARD VIEW MODE
+   ========================================================================== */
+@media (max-width: 640px) {
+  .memo-modal-topbar {
+    height: auto !important;
+    min-height: 48px !important;
+    padding: 6px 8px !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    justify-content: space-between !important;
+  }
+  .memo-topbar-left {
+    display: none !important;
+  }
+  .memo-zoom-controls {
+    padding: 2px 4px !important;
+    gap: 3px !important;
+  }
+  .memo-zoom-value {
+    min-width: 36px !important;
+    font-size: 11px !important;
+  }
+  .memo-btn {
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+    gap: 3px !important;
+  }
+  .memo-viewport-container {
+    padding: 10px 4px 50px 4px !important;
+    height: calc(100vh - 56px) !important;
+  }
+}
+
+/* Mobile Card Mode Container */
+.memo-mobile-card {
+  width: 100% !important;
+  max-width: 580px !important;
+  margin: 0 auto 30px auto !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+  text-align: left !important;
+  color: #0f172a !important;
+  box-sizing: border-box !important;
+}
+
+.memo-mobile-card.hidden {
+  display: none !important;
 }
