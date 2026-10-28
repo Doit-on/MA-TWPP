@@ -84,6 +84,20 @@ const FMMS = (function() {
     window.addEventListener('offline', function() {
       updateConnectionUI(false, 0, 'OFFLINE (Local Queue Active)');
     });
+
+    // Auto-sync polling every 30 seconds across all devices
+    setInterval(function() {
+      if (state.config.gasWebAppUrl && navigator.onLine !== false) {
+        syncFromGasBackend(false);
+      }
+    }, 30000);
+
+    // Auto-sync when user switches back to this tab
+    window.addEventListener('focus', function() {
+      if (state.config.gasWebAppUrl && navigator.onLine !== false) {
+        syncFromGasBackend(false);
+      }
+    });
   }
 
   function initDeviceId() {
@@ -562,7 +576,9 @@ const FMMS = (function() {
     const t0 = performance.now();
     updateConnectionUI(true, '...', 'CHECKING...');
 
-    if (state.config.gasWebAppUrl && state.config.gasWebAppUrl.startsWith('https://script.google.com')) {
+    const hasGasUrl = state.config.gasWebAppUrl && state.config.gasWebAppUrl.startsWith('https://script.google.com');
+
+    if (hasGasUrl) {
       try {
         const url = state.config.gasWebAppUrl + (state.config.gasWebAppUrl.includes('?') ? '&' : '?') + 'action=ping&t=' + Date.now();
         const res = await fetch(url, { method: 'GET', mode: 'cors' });
@@ -570,16 +586,15 @@ const FMMS = (function() {
         const latency = Math.round(performance.now() - t0);
 
         if (data && data.ok) {
-          updateConnectionUI(true, latency, 'GAS CLOUD CONNECTED');
+          updateConnectionUI(true, latency, 'GAS CLOUD CONNECTED (ซิงค์ทุกเครื่อง)', 'green');
           if (showNotification) {
             showToast(
               'เชื่อมต่อ Google Sheets & Drive สำเร็จ (' + latency + ' ms)',
-              'Spreadsheet: ' + (data.resources?.spreadsheet?.name || 'Data MA TWPP') + ' | Drive Folder Verified',
+              'Spreadsheet: ' + (data.resources?.spreadsheet?.name || 'Data MA TWPP') + ' | เชื่อมต่อข้อมูลทุกเครื่องเรียบร้อย',
               'success'
             );
           }
-          // Also pull latest bootstrap data
-          syncFromGasBackend();
+          syncFromGasBackend(false);
           return;
         }
       } catch (err) {
@@ -587,27 +602,43 @@ const FMMS = (function() {
       }
     }
 
-    const simulatedLatency = Math.max(14, Math.round(performance.now() - t0) + 18);
-    const isBrowserOnline = navigator.onLine !== false;
-    updateConnectionUI(
-      isBrowserOnline,
-      simulatedLatency,
-      isBrowserOnline ? 'READY (Sheet & Drive Bound)' : 'OFFLINE QUEUE'
-    );
+    // If no gasWebAppUrl is configured
+    if (!hasGasUrl) {
+      updateConnectionUI(false, 0, 'LOCAL ONLY (ยังไม่เชื่อมต่อ Web App URL)', 'amber');
+      if (showNotification) {
+        showToast(
+          'ระบบทำงานในโหมดจำลอง (Local Only)',
+          'ข้อมูลจะถูกบันทึกแค่ในเครื่องนี้เท่านั้น ยังไม่ซิงค์ข้ามเครื่อง กรุณานำ Google Apps Script Web App URL มาใส่ในการตั้งค่าระบบ',
+          'warning'
+        );
+      }
+      return;
+    }
 
+    // Gas URL exists but ping failed
+    updateConnectionUI(false, 0, 'CLOUD OFFLINE (เชื่อมต่อ Cloud ไม่สำเร็จ)', 'red');
     if (showNotification) {
       showToast(
-        'สถานะระบบพร้อมทำงาน (' + simulatedLatency + ' ms)',
-        'ผูกฐานข้อมูล Sheet ID: ' + state.config.spreadsheetId.slice(0, 12) + '... และ Drive ID: ' + state.config.driveFolderId.slice(0, 12) + '... เรียบร้อย',
-        'success'
+        'ไม่สามารถติดต่อ Google Apps Script ได้',
+        'กรุณาตรวจสอบว่าได้ตั้งค่า Who has access: Anyone ใน Apps Script แล้วหรือไม่',
+        'error'
       );
     }
   }
 
-  async function syncFromGasBackend() {
-    if (!state.config.gasWebAppUrl) return;
+  async function syncFromGasBackend(showNotification) {
+    if (!state.config.gasWebAppUrl || !state.config.gasWebAppUrl.startsWith('https://script.google.com')) {
+      if (showNotification) {
+        showToast(
+          'ยังไม่ได้เชื่อมต่อ Cloud',
+          'กรุณานำ Google Apps Script Web App URL มาใส่ในการตั้งค่าระบบ เพื่อเริ่มการซิงค์ข้อมูลข้ามเครื่อง',
+          'warning'
+        );
+      }
+      return;
+    }
     try {
-      const url = state.config.gasWebAppUrl + (state.config.gasWebAppUrl.includes('?') ? '&' : '?') + 'action=bootstrap';
+      const url = state.config.gasWebAppUrl + (state.config.gasWebAppUrl.includes('?') ? '&' : '?') + 'action=bootstrap&t=' + Date.now();
       const res = await fetch(url);
       const json = await res.json();
       if (json && json.ok && json.data) {
@@ -618,10 +649,21 @@ const FMMS = (function() {
         if (json.data.logs && json.data.logs.length > 0) state.db.logs = json.data.logs;
         persistDatabase();
         renderAllViews();
+        updateApprovalAlertBadge();
+        if (showNotification) {
+          showToast('ซิงค์ข้อมูลสำเร็จ', 'ดึงข้อมูลล่าสุดจาก Google Sheets (' + (json.data.tasks?.length || 0) + ' ใบงาน) เรียบร้อยแล้ว', 'success');
+        }
       }
     } catch (e) {
       console.warn('Background bootstrap sync skipped:', e);
+      if (showNotification) {
+        showToast('ไม่สามารถเชื่อมต่อ Cloud ได้', 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก Google Apps Script กรุณาตรวจสอบ URL หรือการเชื่อมต่ออินเทอร์เน็ต', 'error');
+      }
     }
+  }
+
+  async function manualSyncCloud() {
+    await syncFromGasBackend(true);
   }
 
   async function postToGasBackend(action, payloadObj) {
@@ -648,26 +690,38 @@ const FMMS = (function() {
     }
   }
 
-  function updateConnectionUI(isOnline, latencyMs, labelText) {
+  function updateConnectionUI(isOnline, latencyMs, labelText, colorVariant) {
     const dot = document.getElementById('connStatusDot');
     const txt = document.getElementById('connStatusText');
     const lat = document.getElementById('connLatencyText');
     const loginBadge = document.getElementById('loginPingBadge');
 
     if (dot && txt) {
-      dot.className = isOnline
-        ? 'w-2 h-2 rounded-full bg-emerald-400 status-dot-live'
-        : 'w-2 h-2 rounded-full bg-red-500';
-      txt.textContent = labelText;
-      txt.className = isOnline ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold';
+      if (colorVariant === 'amber' || (!isOnline && latencyMs === 0)) {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+        txt.textContent = labelText || 'LOCAL ONLY (ยังไม่ใส่ Web App URL)';
+        txt.className = 'text-amber-400 font-bold';
+      } else if (isOnline) {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 status-dot-live';
+        txt.textContent = labelText;
+        txt.className = 'text-emerald-400 font-bold';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-red-500';
+        txt.textContent = labelText;
+        txt.className = 'text-red-400 font-bold';
+      }
     }
     if (lat) {
-      lat.textContent = latencyMs + ' ms';
+      lat.textContent = latencyMs > 0 ? latencyMs + ' ms' : '-';
     }
     if (loginBadge) {
-      loginBadge.innerHTML = isOnline
-        ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot-live"></span> CONNECTED (' + latencyMs + 'ms)'
-        : '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> OFFLINE MODE';
+      if (colorVariant === 'amber') {
+        loginBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> LOCAL ONLY (ยังไม่ใส่ URL)';
+      } else {
+        loginBadge.innerHTML = isOnline
+          ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot-live"></span> CONNECTED (' + latencyMs + 'ms)'
+          : '<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> OFFLINE';
+      }
     }
   }
 
@@ -4634,6 +4688,8 @@ const FMMS = (function() {
     openImagePreviewModal: openImagePreviewModal,
     closeImagePreviewModal: closeImagePreviewModal,
     downloadCurrentImage: downloadCurrentImage,
+    manualSyncCloud: manualSyncCloud,
+    syncFromGasBackend: syncFromGasBackend,
     handleMultiImageUpload: handleMultiImageUpload,
     renderImageGallery: renderImageGallery,
     removeImage: removeImage,
