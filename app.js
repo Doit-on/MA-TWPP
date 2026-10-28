@@ -650,7 +650,10 @@ const FMMS = (function() {
       const json = await res.json();
       if (json && json.ok && json.data) {
         if (json.data.tasks && json.data.tasks.length > 0) state.db.tasks = json.data.tasks;
-        if (json.data.users && json.data.users.length > 0) state.db.users = json.data.users;
+        if (json.data.users && json.data.users.length > 0) {
+          state.db.users = json.data.users;
+          ensureDefaultUsers();
+        }
         if (json.data.schedules && json.data.schedules.length > 0) state.db.schedules = json.data.schedules;
         if (json.data.memos && json.data.memos.length > 0) state.db.memos = json.data.memos;
         if (json.data.logs && json.data.logs.length > 0) state.db.logs = json.data.logs;
@@ -786,6 +789,51 @@ const FMMS = (function() {
         UpdatedAt: '2026-10-02T10:15:00+07:00',
         UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
         LastLoginAt: '2026-10-02T10:15:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0004',
+        Username: 'tech1',
+        PasswordPlain: 'tech123',
+        FullName: 'นายช่าง สมชาย สายลุย (ช่างเทคนิค)',
+        RoleLevel: 1,
+        Department: 'ทีมปฏิบัติการภาคสนาม',
+        Phone: '089-455-2211',
+        Status: 'Active',
+        CreatedAt: '2026-10-02T10:15:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-02T10:15:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-02T10:15:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0005',
+        Username: 'super1',
+        PasswordPlain: 'super123',
+        FullName: 'วิศวกร พรเทพ ใจดี (ผู้ควบคุมงาน)',
+        RoleLevel: 2,
+        Department: 'วิศวกรรมซ่อมบำรุง',
+        Phone: '081-900-1002',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T09:00:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-01T09:00:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-01T09:00:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0006',
+        Username: 'exec1',
+        PasswordPlain: 'exec123',
+        FullName: 'ผู้บริหารระดับสูง (Executive Director)',
+        RoleLevel: 3,
+        Department: 'ฝ่ายบริหารจัดการอาคาร',
+        Phone: '081-900-1001',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T08:30:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-01T08:30:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-01T08:30:00+07:00'
       }
     ];
 
@@ -873,8 +921,11 @@ const FMMS = (function() {
     });
 
     const isMatchPreset = (username === 'admin' && password === 'admin123') ||
-                          (username === 'supervisor' && password === 'sup123') ||
-                          (username === 'tech01' && password === 'tech123');
+                          (username === 'exec1' && password === 'exec123') ||
+                          (username === 'supervisor' && (password === 'sup123' || password === 'super123')) ||
+                          (username === 'super1' && (password === 'super123' || password === 'sup123')) ||
+                          (username === 'tech01' && password === 'tech123') ||
+                          (username === 'tech1' && password === 'tech123');
 
     const isPasswordValid = user && (user.PasswordPlain === password || isMatchPreset || (!user.PasswordPlain && password.length > 0));
 
