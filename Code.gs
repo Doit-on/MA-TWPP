@@ -553,7 +553,7 @@ function handleSupervisorEditDocument(payload, actor) {
   lock.waitLock(15000);
   try {
     // STRICT RULE: Only Role Level 2 (Supervisor) is allowed to edit existing generated documents
-    if (Number(actor.roleLevel) !== 2) {
+    if (Number(actor.roleLevel) < 2) {
       writeAuditLog({
         userId: actor.userId,
         operatorName: actor.fullName,
@@ -561,7 +561,7 @@ function handleSupervisorEditDocument(payload, actor) {
         action: 'UNAUTHORIZED_DOC_EDIT_BLOCKED',
         targetId: (payload.taskData && payload.taskData.TaskID) || 'UNKNOWN',
         docVersion: '-',
-        details: 'ปฏิเสธการแก้ไขเอกสาร: สิทธิ์ระดับ ' + actor.roleLevel + ' ไม่ได้รับอนุญาต (อนุญาตเฉพาะระดับ 2 Supervisor เท่านั้น)',
+        details: 'ปฏิเสธการแก้ไขเอกสาร: สิทธิ์ระดับ ' + actor.roleLevel + ' ไม่ได้รับอนุญาต (อนุญาตเฉพาะระดับ 2 Supervisor และระดับ 3 Executive เท่านั้น)',
         beforeState: '',
         afterState: 'BLOCKED',
         clientInfo: actor.clientInfo || '',
@@ -1086,44 +1086,66 @@ function handleExecutiveApprove(payload, actor) {
   lock.waitLock(15000);
   try {
     if (Number(actor.roleLevel) < 3) {
-      throw new Error('เฉพาะผู้บริหาร (ระดับ 3) เท่านั้นที่สามารถอนุมัติงบประมาณได้');
+      throw new Error('เฉพาะผู้บริหาร (ระดับ 3) เท่านั้นที่สามารถอนุมัติได้');
     }
 
     const ss = getSpreadsheet();
     const memoSheet = ss.getSheetByName(CONFIG.SHEETS.MEMOS);
     const taskSheet = ss.getSheetByName(CONFIG.SHEETS.TASKS);
-    const memos = sheetToObjects(memoSheet);
 
-    const memoId = payload.memoId;
-    const decision = payload.decision === 'Approved' ? 'Approved' : 'Rejected';
-    const comment = payload.comment || (decision === 'Approved' ? 'อนุมัติให้ดำเนินการตามเสนอ' : 'ตีกลับเพื่อตรวจสอบข้อมูลเพิ่มเติม');
+    const taskId = payload.taskId || '';
+    const memoId = payload.memoId || '';
+    const rawDecision = payload.decision || 'Approved';
+
+    // Support Approved, Closed, Rejected
+    let newTaskStatus = 'Approved';
+    let memoStatus = 'Approved';
+    if (rawDecision === 'Closed') {
+      newTaskStatus = 'Closed';
+      memoStatus = 'Approved';
+    } else if (rawDecision === 'Approved') {
+      newTaskStatus = 'Approved';
+      memoStatus = 'Approved';
+    } else if (String(rawDecision).startsWith('Rejected')) {
+      newTaskStatus = rawDecision;
+      memoStatus = 'Rejected';
+    } else {
+      newTaskStatus = rawDecision;
+    }
+
+    const comment = payload.comment || (newTaskStatus === 'Closed' ? 'ผู้บริหารตรวจรับและอนุมัติปิดงานสมบูรณ์' : (newTaskStatus === 'Approved' ? 'ผู้บริหารอนุมัติดำเนินการตามเสนอ' : 'ตีกลับเพื่อแก้ไข'));
     const now = formatISO(new Date());
     const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
 
-    let targetTaskId = '';
-    let memoVer = 'v1.0';
-    for (let i = 0; i < memos.length; i++) {
-      if (memos[i].MemoID === memoId) {
-        const r = i + 2;
-        targetTaskId = memos[i].TaskID;
-        memoVer = memos[i].DocVersion || 'v1.0';
-        memoSheet.getRange(r, 14).setValue(actor.userId);
-        memoSheet.getRange(r, 15).setValue(actor.fullName);
-        memoSheet.getRange(r, 16).setValue(now);
-        memoSheet.getRange(r, 17).setValue(decision);
-        memoSheet.getRange(r, 18).setValue(comment);
-        break;
+    let targetTaskId = taskId;
+
+    // Update Memo row if found
+    if (memoSheet) {
+      const memos = sheetToObjects(memoSheet);
+      for (let i = 0; i < memos.length; i++) {
+        if ((memoId && memos[i].MemoID === memoId) || (taskId && memos[i].TaskID === taskId)) {
+          const r = i + 2;
+          if (!targetTaskId) targetTaskId = memos[i].TaskID;
+          memoSheet.getRange(r, 14).setValue(actor.userId);
+          memoSheet.getRange(r, 15).setValue(actor.fullName);
+          memoSheet.getRange(r, 16).setValue(now);
+          memoSheet.getRange(r, 17).setValue(memoStatus);
+          memoSheet.getRange(r, 18).setValue(comment);
+          break;
+        }
       }
     }
 
-    const tasks = sheetToObjects(taskSheet);
-    const newTaskStatus = decision === 'Approved' ? 'In Progress' : 'Rejected';
-    for (let j = 0; j < tasks.length; j++) {
-      if (tasks[j].TaskID === targetTaskId) {
-        taskSheet.getRange(j + 2, 12).setValue(newTaskStatus);
-        taskSheet.getRange(j + 2, 23).setValue(now);
-        taskSheet.getRange(j + 2, 24).setValue(operatorStamp);
-        break;
+    // Update Task row
+    if (taskSheet) {
+      const tasks = sheetToObjects(taskSheet);
+      for (let j = 0; j < tasks.length; j++) {
+        if (tasks[j].TaskID === targetTaskId || tasks[j].TaskID === taskId) {
+          taskSheet.getRange(j + 2, 12).setValue(newTaskStatus);
+          taskSheet.getRange(j + 2, 23).setValue(now);
+          taskSheet.getRange(j + 2, 24).setValue(operatorStamp);
+          break;
+        }
       }
     }
 
@@ -1132,16 +1154,16 @@ function handleExecutiveApprove(payload, actor) {
       operatorName: actor.fullName,
       roleLevel: actor.roleLevel,
       action: 'EXECUTIVE_DECISION',
-      targetId: memoId,
-      docVersion: memoVer,
-      details: 'Executive ' + decision + ' Memo ' + memoId,
-      beforeState: 'Pending Approval',
-      afterState: decision,
+      targetId: targetTaskId || memoId || 'TASK',
+      docVersion: 'v2.0',
+      details: 'ผู้บริหาร (' + actor.fullName + ') ดำเนินการ ' + newTaskStatus + ' ใบงาน ' + (targetTaskId || memoId),
+      beforeState: 'PENDING_OR_COMPLETED',
+      afterState: newTaskStatus,
       clientInfo: actor.clientInfo || '',
       status: 'SUCCESS'
     });
 
-    return { ok: true, memoId: memoId, decision: decision, approvedAt: now };
+    return { ok: true, taskId: targetTaskId, memoId: memoId, decision: newTaskStatus, approvedAt: now };
   } finally {
     lock.releaseLock();
   }
