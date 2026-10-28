@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (FMMS Enterprise v2.9.0-ENT)
+ * Facility Maintenance Management System (FMMS Enterprise v2.9.1-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -70,9 +70,14 @@ const FMMS = (function() {
   function init() {
     try {
       const hV = document.getElementById('headerSysVersion');
-      if (hV) hV.textContent = 'v2.9.0-ENT';
+      if (hV) hV.textContent = 'v2.9.1-ENT';
       const lV = document.getElementById('landingBuildVer');
-      if (lV) lV.textContent = 'v2.9.0-ENT';
+      if (lV) lV.textContent = 'v2.9.1-ENT';
+    } catch (_) {}
+    try {
+      // Clear legacy permanent deletion blocklist so live Google Sheet records are never suppressed
+      localStorage.removeItem(STORAGE_KEYS.DELETED_TASKS);
+      state.deletedTaskIds = [];
     } catch (_) {}
     try { initDeviceId(); } catch (e) { console.warn('initDeviceId error:', e); }
     try { loadConfig(); } catch (e) { console.warn('loadConfig error:', e); }
@@ -85,6 +90,8 @@ const FMMS = (function() {
     // Guarantee Landing Page is always presented on initial visit / load
     try { showLandingPage(); } catch (e) { console.warn('showLandingPage error:', e); }
     try { pingConnection(false); } catch (e) { console.warn('pingConnection error:', e); }
+    // Immediately sync latest data from Google Sheets upon application startup
+    try { syncFromGasBackend(false); } catch (e) { console.warn('Initial sync error:', e); }
 
     try {
       window.addEventListener('online', function() {
@@ -212,21 +219,11 @@ const FMMS = (function() {
 
   function loadOrSeedDatabase() {
     try {
-      const rawDel = localStorage.getItem(STORAGE_KEYS.DELETED_TASKS);
-      if (rawDel) {
-        state.deletedTaskIds = JSON.parse(rawDel) || [];
-      }
-    } catch (_) {}
-    try {
       const raw = localStorage.getItem(STORAGE_KEYS.DB_STATE);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
           state.db = parsed;
-          if (Array.isArray(state.deletedTaskIds) && state.deletedTaskIds.length > 0) {
-            state.db.tasks = (state.db.tasks || []).filter(function(t) { return !state.deletedTaskIds.includes(t.TaskID); });
-            state.db.memos = (state.db.memos || []).filter(function(m) { return !state.deletedTaskIds.includes(m.TaskID) && !state.deletedTaskIds.includes(m.MemoID); });
-          }
           reconcileMemoAndTaskStatuses();
           return;
         }
@@ -750,13 +747,9 @@ const FMMS = (function() {
       const res = await fetch(url);
       const json = await res.json();
       if (json && json.ok && json.data) {
-        const delIds = state.deletedTaskIds || [];
-
-        // 1. SMART MERGE FOR TASKS (Zero Data Loss for Newly Created or Local Tasks)
+        // 1. SMART MERGE FOR TASKS: Google Sheets is Master Truth, preserve local unsynced tasks
         if (json.data.tasks && json.data.tasks.length > 0) {
-          const cloudTasks = json.data.tasks.filter(function(t) {
-            return !delIds.includes(t.TaskID);
-          });
+          const cloudTasks = json.data.tasks;
           const cloudMap = new Map();
           cloudTasks.forEach(function(t) {
             cloudMap.set(t.TaskID, t);
@@ -765,22 +758,18 @@ const FMMS = (function() {
           const mergedTasks = [];
           const processedIds = new Set();
 
-          // Preserve local tasks first (keeps newly created tasks at the top)
+          // A. First check local tasks: if not in cloud, keep local (new task being uploaded)
           (state.db.tasks || []).forEach(function(localT) {
-            if (delIds.includes(localT.TaskID)) return;
             processedIds.add(localT.TaskID);
             const cloudT = cloudMap.get(localT.TaskID);
             if (!cloudT) {
-              // Newly created local task not yet present in Google Sheet -> MUST PRESERVE
               mergedTasks.push(localT);
             } else {
-              // Task exists in both: compare timestamps
               const localTime = new Date(localT.UpdatedAt || localT.CreatedAt || 0).getTime();
               const cloudTime = new Date(cloudT.UpdatedAt || cloudT.CreatedAt || 0).getTime();
               if (localTime > cloudTime) {
                 mergedTasks.push(localT);
               } else {
-                // Cloud is newer or same: adopt cloud fields but protect local images if cloud has none
                 if ((!cloudT.BeforeImages || cloudT.BeforeImages.length === 0) && (localT.BeforeImages && localT.BeforeImages.length > 0)) {
                   cloudT.BeforeImages = localT.BeforeImages;
                   cloudT.BeforeImgURL = localT.BeforeImgURL;
@@ -794,7 +783,7 @@ const FMMS = (function() {
             }
           });
 
-          // Add any tasks from cloud that weren't in local DB
+          // B. Add all remaining tasks from Google Sheets that are not in local DB
           cloudTasks.forEach(function(cloudT) {
             if (!processedIds.has(cloudT.TaskID)) {
               mergedTasks.push(cloudT);
@@ -806,9 +795,7 @@ const FMMS = (function() {
 
         // 2. SMART MERGE FOR MEMOS
         if (json.data.memos && json.data.memos.length > 0) {
-          const cloudMemos = json.data.memos.filter(function(m) {
-            return !delIds.includes(m.TaskID) && !delIds.includes(m.MemoID);
-          });
+          const cloudMemos = json.data.memos;
           const cloudMemoMap = new Map();
           cloudMemos.forEach(function(m) {
             const key = m.MemoID || m.TaskID;
@@ -818,9 +805,7 @@ const FMMS = (function() {
           const mergedMemos = [];
           const processedMemoKeys = new Set();
 
-          // Preserve local memos
           (state.db.memos || []).forEach(function(localM) {
-            if (delIds.includes(localM.TaskID) || delIds.includes(localM.MemoID)) return;
             const key = localM.MemoID || localM.TaskID;
             processedMemoKeys.add(key);
             const cloudM = cloudMemoMap.get(key);
@@ -1448,6 +1433,7 @@ const FMMS = (function() {
 
     renderAllViews();
     updateApprovalAlertBadge();
+    syncFromGasBackend(false);
   }
 
   /**
@@ -2727,13 +2713,9 @@ const FMMS = (function() {
     const actor = getCurrentActor();
     const now = getIsoNow();
 
-    // 1. Permanently record in deleted task blocklist to prevent bounce-back from polling
-    if (!state.deletedTaskIds) state.deletedTaskIds = [];
-    if (!state.deletedTaskIds.includes(taskId)) {
-      state.deletedTaskIds.push(taskId);
-      try {
-        localStorage.setItem(STORAGE_KEYS.DELETED_TASKS, JSON.stringify(state.deletedTaskIds));
-      } catch (_) {}
+    // 1. Remove from local memory and sync immediately to Google Sheets
+    if (state.db && Array.isArray(state.db.tasks)) {
+      state.db.tasks = state.db.tasks.filter(function(t) { return t.TaskID !== taskId; });
     }
 
     // 2. Clear selectedTaskId if it points to the deleted task to break any UI loop
@@ -3647,7 +3629,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // FMMS Engineering Performance Scorecard (v2.9.0-ENT)
+    // FMMS Engineering Performance Scorecard (v2.9.1-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -3863,7 +3845,7 @@ const FMMS = (function() {
       <!-- Top Official Document Header -->
       <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-start justify-between">
         <div>
-          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.0-ENT (DATA MA TWPP)</div>
+          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
           <h1 class="doc-title mt-1" style="font-size: 16pt; font-weight: 700; color: #000000; line-height: 1.3;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
@@ -4233,7 +4215,7 @@ const FMMS = (function() {
       docId: 'CFG-TWPP-SYSTEM',
       docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
       actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
-      version: 'v2.9.0-ENT (Enterprise Config Updated)',
+      version: 'v2.9.1-ENT (Enterprise Config Updated)',
       details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
     });
     showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
@@ -4724,7 +4706,7 @@ const FMMS = (function() {
       docId: 'GSHEET-FULL-SYNC',
       docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
       actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
-      version: 'v2.9.0-ENT (Multi-Tab Master Database)',
+      version: 'v2.9.1-ENT (Multi-Tab Master Database)',
       details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
     });
   }
@@ -4983,15 +4965,13 @@ const FMMS = (function() {
 
     if (role === 2) {
       // Level 2: Supervisor looks for tasks waiting for Level 2 approval
-      const delIds = state.deletedTaskIds || [];
-      const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
-      pendingCount = tasks.filter(function(t) { return t.Status === 'Pending Level 2 Approval'; }).length;
+      const tasks = (state.db && state.db.tasks) || [];
+      pendingCount = tasks.filter(function(t) { return t.Status === 'Pending Level 2 Approval' || t.Status === 'Pending Approval'; }).length;
       labelText = 'รอ ผค.งาน อนุมัติ';
     } else if (role === 3) {
       // Level 3: Executive looks for tasks waiting for Level 3 budget approval
       reconcileMemoAndTaskStatuses();
-      const delIds = state.deletedTaskIds || [];
-      const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
+      const tasks = (state.db && state.db.tasks) || [];
       const memos = (state.db && state.db.memos) || [];
 
       // Pending budget tasks count matches the "1. รออนุมัติงบ" filter count exactly
@@ -5046,8 +5026,7 @@ const FMMS = (function() {
     const step2Badge = document.getElementById('step2Indicator');
     const step3Badge = document.getElementById('step3Indicator');
 
-    const delIds = state.deletedTaskIds || [];
-    const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
+    const tasks = (state.db && state.db.tasks) || [];
     const memos = (state.db && state.db.memos) || [];
 
     // Filter genuinely pending tasks that need budget approval to start work
@@ -5185,7 +5164,7 @@ const FMMS = (function() {
           <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
             <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
             <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
-            <div class="text-teal-900 font-bold">SYS VER: v2.9.0-ENT</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.9.1-ENT</div>
           </div>
         </div>
 
@@ -5354,7 +5333,7 @@ const FMMS = (function() {
         <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
           <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
           <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
-          <span>System Version: v2.9.0-ENT</span>
+          <span>System Version: v2.9.1-ENT</span>
         </div>
       </div>
     `;
