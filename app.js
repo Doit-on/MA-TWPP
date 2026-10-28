@@ -2465,6 +2465,56 @@ const FMMS = (function() {
     if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
   }
 
+  function downloadCurrentImage() {
+    const img = document.getElementById('imagePreviewImg');
+    const titleEl = document.getElementById('imagePreviewTitle');
+    if (!img || !img.src) {
+      showToast('ไม่พบไฟล์รูปภาพสำหรับการดาวน์โหลด', 'warning');
+      return;
+    }
+    const safeTitle = (titleEl ? titleEl.textContent : 'task_photo')
+      .replace(/[^a-zA-Z0-9ก-๙_-]/g, '_');
+    const fileName = `${safeTitle}_${Date.now()}.jpg`;
+
+    if (img.src.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('ดาวน์โหลดรูปภาพลงเครื่องสำเร็จ', 'success');
+      return;
+    }
+
+    fetch(img.src, { mode: 'cors' })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Fetch failed');
+        return res.blob();
+      })
+      .then(function(blob) {
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
+        showToast('ดาวน์โหลดรูปภาพลงเครื่องสำเร็จ', 'success');
+      })
+      .catch(function() {
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.target = '_blank';
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('กำลังเปิดรูปภาพเพื่อบันทึกลงเครื่อง', 'info');
+      });
+  }
+
   /**
    * ==========================================================================
    * 9. A4 PRINTABLE OFFICIAL MEMO GENERATOR (VIEW 5)
@@ -4346,6 +4396,7 @@ const FMMS = (function() {
     exportExecutiveReportCSV: exportExecutiveReportCSV,
     openImagePreviewModal: openImagePreviewModal,
     closeImagePreviewModal: closeImagePreviewModal,
+    downloadCurrentImage: downloadCurrentImage,
     showAccessDeniedModal: showAccessDeniedModal,
     closeAccessDeniedModal: closeAccessDeniedModal,
     showCloudSyncConfirmation: showCloudSyncConfirmation,

@@ -1507,9 +1507,15 @@
       <div class="p-2 flex items-center justify-center bg-black/60 max-h-[80vh] overflow-hidden">
         <img id="imagePreviewImg" src="" alt="Field Photo" class="max-h-[75vh] w-auto object-contain rounded">
       </div>
-      <div class="px-4 py-2 bg-slate-950 border-t border-slate-800 text-[11px] font-mono-code text-slate-400 flex justify-between items-center">
+      <div class="px-4 py-2.5 bg-slate-950 border-t border-slate-800 text-[11px] font-mono-code text-slate-400 flex flex-wrap justify-between items-center gap-2">
         <span id="imagePreviewCaption">TWPP FM Field Inspection Photo</span>
-        <button type="button" onclick="FMMS.closeImagePreviewModal()" class="text-teal-400 hover:underline">ปิดหน้าต่าง [ESC]</button>
+        <div class="flex items-center gap-3">
+          <button type="button" id="btnDownloadPreviewImg" onclick="FMMS.downloadCurrentImage()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded flex items-center gap-1.5 font-sans font-medium transition cursor-pointer shadow-sm">
+            <span>💾</span>
+            <span>ดาวน์โหลดรูปภาพ (.jpg)</span>
+          </button>
+          <button type="button" onclick="FMMS.closeImagePreviewModal()" class="text-teal-400 hover:text-teal-300 hover:underline">ปิดหน้าต่าง [ESC]</button>
+        </div>
       </div>
     </div>
   </div>
