@@ -7,6 +7,9 @@
 
 ## 1. ทรัพยากรที่ผูกกับระบบ (Bound Cloud Resources)
 
+* **Google Apps Script Web App Endpoint (API กลางเชื่อมต่อทุกอุปกรณ์):**
+  * **URL:** `https://script.google.com/macros/s/AKfycbwfBDxHrVGtMuWjz1FkP0B8eL83jAp66E-JYFvB7EvQs_QjZnXnteLKUspE4dAEGpFM/exec`
+  * ฝังเป็นค่าเริ่มต้นในระบบเรียบร้อยแล้ว ทุกเครื่องที่เปิดผ่าน GitHub Pages จะเชื่อมต่อและซิงค์ข้อมูลกับ Google Sheets โดยอัตโนมัติ
 * **Google Sheets (`Data MA TWPP`)**
   * **Spreadsheet ID:** `1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ`
   * **URL:** [เปิด Google Sheets (Data MA TWPP)](https://docs.google.com/spreadsheets/d/1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ/edit?gid=0#gid=0)
