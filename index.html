@@ -1049,24 +1049,29 @@
             </div>
           </div>
 
-          <!-- Executive Quick Approval Filter Pills -->
+          <!-- Executive 4-Phase Lifecycle Filter Pills -->
           <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
             <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <span>⚡ กรองด่วน:</span>
+              <span>⚡ ติดตามตามขั้นตอน:</span>
             </span>
-            <button type="button" onclick="FMMS.filterExecutiveCards('PENDING')" id="btnExecFilterPending"
+            <button type="button" onclick="FMMS.filterExecutiveCards('PENDING_BUDGET')" id="btnExecFilterPending"
               class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1.5 cursor-pointer shadow-xs">
-              <span>⏳ รอผู้บริหารอนุมัติ / ตรวจรับ</span>
+              <span>⏳ 1. รออนุมัติงบ</span>
               <span id="badgeExecFilterPending" class="px-1.5 py-0.2 rounded-full bg-amber-600 text-white font-mono-code text-[11px] font-bold">0</span>
             </button>
-            <button type="button" onclick="FMMS.filterExecutiveCards('APPROVED')" id="btnExecFilterApproved"
-              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer shadow-xs">
-              <span>✅ อนุมัติแล้ว / กำลังซ่อม</span>
-              <span id="badgeExecFilterApproved" class="px-1.5 py-0.2 rounded-full bg-emerald-700 text-white font-mono-code text-[11px] font-bold">0</span>
+            <button type="button" onclick="FMMS.filterExecutiveCards('IN_PROGRESS')" id="btnExecFilterInProgress"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-900 border border-teal-300 hover:bg-teal-100 transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+              <span>🔧 2. อนุมัติแล้ว • กำลังซ่อม</span>
+              <span id="badgeExecFilterInProgress" class="px-1.5 py-0.2 rounded-full bg-teal-700 text-white font-mono-code text-[11px] font-bold">0</span>
+            </button>
+            <button type="button" onclick="FMMS.filterExecutiveCards('AWAITING_INSPECTION')" id="btnExecFilterInspection"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-900 border border-blue-300 hover:bg-blue-100 transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+              <span>🔍 3. ช่างส่งงาน • รอตรวจรับ</span>
+              <span id="badgeExecFilterInspection" class="px-1.5 py-0.2 rounded-full bg-blue-600 text-white font-mono-code text-[11px] font-bold">0</span>
             </button>
             <button type="button" onclick="FMMS.filterExecutiveCards('CLOSED')" id="btnExecFilterClosed"
               class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer shadow-xs">
-              <span>🏁 ปิดงานตรวจรับแล้ว</span>
+              <span>🏁 4. ปิดงานเสร็จสิ้น</span>
               <span id="badgeExecFilterClosed" class="px-1.5 py-0.2 rounded-full bg-slate-600 text-white font-mono-code text-[11px] font-bold">0</span>
             </button>
             <button type="button" onclick="FMMS.filterExecutiveCards('ALL')" id="btnExecFilterAll"
@@ -1920,6 +1925,121 @@
   </div>
 
   
+  
+  <!-- ========================================================================
+       6.10 REPAIR TRACKING & TASK CLOSURE MODAL (POPUP)
+       ======================================================================== -->
+  <div id="repairTrackingModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 no-print" onclick="FMMS.closeRepairTrackingModal()">
+    <div class="max-w-3xl w-full bg-white rounded-xl shadow-2xl border-2 border-teal-600 overflow-hidden transform transition-all max-h-[92vh] flex flex-col" onclick="event.stopPropagation()">
+      <!-- Header Banner -->
+      <div class="bg-gradient-to-r from-teal-800 via-teal-900 to-slate-900 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-teal-500/30 flex items-center justify-center text-xl shadow-inner">
+            🔧
+          </div>
+          <div>
+            <h3 class="text-base font-bold tracking-wide">ติดตามความคืบหน้างานซ่อม & บันทึกปิดงาน</h3>
+            <p class="text-xs text-teal-200 font-mono-code">REPAIR EXECUTION TRACKER & JOB CLOSURE</p>
+          </div>
+        </div>
+        <button type="button" onclick="FMMS.closeRepairTrackingModal()" class="text-white/80 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1">
+        <input type="hidden" id="trackTaskId" value="">
+
+        <!-- Task Summary Box -->
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <span class="font-mono-code font-bold text-sm text-slate-900" id="trackTaskDisplayId">CM-xxxx</span>
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold" id="trackTaskStatusBadge">In Progress</span>
+          </div>
+          <div class="font-bold text-sm text-slate-800" id="trackTaskTitle">-</div>
+          <div class="text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
+            <span>📍 สถานที่: <strong class="text-slate-700" id="trackTaskLocation">-</strong></span>
+            <span>👷 ช่าง: <strong class="text-slate-700" id="trackTaskContractor">-</strong></span>
+            <span>👔 ผู้ควบคุม: <strong class="text-slate-700" id="trackTaskSupervisor">-</strong></span>
+            <span>💰 งบที่อนุมัติ: <strong class="font-mono-code text-emerald-800" id="trackTaskEstCost">฿0</strong></span>
+          </div>
+        </div>
+
+        <!-- Before / After Photo Galleries (Live View & Upload) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Before Photos -->
+          <div class="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
+            <div class="font-bold text-slate-800 flex items-center justify-between mb-2">
+              <span>📷 ภาพก่อนซ่อม (Before):</span>
+              <span class="font-mono-code text-[11px] text-slate-500" id="trackBeforeCount">0 ภาพ</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1" id="trackBeforeThumbnails">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- After Photos (Upload & View) -->
+          <div class="border-2 border-teal-200 rounded-lg p-3 bg-teal-50/30">
+            <div class="font-bold text-teal-900 flex items-center justify-between mb-2">
+              <span>📸 ภาพหลังซ่อมแล้วเสร็จ (After):</span>
+              <span class="font-mono-code text-[11px] text-teal-700 font-bold" id="trackAfterCount">0 ภาพ</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1 mb-2" id="trackAfterThumbnails">
+              <!-- Rendered via JS -->
+            </div>
+            <!-- File input to upload After photos directly -->
+            <label class="block cursor-pointer">
+              <input type="file" id="trackAfterFileInput" multiple accept="image/*" class="hidden" onchange="FMMS.handleTrackingAfterPhotoUpload(event)">
+              <div class="w-full py-2 px-3 border border-dashed border-teal-400 rounded bg-white hover:bg-teal-50 text-teal-800 font-semibold text-center transition">
+                + เพิ่ม/แนบภาพหลังซ่อม (เกณฑ์ ≥ 5 ภาพ)
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Financial & Repair Results Form -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ค่าใช้จ่ายจริงที่เกิดขึ้น (Actual Cost ฿) *</label>
+            <input type="number" id="trackActualCostInput" min="0" step="1" placeholder="0.00"
+              class="w-full border border-slate-300 rounded px-3 py-2 font-mono-code font-bold text-slate-900 text-sm">
+            <p class="text-[10px] text-slate-500 mt-0.5">ระบุยอดเงินค่าอะไหล่และค่าแรงที่จ่ายจริงเพื่อปิดงบ</p>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ผลการทดสอบระบบหลังซ่อม / สถานะอุปกรณ์</label>
+            <input type="text" id="trackTestResultInput" placeholder="เช่น ระบบทำงานปกติ ทดสอบแล้ว 30 นาทีไม่มีน้ำรั่ว"
+              class="w-full border border-slate-300 rounded px-3 py-2 text-xs">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">บันทึกสรุปผลการดำเนินงานซ่อมแซม (Repair Notes & Replaced Parts)</label>
+          <textarea id="trackNotesInput" rows="2" placeholder="ระบุการดำเนินงาน อะไหล่ที่เปลี่ยน ปัญหาที่แก้ไข..."
+            class="w-full border border-slate-300 rounded px-3 py-2 text-xs"></textarea>
+        </div>
+      </div>
+
+      <!-- Footer Action Buttons -->
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" onclick="FMMS.closeRepairTrackingModal()"
+          class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2.5 rounded-lg text-xs transition cursor-pointer">
+          ยกเลิก / ปิด
+        </button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" onclick="FMMS.saveTrackingProgress(false)"
+            class="bg-blue-700 hover:bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition shadow cursor-pointer flex items-center gap-1.5" title="บันทึกรูปและรายละเอียด แต่ยังคงสถานะกำลังซ่อมแซม">
+            <span>💾</span>
+            <span>บันทึกความคืบหน้าระหว่างซ่อม</span>
+          </button>
+          <button type="button" onclick="FMMS.saveTrackingProgress(true)"
+            class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-lg text-xs transition shadow-md cursor-pointer flex items-center gap-1.5" title="ตรวจรับงานและปิดใบงานนี้เสร็จสมบูรณ์ 100%">
+            <span>✍️</span>
+            <span>ลงนามตรวจรับและปิดงานสมบูรณ์ (Sign-off & Close)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ========================================================================
        6.9 REPORT EDIT TASK MODAL (POPUP)
        ======================================================================== -->
@@ -2045,6 +2165,6 @@
   <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 max-w-md w-full px-4 pointer-events-none no-print"></div>
 
   <!-- Main Application Controller -->
-  <script src="app.js?v=2.6.1"></script>
+  <script src="app.js?v=2.6.2"></script>
 </body>
 </html>

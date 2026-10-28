@@ -737,7 +737,198 @@ const FMMS = (function() {
 
   async function postToGasBackend(action, payloadObj) {
     if (!state.config.gasWebAppUrl || !state.config.gasWebAppUrl.startsWith('https://script.google.com')) {
-      return { ok: true, localOnly: true };
+        /**
+   * ==========================================================================
+   * 8.2 REPAIR TRACKING & TASK CLOSURE MODAL CONTROLLER
+   * ==========================================================================
+   */
+  let currentTrackingTask = null;
+  let tempTrackingAfterImages = [];
+
+  function openRepairTrackingModal(taskId) {
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    if (!task) return;
+
+    currentTrackingTask = task;
+    tempTrackingAfterImages = [...getTaskAfterImages(task)];
+
+    setVal('trackTaskId', task.TaskID);
+    setText('trackTaskDisplayId', task.TaskID);
+    setText('trackTaskTitle', task.Title);
+    setText('trackTaskLocation', task.Location || 'ไม่ระบุสถานที่');
+    setText('trackTaskContractor', task.AssignedContractorName || 'ช่างประจำโครงการ');
+    setText('trackTaskSupervisor', task.SupervisorName || 'วิศวกรผู้ควบคุม');
+    setText('trackTaskEstCost', '฿' + formatCurrency(task.EstCost));
+    setVal('trackActualCostInput', Number(task.ActualCost || 0) > 0 ? task.ActualCost : (task.EstCost || 0));
+    setVal('trackTestResultInput', task.TestResult || 'ทดสอบระบบแล้ว ทำงานได้ตามปกติ');
+    setVal('trackNotesInput', task.CompletionNotes || task.Description || '');
+
+    const statusBadge = document.getElementById('trackTaskStatusBadge');
+    if (statusBadge) {
+      if (task.Status === 'Closed') {
+        statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-800';
+        statusBadge.textContent = '🏁 Closed (ปิดงานแล้ว)';
+      } else if (task.Status === 'Completed') {
+        statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-900 border border-blue-300';
+        statusBadge.textContent = '🔍 Completed (รอลงนามปิดงาน)';
+      } else {
+        statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-100 text-teal-900 border border-teal-300';
+        statusBadge.textContent = '🔧 ' + task.Status + ' (กำลังซ่อม)';
+      }
+    }
+
+    renderTrackingModalPhotos();
+
+    const modal = document.getElementById('repairTrackingModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeRepairTrackingModal() {
+    const modal = document.getElementById('repairTrackingModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+    currentTrackingTask = null;
+    tempTrackingAfterImages = [];
+  }
+
+  function renderTrackingModalPhotos() {
+    if (!currentTrackingTask) return;
+
+    // Render Before photos
+    const beforeUrls = getTaskBeforeImages(currentTrackingTask);
+    setText('trackBeforeCount', beforeUrls.length + ' ภาพ');
+    const beforeContainer = document.getElementById('trackBeforeThumbnails');
+    if (beforeContainer) {
+      if (beforeUrls.length === 0) {
+        beforeContainer.innerHTML = '<div class="col-span-5 text-center text-slate-400 py-3 text-[11px]">ไม่มีภาพก่อนซ่อม</div>';
+      } else {
+        beforeContainer.innerHTML = beforeUrls.map(function(url, idx) {
+          return `
+            <img src="${url}" onclick="FMMS.openImagePreviewModal('${url}', 'ภาพก่อนซ่อม #${idx+1}')"
+              class="w-full h-12 object-cover rounded border border-slate-200 cursor-pointer hover:scale-105 transition" title="คลิกดูภาพใหญ่">
+          `;
+        }).join('');
+      }
+    }
+
+    // Render After photos
+    setText('trackAfterCount', tempTrackingAfterImages.length + ' ภาพ ' + (tempTrackingAfterImages.length >= 5 ? '✅' : '⚠️'));
+    const afterContainer = document.getElementById('trackAfterThumbnails');
+    if (afterContainer) {
+      if (tempTrackingAfterImages.length === 0) {
+        afterContainer.innerHTML = '<div class="col-span-5 text-center text-slate-400 py-3 text-[11px]">ยังไม่มีภาพหลังซ่อม (กดแนบภาพด้านล่าง)</div>';
+      } else {
+        afterContainer.innerHTML = tempTrackingAfterImages.map(function(url, idx) {
+          return `
+            <div class="relative group">
+              <img src="${url}" onclick="FMMS.openImagePreviewModal('${url}', 'ภาพหลังซ่อม #${idx+1}')"
+                class="w-full h-12 object-cover rounded border border-teal-300 cursor-pointer hover:scale-105 transition">
+              <button type="button" onclick="event.stopPropagation(); FMMS.removeTrackingAfterPhoto(${idx})"
+                class="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow cursor-pointer opacity-90 hover:opacity-100">✕</button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  function handleTrackingAfterPhotoUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach(function(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        tempTrackingAfterImages.push(e.target.result);
+        renderTrackingModalPhotos();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    event.target.value = '';
+  }
+
+  function removeTrackingAfterPhoto(index) {
+    if (index >= 0 && index < tempTrackingAfterImages.length) {
+      tempTrackingAfterImages.splice(index, 1);
+      renderTrackingModalPhotos();
+    }
+  }
+
+  async function saveTrackingProgress(isClosingJob) {
+    if (!currentTrackingTask) return;
+    const taskId = currentTrackingTask.TaskID;
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    if (!task) return;
+
+    const actualCost = Number(getVal('trackActualCostInput') || 0);
+    const testResult = String(getVal('trackTestResultInput') || '').trim();
+    const notes = String(getVal('trackNotesInput') || '').trim();
+    const actor = getCurrentActor();
+    const now = getIsoNow();
+
+    // Update After images in task
+    task.AfterImages = [...tempTrackingAfterImages];
+    task.AfterImgURL = JSON.stringify(tempTrackingAfterImages);
+    task.ActualCost = actualCost;
+    task.TestResult = testResult;
+    task.CompletionNotes = notes;
+    task.UpdatedAt = now;
+    task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
+
+    const memo = state.db.memos.find(function(m) { return m.TaskID === taskId; });
+
+    let actionLabel = 'บันทึกความคืบหน้างานซ่อม';
+    if (isClosingJob) {
+      task.Status = 'Closed';
+      if (memo) {
+        memo.ApprovalStatus = 'Approved';
+        memo.ExecutiveComment = 'ผู้บริหารตรวจรับงานซ่อมและลงนามปิดงานสมบูรณ์ 100%';
+      }
+      actionLabel = 'ลงนามตรวจรับและปิดงานสมบูรณ์';
+    } else {
+      task.Status = 'In Progress';
+      actionLabel = 'บันทึกความคืบหน้าการซ่อมแซม';
+    }
+
+    recordAuditLog(
+      isClosingJob ? 'TASK_CLOSED_SIGNOFF' : 'UPDATE_REPAIR_PROGRESS',
+      taskId,
+      actor.fullName + ' ดำเนินการ ' + actionLabel + ' ใบงาน ' + taskId + ' (ค่าใช้จ่ายจริง ฿' + formatCurrency(actualCost) + ')',
+      'IN_PROGRESS',
+      task.Status + ' @ ' + now,
+      'SUCCESS'
+    );
+
+    // Call GAS Backend
+    try {
+      await postToGasBackend('executiveApprove', {
+        taskId: task.TaskID,
+        memoId: memo ? memo.MemoID : '',
+        decision: task.Status,
+        comment: isClosingJob ? 'ตรวจรับงานและลงนามปิดงานสมบูรณ์ (ActualCost: ฿' + actualCost + ')' : 'อัปเดตผลการซ่อมแซม'
+      });
+    } catch (err) {
+      console.warn('Backend sync failed:', err);
+    }
+
+    persistDatabase();
+    closeRepairTrackingModal();
+    renderAllViews();
+
+    showToast(
+      actionLabel + ' สำเร็จ',
+      'ปรับสถานะใบงาน ' + taskId + ' เป็น [' + task.Status + '] และบันทึกค่าใช้จ่ายจริง ฿' + formatCurrency(actualCost) + ' เรียบร้อย',
+      isClosingJob ? 'success' : 'info'
+    );
+  }
+
+  return { ok: true, localOnly: true };
     }
     try {
       const actor = getCurrentActor();
@@ -2567,8 +2758,9 @@ const FMMS = (function() {
     state.execApprovalFilter = filterType || 'ALL';
 
     const btns = {
-      PENDING: document.getElementById('btnExecFilterPending'),
-      APPROVED: document.getElementById('btnExecFilterApproved'),
+      PENDING_BUDGET: document.getElementById('btnExecFilterPending'),
+      IN_PROGRESS: document.getElementById('btnExecFilterInProgress'),
+      AWAITING_INSPECTION: document.getElementById('btnExecFilterInspection'),
       CLOSED: document.getElementById('btnExecFilterClosed'),
       ALL: document.getElementById('btnExecFilterAll')
     };
@@ -2586,200 +2778,48 @@ const FMMS = (function() {
     renderExecutivePipelineCards();
   }
 
-  async function handleExecutiveDecision(targetId, decision) {
-    if (!targetId) return;
-
-    // Support targetId as MemoID or TaskID
-    let memo = state.db.memos.find(function(m) { return m.MemoID === targetId || m.TaskID === targetId; });
-    let task = state.db.tasks.find(function(t) { return t.TaskID === targetId || (memo && t.TaskID === memo.TaskID); });
-
-    // DUPLICATE APPROVAL PREVENTION: If already approved and user clicks 'Approved' again, show popup & abort
-    if (decision === 'Approved' && task && (task.Status === 'Approved' || task.Status === 'In Progress' || task.Status === 'Completed' || task.Status === 'Closed')) {
-      showAlreadyApprovedPopup(task.TaskID);
-      return;
-    }
-
-    const actor = getCurrentActor();
-    const now = getIsoNow();
-
-    // Auto-create memo if none exists yet for this task
-    if (!memo && task) {
-      const newMemoId = generateUniqueId(state.db.memos, 'MemoID', 'MEMO-2026');
-      memo = {
-        MemoID: newMemoId,
-        TaskID: task.TaskID,
-        DocReference: 'ทวพ./ซบร./2569/' + newMemoId.split('-').pop(),
-        Subject: 'ขออนุมัติงบประมาณดำเนินงานซ่อมบำรุง: ' + task.Title,
-        EstimatedBudget: Number(task.EstCost || 0),
-        ReasonRationale: task.Description || task.Title,
-        VendorName: 'ผู้รับเหมาตามทะเบียนมาตรฐาน',
-        VendorQuotationURL: 'QT-' + task.TaskID,
-        SupervisorRemark: 'ผู้บริหารพิจารณาอนุมัติดำเนินการโดยตรง (ข้ามขั้นตอน Supervisor)',
-        RequestedBy: actor.userId + ' (' + actor.fullName + ')',
-        RequestedAt: now,
-        ApprovedBy: '-',
-        ApproverName: '-',
-        ApprovalDate: '-',
-        ApprovalStatus: 'Pending Approval',
-        ExecutiveComment: '-'
-      };
-      state.db.memos.unshift(memo);
-    }
-
-    if (!memo && !task) return;
-
-    const beforeStatus = task ? task.Status : (memo ? memo.ApprovalStatus : '-');
-
-    let actionLabel = 'อนุมัติงาน/งบประมาณ';
-    let newStatus = 'Approved';
-
-    if (decision === 'Closed') {
-      newStatus = 'Closed';
-      actionLabel = 'ตรวจรับและปิดงานสมบูรณ์';
-    } else if (decision === 'Approved') {
-      newStatus = 'Approved';
-      actionLabel = 'อนุมัติงาน/งบประมาณ';
-    } else if (String(decision).startsWith('Rejected')) {
-      newStatus = decision === 'Rejected to Level 1' ? 'Rejected to Level 1' : 'Rejected to Level 2';
-      actionLabel = 'ตีกลับแก้ไขงาน';
-    } else {
-      newStatus = decision;
-    }
-
-    if (task) {
-      task.Status = newStatus;
-      task.UpdatedAt = now;
-      task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
-    }
-
-    if (memo) {
-      memo.ApprovalStatus = (newStatus === 'Closed' || newStatus === 'Approved') ? 'Approved' : 'Rejected';
-      memo.ApprovedBy = actor.userId;
-      memo.ApproverName = actor.fullName;
-      memo.ApprovalDate = now;
-      memo.ExecutiveComment = newStatus === 'Closed'
-        ? 'ผู้บริหารตรวจสอบความเรียบร้อยและลงนามตรวจรับปิดงานสมบูรณ์'
-        : (newStatus === 'Approved'
-          ? 'ผู้บริหารอนุมัติงบประมาณและสั่งการให้ดำเนินการทันที (ข้ามขั้นตอน Supervisor)'
-          : 'ตีกลับเพื่อแก้ไขรายละเอียดงาน');
-    }
-
-    const docId = task ? task.TaskID : memo.MemoID;
-
-    recordAuditLog(
-      'EXECUTIVE_DECISION',
-      docId,
-      'ผู้บริหาร (' + actor.fullName + ') กด ' + actionLabel + ' ใบงาน ' + docId + ' (สถานะใหม่: ' + newStatus + ')',
-      beforeStatus,
-      newStatus + ' @ ' + now,
-      'SUCCESS'
-    );
-
-    // Call GAS Backend
-    try {
-      await postToGasBackend('executiveApprove', {
-        taskId: task ? task.TaskID : '',
-        memoId: memo ? memo.MemoID : '',
-        decision: newStatus,
-        comment: memo ? memo.ExecutiveComment : actionLabel
-      });
-    } catch (err) {
-      console.warn('Backend sync failed:', err);
-    }
-
-    persistDatabase();
-    renderAllViews();
-
-    showToast(
-      actionLabel + ' สำเร็จ',
-      'ปรับสถานะใบงาน ' + docId + ' เป็น [' + newStatus + '] และซิงค์ลง Google Sheets เรียบร้อยแล้ว',
-      (newStatus === 'Approved' || newStatus === 'Closed') ? 'success' : 'warning'
-    );
-
-    showCloudSyncConfirmation({
-      docId: docId,
-      docType: 'การลงนามพิจารณาระดับบริหาร (Executive Decision)',
-      actionTitle: 'ผู้บริหาร' + actionLabel,
-      version: newStatus === 'Closed' ? 'v3.0 (Closed & Finalized)' : 'v2.0 (Executive Approved)',
-      details: 'ผู้บริหาร (' + actor.fullName + ') ลงนาม ' + actionLabel + ' ใบงาน ' + docId + ' บันทึกลง Google Sheet Data MA TWPP 8 Tabs และ Google Drive ครบถ้วน'
-    });
-  }
-
-  function switchExecutiveSubTab(tabKey) {
-    state.executiveSubTab = tabKey;
-    const tabs = {
-      memos: document.getElementById('execSubViewMemos'),
-      cards: document.getElementById('execSubViewCards'),
-      report: document.getElementById('execSubViewReport')
-    };
-    Object.keys(tabs).forEach(function(k) {
-      if (tabs[k]) {
-        if (k === tabKey) {
-          tabs[k].classList.remove('hidden');
-          tabs[k].style.display = 'block';
-        } else {
-          tabs[k].classList.add('hidden');
-          tabs[k].style.display = 'none';
-        }
-      }
-    });
-
-    const btns = {
-      memos: document.getElementById('execSubTabBtnMemos'),
-      cards: document.getElementById('execSubTabBtnCards'),
-      report: document.getElementById('execSubTabBtnReport')
-    };
-    Object.keys(btns).forEach(function(k) {
-      const btn = btns[k];
-      if (!btn) return;
-      if (k === tabKey) {
-        btn.className = 'px-3.5 py-2 rounded-md text-xs font-semibold bg-slate-900 text-white transition flex items-center gap-2 cursor-pointer shadow-sm';
-      } else {
-        btn.className = 'px-3.5 py-2 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 cursor-pointer';
-      }
-    });
-
-    if (tabKey === 'cards') renderExecutivePipelineCards();
-    if (tabKey === 'report') { renderExecutiveReport(); renderReportTasksTable(); }
-  }
-
   function renderExecutivePipelineCards() {
     const tasks = state.db.tasks || [];
     const memos = state.db.memos || [];
     const container = document.getElementById('execCardsGrid');
     if (!container) return;
 
-    // Compute status helpers
+    // Status helper functions
     function isTaskClosed(t) {
       return t.Status === 'Closed';
     }
-    function isTaskCompleted(t) {
+    function isTaskAwaitingInspection(t) {
       return t.Status === 'Completed';
     }
-    function isTaskApproved(t, memo) {
-      return (t.Status === 'Approved' || t.Status === 'In Progress' || (memo && memo.ApprovalStatus === 'Approved')) && !isTaskClosed(t) && !isTaskCompleted(t);
+    function isTaskInProgress(t, memo) {
+      return (t.Status === 'Approved' || t.Status === 'In Progress' || (memo && memo.ApprovalStatus === 'Approved')) && !isTaskClosed(t) && !isTaskAwaitingInspection(t);
     }
-    function isTaskPending(t, memo) {
-      return !isTaskClosed(t) && !isTaskCompleted(t) && !isTaskApproved(t, memo);
+    function isTaskPendingBudget(t, memo) {
+      return !isTaskClosed(t) && !isTaskAwaitingInspection(t) && !isTaskInProgress(t, memo);
     }
 
-    // Compute Quick Filter Counts
-    const pendingCount = tasks.filter(function(t) {
+    // Compute Quick Filter Counts for each of the 4 distinct lifecycle phases
+    const pendingBudgetCount = tasks.filter(function(t) {
       const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
-      return isTaskPending(t, memo) || isTaskCompleted(t);
+      return isTaskPendingBudget(t, memo);
     }).length;
 
-    const approvedCount = tasks.filter(function(t) {
+    const inProgressCount = tasks.filter(function(t) {
       const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
-      return isTaskApproved(t, memo);
+      return isTaskInProgress(t, memo);
+    }).length;
+
+    const inspectionCount = tasks.filter(function(t) {
+      return isTaskAwaitingInspection(t);
     }).length;
 
     const closedCount = tasks.filter(function(t) {
       return isTaskClosed(t);
     }).length;
 
-    setText('badgeExecFilterPending', pendingCount);
-    setText('badgeExecFilterApproved', approvedCount);
+    setText('badgeExecFilterPending', pendingBudgetCount);
+    setText('badgeExecFilterInProgress', inProgressCount);
+    setText('badgeExecFilterInspection', inspectionCount);
     setText('badgeExecFilterClosed', closedCount);
     setText('badgeExecFilterAll', tasks.length);
 
@@ -2802,13 +2842,15 @@ const FMMS = (function() {
 
     const filtered = tasks.filter(function(t) {
       const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
-      const pending = isTaskPending(t, memo) || isTaskCompleted(t);
-      const approved = isTaskApproved(t, memo);
+      const pendingBudget = isTaskPendingBudget(t, memo);
+      const inProgress = isTaskInProgress(t, memo);
+      const awaitingInspection = isTaskAwaitingInspection(t);
       const closed = isTaskClosed(t);
 
-      // Quick Approval Status Filter
-      if (activeApprovalFilter === 'PENDING' && !pending) return false;
-      if (activeApprovalFilter === 'APPROVED' && !approved) return false;
+      // Filter by Lifecycle Phase
+      if (activeApprovalFilter === 'PENDING_BUDGET' && !pendingBudget) return false;
+      if (activeApprovalFilter === 'IN_PROGRESS' && !inProgress) return false;
+      if (activeApprovalFilter === 'AWAITING_INSPECTION' && !awaitingInspection) return false;
       if (activeApprovalFilter === 'CLOSED' && !closed) return false;
 
       // Location filter
@@ -2816,9 +2858,11 @@ const FMMS = (function() {
 
       // Status dropdown filter
       if (selectedStatus !== 'ALL') {
-        if (selectedStatus === 'Pending Level 3 Approval' && !pending) return false;
-        if (selectedStatus === 'Approved' && !approved) return false;
-        if (selectedStatus !== 'Pending Level 3 Approval' && selectedStatus !== 'Approved' && t.Status !== selectedStatus) return false;
+        if (selectedStatus === 'Pending Level 3 Approval' && !pendingBudget) return false;
+        if (selectedStatus === 'Approved' && !inProgress) return false;
+        if (selectedStatus === 'Completed' && !awaitingInspection) return false;
+        if (selectedStatus === 'Closed' && !closed) return false;
+        if (selectedStatus !== 'Pending Level 3 Approval' && selectedStatus !== 'Approved' && selectedStatus !== 'Completed' && selectedStatus !== 'Closed' && t.Status !== selectedStatus) return false;
       }
 
       // Search keyword filter
@@ -2845,7 +2889,7 @@ const FMMS = (function() {
         <div class="col-span-full p-8 text-center bg-white border border-slate-200 rounded-lg text-slate-500">
           <div class="text-3xl mb-2">🔍</div>
           <div class="text-sm font-semibold text-slate-800">ไม่พบใบงานตามเงื่อนไขที่เลือก</div>
-          <div class="text-xs text-slate-500 mt-1">คลิกปุ่ม "📋 ทั้งหมด" เพื่อดูใบงานทุกรายการ</div>
+          <div class="text-xs text-slate-500 mt-1">คลิกปุ่ม "📋 ทั้งหมด" เพื่อดูใบงานทุกรายการ หรือเลือกขั้นตอนอื่น</div>
         </div>
       `;
       return;
@@ -2854,19 +2898,19 @@ const FMMS = (function() {
     container.innerHTML = filtered.map(function(t) {
       const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
       const closed = isTaskClosed(t);
-      const completed = isTaskCompleted(t);
-      const approved = isTaskApproved(t, memo);
-      const pending = isTaskPending(t, memo);
+      const awaitingInspection = isTaskAwaitingInspection(t);
+      const inProgress = isTaskInProgress(t, memo);
+      const pendingBudget = isTaskPendingBudget(t, memo);
 
       // 5-Stage Journey Progress determination
       let stage = 1;
       if (closed) {
         stage = 5;
-      } else if (completed) {
+      } else if (awaitingInspection) {
         stage = 5;
-      } else if (approved) {
+      } else if (inProgress) {
         stage = 4;
-      } else if (pending) {
+      } else if (pendingBudget) {
         stage = 3;
       }
 
@@ -2914,9 +2958,9 @@ const FMMS = (function() {
             </div>
           </div>
 
-          <!-- PROMINENT STATUS & ACTION BANNER -->
-          ${completed ? `
-            <!-- CASE 1: WORK COMPLETED -> READY FOR FINAL INSPECTION & SIGN-OFF (NO CONFUSING "อนุมัติ" BUTTON!) -->
+          <!-- PROMINENT STATUS & ACTION BANNER ACCORDING TO 4 PHASES -->
+          ${awaitingInspection ? `
+            <!-- PHASE 3: WORK COMPLETED -> READY FOR FINAL INSPECTION & SIGN-OFF -->
             <div class="mx-4 my-3 p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-500 rounded-lg flex flex-wrap items-center justify-between gap-3 shadow-sm">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold shadow animate-pulse">
@@ -2925,10 +2969,10 @@ const FMMS = (function() {
                 <div>
                   <div class="text-xs font-bold text-blue-950 flex items-center gap-1.5 flex-wrap">
                     <span>ช่างส่งมอบงานแล้ว: กรุณาตรวจรับงานและลงนามปิดงาน (ขั้นตอนที่ 5)</span>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-mono-code font-bold">✅ ได้รับการอนุมัติเรียบร้อยแล้ว</span>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-mono-code font-bold">✅ อนุมัติงบแล้ว</span>
                   </div>
                   <div class="text-[11px] text-blue-800 mt-0.5">
-                    งานนี้ผ่านการอนุมัติงบในขั้นตอนที่ 3 แล้ว • ค่าใช้จ่ายจริง: <strong class="font-mono-code text-blue-950">฿${formatCurrency(t.ActualCost)}</strong> • ช่าง: ${escapeHtml(t.AssignedContractorName || 'ช่างหน้างาน')}
+                    ค่าใช้จ่ายจริง: <strong class="font-mono-code text-blue-950">฿${formatCurrency(t.ActualCost)}</strong> • ช่าง: ${escapeHtml(t.AssignedContractorName || 'ช่างหน้างาน')}
                   </div>
                 </div>
               </div>
@@ -2938,15 +2982,40 @@ const FMMS = (function() {
                   <span>✍️</span>
                   <span>ลงนามตรวจรับและปิดงานสมบูรณ์ (Sign-off)</span>
                 </button>
-                <button type="button" onclick="FMMS.handleExecutiveDecision('${t.TaskID}', 'Rejected to Level 1')"
-                  class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-3 py-2 rounded-lg text-xs shadow transition flex items-center gap-1 cursor-pointer">
-                  <span>🔄</span>
-                  <span>ส่งกลับให้ช่างแก้ไข</span>
+                <button type="button" onclick="FMMS.openRepairTrackingModal('${t.TaskID}')"
+                  class="bg-blue-700 hover:bg-blue-600 text-white font-semibold px-3 py-2 rounded-lg text-xs shadow transition flex items-center gap-1 cursor-pointer">
+                  <span>📷</span>
+                  <span>ตรวจรูป & บันทึกผล</span>
                 </button>
               </div>
             </div>
-          ` : pending ? `
-            <!-- CASE 2: PENDING INITIAL BUDGET APPROVAL -->
+          ` : inProgress ? `
+            <!-- PHASE 2: APPROVED & REPAIR IN PROGRESS -> TRACKING & CLOSURE ACTION -->
+            <div class="mx-4 my-3 p-3.5 bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border-2 border-teal-500 rounded-lg flex flex-wrap items-center justify-between gap-3 shadow-xs">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center text-lg font-bold shadow-sm">
+                  🔧
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-teal-950 flex items-center gap-1.5 flex-wrap">
+                    <span>อนุมัติงบแล้ว • ช่างกำลังดำเนินการซ่อมแซมหน้างาน (ยังไม่ปิดงาน)</span>
+                    <span class="px-2 py-0.5 rounded-full bg-teal-700 text-white text-[10px] font-mono-code font-bold">REPAIR IN PROGRESS</span>
+                  </div>
+                  <div class="text-[11px] text-teal-800 mt-0.5">
+                    งบประมาณที่อนุมัติ: <strong class="font-mono-code text-teal-950">฿${formatCurrency(memo && memo.EstimatedBudget ? memo.EstimatedBudget : t.EstCost)}</strong> • ช่าง: ${escapeHtml(t.AssignedContractorName || 'ช่างประจำโครงการ')}
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" onclick="FMMS.openRepairTrackingModal('${t.TaskID}')"
+                  class="bg-teal-700 hover:bg-teal-600 active:bg-teal-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                  <span>🔧</span>
+                  <span>ติดตามงานซ่อม & บันทึกปิดงาน</span>
+                </button>
+              </div>
+            </div>
+          ` : pendingBudget ? `
+            <!-- PHASE 1: PENDING INITIAL BUDGET APPROVAL -->
             <div class="mx-4 my-3 p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-lg flex flex-wrap items-center justify-between gap-3 shadow-sm">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center text-lg font-bold shadow animate-pulse">
@@ -2975,39 +3044,8 @@ const FMMS = (function() {
                 </button>
               </div>
             </div>
-          ` : approved ? `
-            <!-- CASE 3: ALREADY APPROVED & IN PROGRESS (PREVENTS DUPLICATE APPROVAL) -->
-            <div class="mx-4 my-3 p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-500 rounded-lg flex items-center justify-between gap-3 shadow-xs">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg font-bold shadow-sm">
-                  ✓
-                </div>
-                <div>
-                  <div class="text-xs font-bold text-emerald-950 flex items-center gap-1.5 flex-wrap">
-                    <span>ได้รับการอนุมัติเรียบร้อยแล้ว (ช่างกำลังเข้าดำเนินการ)</span>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-mono-code font-bold shadow-xs">OFFICIALLY APPROVED</span>
-                  </div>
-                  <div class="text-[11px] text-emerald-800 mt-0.5">
-                    ผู้อนุมัติ: <strong>${escapeHtml(memo && memo.ApproverName && memo.ApproverName !== '-' ? memo.ApproverName : (t.UpdatedBy || 'ผู้บริหารระดับสูง'))}</strong>
-                    • วันที่อนุมัติ: <span class="font-mono-code">${memo && memo.ApprovalDate && memo.ApprovalDate !== '-' ? formatThaiDateTime(memo.ApprovalDate) : (t.UpdatedAt ? formatThaiDateTime(t.UpdatedAt) : '-')}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <div class="text-right whitespace-nowrap pl-2">
-                  <div class="text-[10px] text-emerald-700 uppercase font-mono-code font-semibold">วงเงินที่อนุมัติ</div>
-                  <div class="text-base font-bold font-mono-code text-emerald-900">฿${formatCurrency(memo && memo.EstimatedBudget ? memo.EstimatedBudget : t.EstCost)}</div>
-                </div>
-                <!-- Duplicate Click Handler Shows Clear Notification Popup -->
-                <button type="button" onclick="FMMS.showAlreadyApprovedPopup('${t.TaskID}')"
-                  class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 font-bold px-3 py-1.5 rounded-md text-xs shadow-xs transition flex items-center gap-1 cursor-pointer"
-                  title="คลิกดูรายละเอียดการอนุมัติ">
-                  <span>✅ อนุมัติแล้ว</span>
-                </button>
-              </div>
-            </div>
           ` : `
-            <!-- CASE 4: CLOSED -->
+            <!-- PHASE 4: CLOSED -->
             <div class="mx-4 my-2.5 p-3 bg-slate-100 border-2 border-slate-300 rounded-lg flex items-center justify-between text-xs text-slate-800">
               <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-sm font-bold">
@@ -3015,14 +3053,14 @@ const FMMS = (function() {
                 </div>
                 <div>
                   <div class="font-bold text-slate-900 flex items-center gap-1.5">
-                    <span>ตรวจรับงานและปิดเอกสารเสร็จสมบูรณ์แล้ว (Closed & Signed-off)</span>
+                    <span>ตรวจรับงานและปิดเอกสารเสร็จสมบูรณ์แล้ว 100% (Closed & Signed-off)</span>
                     <span class="px-2 py-0.2 rounded bg-slate-700 text-white text-[10px] font-mono-code">CLOSED</span>
                   </div>
                   <div class="text-[11px] text-slate-600">ค่าใช้จ่ายจริงรวม: <strong class="font-mono-code text-slate-900">฿${formatCurrency(t.ActualCost)}</strong> • ผู้ปิดงาน: ${escapeHtml(t.UpdatedBy || 'ผู้บริหาร')}</div>
                 </div>
               </div>
               <button type="button" onclick="FMMS.handleExecutiveDecision('${t.TaskID}', 'Approved')"
-                class="border border-slate-300 hover:bg-white text-slate-700 font-semibold px-2.5 py-1 rounded text-xs transition cursor-pointer" title="เปิดกลับมาเป็นสถานะ Approved เพื่อแก้ไข">
+                class="border border-slate-300 hover:bg-white text-slate-700 font-semibold px-2.5 py-1 rounded text-xs transition cursor-pointer" title="เปิดกลับมาเป็นสถานะ In Progress เพื่อแก้ไขเพิ่มเติม">
                 <span>🔄 เปิดใหม่อีกครั้ง</span>
               </button>
             </div>
@@ -3144,37 +3182,37 @@ const FMMS = (function() {
           <!-- Card Action Bar for Executive (Unambiguous Action Buttons) -->
           <div class="p-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div class="text-slate-800 text-[11px] font-bold">
-              ${completed ? '<span class="inline-flex items-center gap-1 text-emerald-800">✅ ได้รับการอนุมัติแล้ว • รอลงนามตรวจรับ</span>' : (pending ? '<span class="inline-flex items-center gap-1 text-amber-700">⏳ รอผู้บริหารพิจารณาอนุมัติ</span>' : (approved ? '<span class="inline-flex items-center gap-1 text-emerald-700">✅ ได้รับการอนุมัติเรียบร้อยแล้ว</span>' : '<span class="text-slate-600 font-semibold">🏁 ปิดงานตรวจรับสมบูรณ์แล้ว</span>'))}
+              ${awaitingInspection ? '<span class="inline-flex items-center gap-1 text-blue-800 font-bold">🔍 ช่างส่งมอบงานแล้ว • รอลงนามปิดงาน</span>' : (inProgress ? '<span class="inline-flex items-center gap-1 text-teal-800 font-bold">🔧 อนุมัติแล้ว • กำลังดำเนินการซ่อมแซม</span>' : (pendingBudget ? '<span class="inline-flex items-center gap-1 text-amber-700 font-bold">⏳ รอผู้บริหารพิจารณาอนุมัติงบ</span>' : '<span class="text-slate-600 font-semibold">🏁 ปิดงานตรวจรับสมบูรณ์แล้ว</span>'))}
             </div>
             <div class="flex items-center gap-1.5 flex-wrap">
-              ${completed ? `
+              ${awaitingInspection ? `
                 <!-- Sign-off Button for Completed Task -->
                 <button type="button" onclick="FMMS.handleExecutiveDecision('${t.TaskID}', 'Closed')"
                   class="bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white font-bold px-3.5 py-1.5 rounded-md text-xs transition shadow flex items-center gap-1 cursor-pointer">
                   <span>✍️</span>
                   <span>ลงนามตรวจรับและปิดงาน</span>
                 </button>
-                <button type="button" onclick="FMMS.handleExecutiveDecision('${t.TaskID}', 'Rejected to Level 1')"
-                  class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-2.5 py-1.5 rounded-md text-xs transition shadow cursor-pointer">
-                  <span>🔄 ส่งกลับแก้ไข</span>
+                <button type="button" onclick="FMMS.openRepairTrackingModal('${t.TaskID}')"
+                  class="bg-teal-700 hover:bg-teal-600 text-white font-medium px-2.5 py-1.5 rounded-md text-xs transition flex items-center gap-1 cursor-pointer" title="ดูภาพหลังซ่อมและข้อมูลสรุป">
+                  <span>📷 รูป/ปิดงาน</span>
                 </button>
-              ` : pending ? `
+              ` : inProgress ? `
+                <!-- Prominent Tracking & Close Button for In-Progress Task -->
+                <button type="button" onclick="FMMS.openRepairTrackingModal('${t.TaskID}')"
+                  class="bg-teal-700 hover:bg-teal-600 active:bg-teal-800 text-white font-bold px-3.5 py-1.5 rounded-md text-xs transition shadow flex items-center gap-1.5 cursor-pointer">
+                  <span>🔧</span>
+                  <span>ติดตามงานซ่อม & ปิดงาน</span>
+                </button>
+              ` : pendingBudget ? `
                 <!-- Instant Approve Button for Pending Task -->
                 <button type="button" onclick="FMMS.handleExecutiveDecision('${t.TaskID}', 'Approved')"
                   class="bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white font-bold px-3.5 py-1.5 rounded-md text-xs transition shadow flex items-center gap-1 cursor-pointer">
                   <span>✅</span>
-                  <span>อนุมัติทันที</span>
+                  <span>อนุมัติงบทันที</span>
                 </button>
                 <button type="button" onclick="FMMS.handleExecutiveDecision('${t.TaskID}', 'Rejected')"
                   class="bg-rose-700 hover:bg-rose-600 active:bg-rose-800 text-white font-semibold px-2.5 py-1.5 rounded-md text-xs transition shadow cursor-pointer">
                   <span>❌ ตีกลับ</span>
-                </button>
-              ` : approved ? `
-                <!-- Already Approved: Clicking shows information popup instead of re-approving -->
-                <button type="button" onclick="FMMS.showAlreadyApprovedPopup('${t.TaskID}')"
-                  class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold px-2.5 py-1.5 rounded-md text-xs transition flex items-center gap-1 cursor-pointer"
-                  title="คลิกดูรายละเอียดการอนุมัติ">
-                  <span>✅ อนุมัติแล้ว</span>
                 </button>
               ` : ''}
               <button type="button" onclick="FMMS.openMemoPrintModalByTask('${t.TaskID}')" class="border border-slate-300 hover:bg-slate-100 text-slate-800 px-2.5 py-1.5 rounded text-xs font-medium transition cursor-pointer">
@@ -5555,6 +5593,11 @@ const FMMS = (function() {
     closeReportEditTaskModal: closeReportEditTaskModal,
     handleSaveEditTaskFromReport: handleSaveEditTaskFromReport,
     deleteTask: deleteTask,
+    openRepairTrackingModal: openRepairTrackingModal,
+    closeRepairTrackingModal: closeRepairTrackingModal,
+    handleTrackingAfterPhotoUpload: handleTrackingAfterPhotoUpload,
+    removeTrackingAfterPhoto: removeTrackingAfterPhoto,
+    saveTrackingProgress: saveTrackingProgress,
     showAlreadyApprovedPopup: showAlreadyApprovedPopup,
     filterExecutiveCards: filterExecutiveCards
   };
