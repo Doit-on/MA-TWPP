@@ -44,6 +44,7 @@ const FMMS = (function() {
     },
     executiveSubTab: 'cards',
     deletedTaskIds: [],
+    deletedUserIds: [],
     compressedImages: {
       beforeImages: [],
       afterImages: [],
@@ -583,6 +584,7 @@ const FMMS = (function() {
   function persistDatabase() {
     try {
       localStorage.setItem(STORAGE_KEYS.DB_STATE, JSON.stringify(state.db));
+      localStorage.setItem('FMMS_ENT_DELETED_USERS_V2', JSON.stringify(state.deletedUserIds || []));
     } catch (e) {
       console.warn('localStorage persist warning (storage quota exceeded, saving lightweight copy):', e);
       try {
@@ -828,7 +830,13 @@ const FMMS = (function() {
 
         reconcileMemoAndTaskStatuses();
         if (json.data.users && json.data.users.length > 0) {
-          state.db.users = json.data.users;
+          const blacklist = state.deletedUserIds || [];
+          state.db.users = json.data.users.filter(function(u) {
+            const uid = String(u.UserID || '').trim();
+            const uname = String(u.Username || '').trim().toLowerCase();
+            if (uid === 'USR-2026-0001') return true;
+            return !blacklist.includes(uid) && !blacklist.includes(uname);
+          });
           ensureDefaultUsers();
         }
         if (json.data.schedules && json.data.schedules.length > 0) state.db.schedules = json.data.schedules;
@@ -934,109 +942,46 @@ const FMMS = (function() {
   function ensureDefaultUsers() {
     if (!state.db) state.db = {};
     if (!Array.isArray(state.db.users)) state.db.users = [];
-    const defaults = [
-      {
-        UserID: 'USR-2026-0001',
-        Username: 'admin',
-        PasswordPlain: 'admin123',
-        FullName: 'คุณนิพนธ์ (Executive & System Admin)',
-        RoleLevel: 3,
-        Department: 'บริหารจัดการอาคารและวิศวกรรม',
-        Phone: '081-900-1001',
-        Status: 'Active',
-        CreatedAt: '2026-10-01T08:30:00+07:00',
-        CreatedBy: 'SYSTEM_INIT (Root)',
-        UpdatedAt: '2026-10-01T08:30:00+07:00',
-        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        LastLoginAt: '2026-10-01T08:30:00+07:00'
-      },
-      {
-        UserID: 'USR-2026-0002',
-        Username: 'supervisor',
-        PasswordPlain: 'sup123',
-        FullName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-        RoleLevel: 2,
-        Department: 'วิศวกรรมซ่อมบำรุง (MEP Control)',
-        Phone: '081-900-1002',
-        Status: 'Active',
-        CreatedAt: '2026-10-01T09:00:00+07:00',
-        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        UpdatedAt: '2026-10-01T09:00:00+07:00',
-        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        LastLoginAt: '2026-10-01T09:00:00+07:00'
-      },
-      {
-        UserID: 'USR-2026-0003',
-        Username: 'tech01',
-        PasswordPlain: 'tech123',
-        FullName: 'นายช่าง สมชาย สายลุย (Contractor)',
-        RoleLevel: 1,
-        Department: 'ทีมปฏิบัติการภาคสนาม ชุดที่ 1',
-        Phone: '089-455-2211',
-        Status: 'Active',
-        CreatedAt: '2026-10-02T10:15:00+07:00',
-        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        UpdatedAt: '2026-10-02T10:15:00+07:00',
-        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-        LastLoginAt: '2026-10-02T10:15:00+07:00'
-      },
-      {
-        UserID: 'USR-2026-0004',
-        Username: 'tech1',
-        PasswordPlain: 'tech123',
-        FullName: 'นายช่าง สมชาย สายลุย (ช่างเทคนิค)',
-        RoleLevel: 1,
-        Department: 'ทีมปฏิบัติการภาคสนาม',
-        Phone: '089-455-2211',
-        Status: 'Active',
-        CreatedAt: '2026-10-02T10:15:00+07:00',
-        CreatedBy: 'SYSTEM_INIT',
-        UpdatedAt: '2026-10-02T10:15:00+07:00',
-        UpdatedBy: 'SYSTEM_INIT',
-        LastLoginAt: '2026-10-02T10:15:00+07:00'
-      },
-      {
-        UserID: 'USR-2026-0005',
-        Username: 'super1',
-        PasswordPlain: 'super123',
-        FullName: 'วิศวกร พรเทพ ใจดี (ผู้ควบคุมงาน)',
-        RoleLevel: 2,
-        Department: 'วิศวกรรมซ่อมบำรุง',
-        Phone: '081-900-1002',
-        Status: 'Active',
-        CreatedAt: '2026-10-01T09:00:00+07:00',
-        CreatedBy: 'SYSTEM_INIT',
-        UpdatedAt: '2026-10-01T09:00:00+07:00',
-        UpdatedBy: 'SYSTEM_INIT',
-        LastLoginAt: '2026-10-01T09:00:00+07:00'
-      },
-      {
-        UserID: 'USR-2026-0006',
-        Username: 'exec1',
-        PasswordPlain: 'exec123',
-        FullName: 'ผู้บริหารระดับสูง (Executive Director)',
-        RoleLevel: 3,
-        Department: 'ฝ่ายบริหารจัดการอาคาร',
-        Phone: '081-900-1001',
-        Status: 'Active',
-        CreatedAt: '2026-10-01T08:30:00+07:00',
-        CreatedBy: 'SYSTEM_INIT',
-        UpdatedAt: '2026-10-01T08:30:00+07:00',
-        UpdatedBy: 'SYSTEM_INIT',
-        LastLoginAt: '2026-10-01T08:30:00+07:00'
-      }
-    ];
 
-    defaults.forEach(function(d) {
-      const exists = state.db.users.find(function(u) {
-        return String(u.Username || '').toLowerCase() === d.Username.toLowerCase();
-      });
-      if (!exists) {
-        state.db.users.push(d);
-      } else {
-        if (!exists.PasswordPlain) exists.PasswordPlain = d.PasswordPlain;
-        if (!exists.RoleLevel) exists.RoleLevel = d.RoleLevel;
-      }
+    // Load persisted deletedUserIds from localStorage if empty
+    if (!state.deletedUserIds || state.deletedUserIds.length === 0) {
+      try {
+        const raw = localStorage.getItem('FMMS_ENT_DELETED_USERS_V2');
+        if (raw) state.deletedUserIds = JSON.parse(raw);
+      } catch (_) {}
+    }
+    const blacklist = state.deletedUserIds || [];
+
+    // ONLY USR-2026-0001 (Super Admin) is mandatory so the system is NEVER locked out
+    const adminUser = {
+      UserID: 'USR-2026-0001',
+      Username: 'admin',
+      PasswordPlain: 'admin123',
+      FullName: 'คุณนิพนธ์ (Executive & System Admin)',
+      RoleLevel: 3,
+      Department: 'บริหารจัดการอาคารและวิศวกรรม',
+      Phone: '081-900-1001',
+      Status: 'Active',
+      CreatedAt: '2026-10-01T08:30:00+07:00',
+      CreatedBy: 'SYSTEM_INIT (Root)',
+      UpdatedAt: '2026-10-01T08:30:00+07:00',
+      UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+      LastLoginAt: '2026-10-01T08:30:00+07:00'
+    };
+
+    const hasAdmin = state.db.users.find(function(u) {
+      return u.UserID === 'USR-2026-0001' || String(u.Username || '').toLowerCase() === 'admin';
+    });
+    if (!hasAdmin) {
+      state.db.users.unshift(adminUser);
+    }
+
+    // Filter out ANY user that is in the deleted blacklist so they can NEVER bounce back
+    state.db.users = state.db.users.filter(function(u) {
+      const uid = String(u.UserID || '').trim();
+      const uname = String(u.Username || '').trim().toLowerCase();
+      if (uid === 'USR-2026-0001') return true;
+      return !blacklist.includes(uid) && !blacklist.includes(uname);
     });
   }
 
@@ -4372,12 +4317,25 @@ const FMMS = (function() {
 
     const targetUser = state.db.users.find(function(u) { return u.UserID === userId; });
     const targetName = targetUser ? targetUser.FullName : userId;
+    const targetUsername = targetUser ? targetUser.Username : '';
 
-    const confirmed = confirm('⚠️ ยืนยันการลบผู้ใช้งาน: ' + userId + ' (' + targetName + ') หรือไม่?\n\nข้อมูลผู้ใช้นี้จะถูกลบออกจากฐานข้อมูล Google Sheets อย่างถาวร');
+    const confirmed = confirm('⚠️ ยืนยันการลบผู้ใช้งาน: ' + userId + ' (' + targetName + ') หรือไม่?\n\nระบบจะลบข้อมูลออกจากฐานข้อมูล Google Sheets และจะไม่นำกลับมาแสดงอีก');
     if (!confirmed) return;
 
-    // Remove from local array
-    state.db.users = state.db.users.filter(function(u) { return u.UserID !== userId; });
+    // 1. Add to permanent blacklist so background sync can NEVER revive this user
+    if (!state.deletedUserIds) state.deletedUserIds = [];
+    if (!state.deletedUserIds.includes(userId)) state.deletedUserIds.push(userId);
+    if (targetUsername && !state.deletedUserIds.includes(targetUsername.toLowerCase())) {
+      state.deletedUserIds.push(targetUsername.toLowerCase());
+    }
+
+    // 2. Remove all matching copies from local state
+    state.db.users = (state.db.users || []).filter(function(u) {
+      const uid = String(u.UserID || '').trim();
+      const uname = String(u.Username || '').trim().toLowerCase();
+      return uid !== userId && uname !== targetUsername.toLowerCase();
+    });
+
     persistDatabase();
     renderAdminUsersTable();
 
@@ -4388,24 +4346,23 @@ const FMMS = (function() {
 
     showToast('ลบผู้ใช้งานเรียบร้อย', 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจากระบบแล้ว', 'success');
 
-    // Sync to GAS backend
+    // 3. Call real postToGasBackend to delete from Google Sheets immediately
     try {
-      syncToGasBackend('adminManageUser', {
+      const res = await postToGasBackend('adminManageUser', {
         mode: 'delete',
-        userId: userId
-      }).then(function(res) {
-        showCloudSyncConfirmation({
-          docId: userId,
-          docType: 'ข้อมูลผู้ใช้งาน (Sheet: Users)',
-          actionTitle: 'ลบบัญชีผู้ใช้งานออกจากระบบ',
-          version: 'v2.9.1-ENT',
-          details: 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจาก Google Sheets สำเร็จ'
-        });
-      }).catch(function(err) {
-        console.warn('Backend sync error:', err);
+        userId: userId,
+        username: targetUsername
       });
-    } catch (e) {
-      console.warn('Sync call error:', e);
+
+      showCloudSyncConfirmation({
+        docId: userId,
+        docType: 'ข้อมูลผู้ใช้งาน (Sheet: Users)',
+        actionTitle: 'ลบบัญชีผู้ใช้งานออกจากระบบถาวร',
+        version: 'v2.9.1-ENT',
+        details: 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจาก Google Sheets เรียบร้อยแล้ว'
+      });
+    } catch (err) {
+      console.warn('Backend deletion sync warning:', err);
     }
   }
 

@@ -1092,33 +1092,45 @@ function handleAdminManageUser(payload, actor) {
       sheet.appendRow(newRow);
       return { ok: true, userId: newUserId, recordedBy: operatorStamp, recordedAt: now };
     } else if (mode === 'delete') {
-      const targetUserId = payload.userId || userData.UserID;
-      if (!targetUserId) throw new Error('ไม่ระบุรหัสผู้ใช้ที่ต้องการลบ');
-      if (targetUserId === 'USR-2026-0001') {
+      const targetUserId = String(payload.userId || userData.UserID || '').trim();
+      const targetUsername = String(payload.username || userData.Username || '').trim().toLowerCase();
+      if (!targetUserId && !targetUsername) throw new Error('ไม่ระบุรหัสผู้ใช้หรือชื่อผู้ใช้ที่ต้องการลบ');
+      if (targetUserId === 'USR-2026-0001' || targetUsername === 'admin') {
         throw new Error('ไม่อนุญาตให้ลบบัญชีผู้ดูแลระบบหลัก (Super Admin USR-2026-0001)');
       }
       if (targetUserId === actor.userId) {
         throw new Error('ไม่อนุญาตให้ลบบัญชีของตนเองที่กำลังเข้าสู่ระบบอยู่');
       }
-      for (let i = 0; i < rows.length; i++) {
-        if (rows[i].UserID === targetUserId) {
-          const removedName = rows[i].FullName;
+
+      let deletedCount = 0;
+      let lastRemovedName = '';
+      // Loop backwards from bottom to top so deleting rows does not corrupt subsequent row indices
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const rowUid = String(rows[i].UserID || '').trim();
+        const rowUname = String(rows[i].Username || '').trim().toLowerCase();
+        const match = (targetUserId && rowUid === targetUserId) || (targetUsername && rowUname === targetUsername);
+        if (match) {
+          lastRemovedName = rows[i].FullName || rowUname;
           sheet.deleteRow(i + 2);
-          writeAuditLog({
-            userId: actor.userId,
-            operatorName: actor.fullName,
-            roleLevel: actor.roleLevel,
-            action: 'DELETE_USER',
-            targetId: targetUserId,
-            docVersion: '-',
-            details: 'ลบบัญชีผู้ใช้งาน ' + targetUserId + ' (' + removedName + ') ออกจากระบบเรียบร้อย',
-            beforeState: JSON.stringify(rows[i]),
-            afterState: 'DELETED'
-          });
-          return { ok: true, userId: targetUserId, message: 'ลบบัญชีผู้ใช้ ' + targetUserId + ' เรียบร้อยแล้ว' };
+          deletedCount++;
         }
       }
-      throw new Error('ไม่พบรหัสผู้ใช้ ' + targetUserId);
+
+      if (deletedCount > 0) {
+        writeAuditLog({
+          userId: actor.userId,
+          operatorName: actor.fullName,
+          roleLevel: actor.roleLevel,
+          action: 'DELETE_USER',
+          targetId: targetUserId || targetUsername,
+          docVersion: '-',
+          details: 'ลบบัญชีผู้ใช้งาน ' + (targetUserId || targetUsername) + ' (' + lastRemovedName + ') ออกจาก Google Sheets สำเร็จ รวม ' + deletedCount + ' แถว',
+          beforeState: 'ACTIVE',
+          afterState: 'DELETED'
+        });
+        return { ok: true, userId: targetUserId, deletedCount: deletedCount, message: 'ลบบัญชีผู้ใช้ ' + (targetUserId || targetUsername) + ' สำเร็จ (' + deletedCount + ' รายการ)' };
+      }
+      throw new Error('ไม่พบข้อมูลผู้ใช้ ' + (targetUserId || targetUsername) + ' ในระบบ Google Sheets');
     } else {
       const targetUserId = userData.UserID;
       for (let i = 0; i < rows.length; i++) {
