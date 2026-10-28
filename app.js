@@ -3843,15 +3843,15 @@ const FMMS = (function() {
 
     container.innerHTML = `
       <!-- Top Official Document Header -->
-      <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-start justify-between">
-        <div>
-          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
-          <h1 class="doc-title mt-1" style="font-size: 16pt; font-weight: 700; color: #000000; line-height: 1.3;">
+      <div class="border-b-2 border-slate-900 pb-2 mb-2 flex items-start justify-between">
+        <div class="pr-2">
+          <div style="font-size: 10pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
+          <h1 class="doc-title mt-0.5" style="font-size: 14pt; font-weight: 700; color: #000000; line-height: 1.2;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
-          <div class="doc-subheading text-slate-800" style="font-size: 13pt; font-weight: 700;">${escapeHtml(state.config.orgName || 'บริษัทบริหารจัดการอาคารและวิศวกรรม ทวพ. จำกัด')}</div>
+          <div class="doc-subheading text-slate-800" style="font-size: 12pt; font-weight: 700;">${escapeHtml(state.config.orgName || 'บริษัทบริหารจัดการอาคารและวิศวกรรม ทวพ. จำกัด')}</div>
         </div>
-        <div class="text-right font-mono-code border border-slate-500 p-2 rounded" style="font-size: 11pt; min-width: 200px;">
+        <div class="text-right font-mono-code border border-slate-500 p-1.5 rounded flex-shrink-0" style="font-size: 10pt; min-width: 175px;">
           <div><strong>รหัสใบงาน:</strong> ${escapeHtml(task.TaskID || '-')}</div>
           <div><strong>เลขที่เอกสาร:</strong> ${escapeHtml(memo ? memo.MemoID : task.TaskID)}</div>
           <div><strong>วันที่ออกเอกสาร:</strong> ${formatThaiDateOnly(task.CreatedAt || getIsoNow())}</div>
@@ -3860,7 +3860,7 @@ const FMMS = (function() {
       </div>
 
       <!-- Header Metadata Grid -->
-      <div class="space-y-1.5 text-xs mb-4 bg-slate-50 p-3 rounded border border-slate-200">
+      <div class="space-y-1 text-xs mb-2 bg-slate-50 p-2 rounded border border-slate-200">
         <div class="grid grid-cols-12">
           <span class="col-span-2 font-bold text-slate-600">เรื่อง / ชื่องาน:</span>
           <span class="col-span-10 font-bold text-slate-900">${escapeHtml(task.Title || (memo ? memo.Subject : '-'))}</span>
@@ -3880,8 +3880,8 @@ const FMMS = (function() {
       </div>
 
       <!-- Section 1: Details & Engineering Cause -->
-      <div class="space-y-2 text-xs mb-4">
-        <div class="border border-slate-300 rounded p-2.5 bg-white space-y-1">
+      <div class="space-y-1.5 text-xs mb-2">
+        <div class="border border-slate-300 rounded p-2 bg-white space-y-0.5">
           <div><strong class="text-slate-800">1. รายละเอียดปัญหา / อาการชำรุด:</strong> ${escapeHtml(task.Description || '-')}</div>
           <div><strong class="text-slate-800">2. การวิเคราะห์สาเหตุและวิธีแก้ไข:</strong> ${escapeHtml(task.InitialAnalysis || 'เข้าดำเนินการตรวจซ่อม เปลี่ยนอะไหล่ และทดสอบระบบตามมาตรฐาน')}</div>
           ${task.TestResult ? `<div><strong class="text-slate-800">3. ผลการทดสอบหลังซ่อมเสร็จ:</strong> <span class="text-emerald-700 font-semibold">${escapeHtml(task.TestResult)}</span></div>` : ''}
@@ -3889,25 +3889,25 @@ const FMMS = (function() {
       </div>
 
       <!-- Section 2: Financial & Budget Comparison Table -->
-      <div class="mb-4">
-        <h3 style="font-size: 12pt; font-weight: 700;" class="mb-1 text-slate-900">ตารางเปรียบเทียบงบประมาณและค่าใช้จ่ายจริง (Cost Breakdown)</h3>
+      <div class="mb-2">
+        <h3 style="font-size: 11pt; font-weight: 700;" class="mb-0.5 text-slate-900">ตารางเปรียบเทียบงบประมาณและค่าใช้จ่ายจริง (Cost Breakdown)</h3>
         <table class="w-full border-collapse border border-slate-400 text-xs">
           <thead>
             <tr class="bg-slate-100 text-slate-700">
-              <th class="border border-slate-400 py-1.5 px-2.5 text-left">รายการ</th>
-              <th class="border border-slate-400 py-1.5 px-2.5 text-right">งบประมาณขออนุมัติ</th>
-              <th class="border border-slate-400 py-1.5 px-2.5 text-right">ค่าใช้จ่ายจริง (Actual)</th>
-              <th class="border border-slate-400 py-1.5 px-2.5 text-right">ผลต่างงบประมาณ</th>
+              <th class="border border-slate-400 py-1 px-2 text-left">รายการ</th>
+              <th class="border border-slate-400 py-1 px-2 text-right">งบประมาณขออนุมัติ</th>
+              <th class="border border-slate-400 py-1 px-2 text-right">ค่าใช้จ่ายจริง (Actual)</th>
+              <th class="border border-slate-400 py-1 px-2 text-right">ผลต่างงบประมาณ</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="border border-slate-400 py-2 px-2.5 font-medium">ค่าแรงและอะไหล่ซ่อมบำรุงตามมาตรฐานวิศวกรรม</td>
-              <td class="border border-slate-400 py-2 px-2.5 text-right font-mono-code font-bold">฿${formatCurrency(estCost)}</td>
-              <td class="border border-slate-400 py-2 px-2.5 text-right font-mono-code font-bold ${actualCost > 0 ? (actualCost > estCost ? 'text-rose-600' : 'text-emerald-700') : 'text-slate-400'}">
+              <td class="border border-slate-400 py-1 px-2 font-medium">ค่าแรงและอะไหล่ซ่อมบำรุงตามมาตรฐานวิศวกรรม</td>
+              <td class="border border-slate-400 py-1 px-2 text-right font-mono-code font-bold">฿${formatCurrency(estCost)}</td>
+              <td class="border border-slate-400 py-1 px-2 text-right font-mono-code font-bold ${actualCost > 0 ? (actualCost > estCost ? 'text-rose-600' : 'text-emerald-700') : 'text-slate-400'}">
                 ${actualCost > 0 ? '฿' + formatCurrency(actualCost) : '฿' + formatCurrency(estCost)}
               </td>
-              <td class="border border-slate-400 py-2 px-2.5 text-right font-mono-code font-bold ${costDiff >= 0 ? 'text-emerald-700' : 'text-rose-600'}">
+              <td class="border border-slate-400 py-1 px-2 text-right font-mono-code font-bold ${costDiff >= 0 ? 'text-emerald-700' : 'text-rose-600'}">
                 ${actualCost > 0 ? (costDiff >= 0 ? 'ประหยัด +฿' + formatCurrency(costDiff) : 'เกินงบ ฿' + formatCurrency(Math.abs(costDiff))) : '฿0'}
               </td>
             </tr>
@@ -3916,80 +3916,84 @@ const FMMS = (function() {
       </div>
 
       <!-- Section 3: Field Photographic Evidence (5 Before & 5 After) -->
-      <div class="mb-4 space-y-2">
-        <h3 style="font-size: 12pt; font-weight: 700;" class="text-slate-900">หลักฐานภาพถ่ายหน้างาน (Field Photo Evidence)</h3>
+      <div class="mb-2 space-y-1.5">
+        <h3 style="font-size: 11pt; font-weight: 700;" class="text-slate-900">หลักฐานภาพถ่ายหน้างาน (Field Photo Evidence)</h3>
         
         <!-- Before Photos -->
-        <div class="border border-slate-300 p-2 rounded bg-slate-50">
+        <div class="border border-slate-300 p-1.5 rounded bg-slate-50">
           <div class="flex justify-between items-center text-xs font-bold mb-1">
             <span>📷 ภาพถ่ายก่อนดำเนินการซ่อมแซม (BEFORE: ${beforeImages.length} ภาพ)</span>
             <span class="font-mono-code text-[10px] text-slate-500">${beforeImages.length >= 5 ? '✅ ครบตามมาตรฐาน' : 'แนบหลักฐานแล้ว'}</span>
           </div>
           ${beforeImages.length > 0 ? `
-            <div class="grid grid-cols-5 gap-1.5">
+            <div class="grid grid-cols-5 gap-1">
               ${beforeImages.map(function(url, idx) {
                 return `
-                  <div class="border border-slate-200 bg-white p-0.5 text-center">
-                    <img src="${url}" onerror="this.style.opacity='0.4';" class="w-full h-16 object-cover rounded mx-auto">
+                  <div class="border border-slate-200 bg-white p-0.5 text-center rounded">
+                    <div class="evidence-img-container">
+                      <img src="${url}" onerror="this.style.opacity='0.4';" class="w-full h-full object-cover rounded">
+                    </div>
                     <div class="text-[8px] font-mono-code text-slate-500 mt-0.5">ก่อนซ่อม #${idx+1}</div>
                   </div>
                 `;
               }).join('')}
             </div>
-          ` : '<div class="py-2 text-center text-slate-400 text-xs">ไม่มีภาพถ่ายก่อนเริ่มงาน</div>'}
+          ` : '<div class="py-1 text-center text-slate-400 text-xs">ไม่มีภาพถ่ายก่อนเริ่มงาน</div>'}
         </div>
 
         <!-- After Photos -->
-        <div class="border border-slate-300 p-2 rounded bg-slate-50">
+        <div class="border border-slate-300 p-1.5 rounded bg-slate-50">
           <div class="flex justify-between items-center text-xs font-bold mb-1">
             <span>📷 ภาพถ่ายหลังดำเนินการแล้วเสร็จ (AFTER: ${afterImages.length} ภาพ)</span>
             <span class="font-mono-code text-[10px] text-slate-500">${afterImages.length >= 5 ? '✅ ครบตามมาตรฐาน' : (afterImages.length > 0 ? 'แนบหลักฐานแล้ว' : 'รอส่งมอบงาน')}</span>
           </div>
           ${afterImages.length > 0 ? `
-            <div class="grid grid-cols-5 gap-1.5">
+            <div class="grid grid-cols-5 gap-1">
               ${afterImages.map(function(url, idx) {
                 return `
-                  <div class="border border-slate-200 bg-white p-0.5 text-center">
-                    <img src="${url}" onerror="this.style.opacity='0.4';" class="w-full h-16 object-cover rounded mx-auto">
+                  <div class="border border-slate-200 bg-white p-0.5 text-center rounded">
+                    <div class="evidence-img-container">
+                      <img src="${url}" onerror="this.style.opacity='0.4';" class="w-full h-full object-cover rounded">
+                    </div>
                     <div class="text-[8px] font-mono-code text-slate-500 mt-0.5">หลังซ่อม #${idx+1}</div>
                   </div>
                 `;
               }).join('')}
             </div>
-          ` : '<div class="py-2 text-center text-slate-400 text-xs">อยู่ระหว่างดำเนินการซ่อมแซม</div>'}
+          ` : '<div class="py-1 text-center text-slate-400 text-xs">อยู่ระหว่างดำเนินการซ่อมแซม</div>'}
         </div>
       </div>
 
       <!-- Section 4: 3-Party Digital Sign-off & Audit Trail -->
-      <div class="grid grid-cols-3 gap-3 pt-4 border-t-2 border-slate-800 text-center text-xs">
+      <div class="grid grid-cols-3 gap-2 pt-2 border-t-2 border-slate-800 text-center text-xs mt-auto">
         
         <!-- Party 1: Field Contractor -->
-        <div class="border border-slate-300 p-2.5 rounded bg-white">
-          <div class="font-bold text-slate-800 mb-4">1. ผู้ส่งมอบงาน / ช่างเทคนิค</div>
+        <div class="border border-slate-300 p-1.5 rounded bg-white">
+          <div class="font-bold text-slate-800 mb-2">1. ผู้ส่งมอบงาน / ช่างเทคนิค</div>
           <div class="font-bold text-slate-900">${escapeHtml(task.AssignedContractorName || 'ช่างประจำโครงการ')}</div>
           <div class="text-[10px] text-slate-500">ผู้รับเหมาดำเนินงานซ่อมแซม</div>
-          <div class="font-mono-code text-[9px] text-slate-400 mt-1">${formatThaiDateTime(task.CreatedAt || getIsoNow())}</div>
+          <div class="font-mono-code text-[9px] text-slate-400 mt-0.5">${formatThaiDateTime(task.CreatedAt || getIsoNow())}</div>
         </div>
 
         <!-- Party 2: Approver to Repair -->
-        <div class="border border-slate-300 p-2.5 rounded bg-white relative overflow-hidden">
-          <div class="font-bold text-slate-800 mb-4">2. ผู้อนุมัติให้เริ่มงานซ่อมแซม</div>
+        <div class="border border-slate-300 p-1.5 rounded bg-white relative overflow-hidden">
+          <div class="font-bold text-slate-800 mb-2">2. ผู้อนุมัติให้เริ่มงานซ่อมแซม</div>
           <div class="font-bold text-slate-900">${escapeHtml(task.ApproverName || (memo && memo.ApproverName) || 'วิศวกรผู้ควบคุมงาน')}</div>
           <div class="text-[10px] text-slate-500">${escapeHtml(task.ApprovalRole || 'ผู้มีอำนาจอนุมัติ')}</div>
-          <div class="font-mono-code text-[9px] text-emerald-700 mt-1">✓ อนุมัติ: ${formatThaiDateTime(task.ApprovalDate || (memo && memo.ApprovalDate) || task.CreatedAt || getIsoNow())}</div>
+          <div class="font-mono-code text-[9px] text-emerald-700 mt-0.5">✓ อนุมัติ: ${formatThaiDateTime(task.ApprovalDate || (memo && memo.ApprovalDate) || task.CreatedAt || getIsoNow())}</div>
         </div>
 
         <!-- Party 3: Handover & Inspection Closer -->
-        <div class="border-2 ${isClosed ? 'border-emerald-600 bg-emerald-50/30' : 'border-slate-300 bg-white'} p-2.5 rounded-lg relative overflow-hidden">
+        <div class="border-2 ${isClosed ? 'border-emerald-600 bg-emerald-50/30' : 'border-slate-300 bg-white'} p-1.5 rounded relative overflow-hidden">
           ${isClosed ? `
-            <div class="absolute -right-2 -bottom-2 border-2 border-emerald-600/30 rounded-full w-20 h-20 flex items-center justify-center font-bold text-emerald-800/30 font-mono-code text-[8px] transform -rotate-12 pointer-events-none select-none">
+            <div class="absolute -right-2 -bottom-2 border-2 border-emerald-600/30 rounded-full w-14 h-14 flex items-center justify-center font-bold text-emerald-800/30 font-mono-code text-[8px] transform -rotate-12 pointer-events-none select-none">
               CLOSED
             </div>
           ` : ''}
-          <div class="font-bold text-slate-800 mb-4">3. ผู้ตรวจรับงานและปิดงานสมบูรณ์</div>
+          <div class="font-bold text-slate-800 mb-2">3. ผู้ตรวจรับงานและปิดงานสมบูรณ์</div>
           <div class="font-bold ${isClosed ? 'text-emerald-900' : 'text-slate-400'}">${isClosed ? escapeHtml(task.InspectorName || task.ApproverName || 'ผู้ตรวจรับงาน') : '(รอลงนามตรวจรับ)'}</div>
           <div class="text-[10px] text-slate-500">${isClosed ? escapeHtml(task.InspectorRole || 'ผู้มีอำนาจตรวจรับ') : 'หัวหน้างาน / ผู้บริหาร'}</div>
-          <div class="font-mono-code text-[9px] ${isClosed ? 'text-emerald-700 font-bold' : 'text-slate-400'} mt-1">
+          <div class="font-mono-code text-[9px] ${isClosed ? 'text-emerald-700 font-bold' : 'text-slate-400'} mt-0.5">
             ${isClosed ? '🏁 ปิดงาน: ' + formatThaiDateTime(task.ClosedAt || task.UpdatedAt || getIsoNow()) : '-'}
           </div>
         </div>
@@ -4004,7 +4008,10 @@ const FMMS = (function() {
 
   function closeMemoPrintModal() {
     const modal = document.getElementById('memoPrintModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
   }
 
   /**
