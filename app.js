@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (FMMS Enterprise v2.8.0-ENT)
+ * Facility Maintenance Management System (FMMS Enterprise v2.9.0-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -70,9 +70,9 @@ const FMMS = (function() {
   function init() {
     try {
       const hV = document.getElementById('headerSysVersion');
-      if (hV) hV.textContent = 'v2.8.0-ENT';
+      if (hV) hV.textContent = 'v2.9.0-ENT';
       const lV = document.getElementById('landingBuildVer');
-      if (lV) lV.textContent = 'v2.8.0-ENT';
+      if (lV) lV.textContent = 'v2.9.0-ENT';
     } catch (_) {}
     try { initDeviceId(); } catch (e) { console.warn('initDeviceId error:', e); }
     try { loadConfig(); } catch (e) { console.warn('loadConfig error:', e); }
@@ -95,7 +95,7 @@ const FMMS = (function() {
       });
     } catch (_) {}
 
-    // Auto-sync polling every 30 seconds across all devices
+    // Real-Time Auto-sync polling every 8 seconds across all devices
     setInterval(function() {
       try {
         if (state.config.gasWebAppUrl && navigator.onLine !== false) {
@@ -104,7 +104,7 @@ const FMMS = (function() {
       } catch (err) {
         console.warn('Auto-sync interval warning:', err);
       }
-    }, 30000);
+    }, 8000);
 
     // Auto-sync when user switches back to this tab
     window.addEventListener('focus', function() {
@@ -114,6 +114,49 @@ const FMMS = (function() {
         }
       } catch (err) {
         console.warn('Auto-sync focus warning:', err);
+      }
+    });
+  }
+
+  const syncChannel = (typeof window !== 'undefined' && typeof window.BroadcastChannel !== 'undefined')
+    ? new BroadcastChannel('FMMS_SYNC_CHANNEL')
+    : null;
+
+  function broadcastDataChange(action, detail) {
+    if (syncChannel) {
+      try {
+        syncChannel.postMessage({ action: action, detail: detail, timestamp: Date.now() });
+      } catch (_) {}
+    }
+  }
+
+  function initInterTabSync() {
+    if (typeof window === 'undefined') return;
+
+    if (syncChannel) {
+      syncChannel.onmessage = function(ev) {
+        if (!ev || !ev.data) return;
+        const msg = ev.data;
+        loadOrSeedDatabase();
+        renderAllViews();
+        updateApprovalAlertBadge();
+
+        const role = state.session ? Number(state.session.roleLevel) : 0;
+        if (msg.action === 'NEW_TASK' && (role === 2 || role === 3)) {
+          showToast(
+            '🔔 มีงานซ่อมใหม่แจ้งเข้ามาทันที!',
+            'ใบงาน ' + (msg.detail?.taskId || '') + ' (' + (msg.detail?.title || '') + ') เข้าสู่คิวรอตรวจสอบแล้ว',
+            'info'
+          );
+        }
+      };
+    }
+
+    window.addEventListener('storage', function(e) {
+      if (e.key === STORAGE_KEYS.DB_STATE) {
+        loadOrSeedDatabase();
+        renderAllViews();
+        updateApprovalAlertBadge();
       }
     });
   }
@@ -1815,6 +1858,8 @@ const FMMS = (function() {
       'success'
     );
 
+    broadcastDataChange('NEW_TASK', { taskId: newTaskId, title: title });
+
     showCloudSyncConfirmation({
       docId: newTaskId,
       docType: 'ใบงานซ่อมบำรุง (' + type + ')',
@@ -1830,6 +1875,7 @@ const FMMS = (function() {
         BeforeImgBase64: state.compressedImages.beforeBase64,
         AfterImgBase64: state.compressedImages.afterBase64
       },
+      memoData: newMemo,
       idempotencyKey: idempotencyKey
     }).then(function(res) {
       console.log('Cloud sync response for ' + newTaskId + ':', res);
@@ -3169,6 +3215,8 @@ const FMMS = (function() {
       }
     });
 
+    broadcastDataChange('TASK_CLOSED', { taskId: taskId });
+
     recordAuditLog(
       'TASK_CLOSED_SIGNOFF',
       taskId,
@@ -3599,7 +3647,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // FMMS Engineering Performance Scorecard (v2.8.0-ENT)
+    // FMMS Engineering Performance Scorecard (v2.9.0-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -3815,7 +3863,7 @@ const FMMS = (function() {
       <!-- Top Official Document Header -->
       <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-start justify-between">
         <div>
-          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.8.0-ENT (DATA MA TWPP)</div>
+          <div style="font-size: 11pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.0-ENT (DATA MA TWPP)</div>
           <h1 class="doc-title mt-1" style="font-size: 16pt; font-weight: 700; color: #000000; line-height: 1.3;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
@@ -4185,7 +4233,7 @@ const FMMS = (function() {
       docId: 'CFG-TWPP-SYSTEM',
       docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
       actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
-      version: 'v2.8.0-ENT (Enterprise Config Updated)',
+      version: 'v2.9.0-ENT (Enterprise Config Updated)',
       details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
     });
     showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
@@ -4676,7 +4724,7 @@ const FMMS = (function() {
       docId: 'GSHEET-FULL-SYNC',
       docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
       actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
-      version: 'v2.8.0-ENT (Multi-Tab Master Database)',
+      version: 'v2.9.0-ENT (Multi-Tab Master Database)',
       details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
     });
   }
@@ -5137,7 +5185,7 @@ const FMMS = (function() {
           <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
             <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
             <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
-            <div class="text-teal-900 font-bold">SYS VER: v2.8.0-ENT</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.9.0-ENT</div>
           </div>
         </div>
 
@@ -5306,7 +5354,7 @@ const FMMS = (function() {
         <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
           <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
           <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
-          <span>System Version: v2.8.0-ENT</span>
+          <span>System Version: v2.9.0-ENT</span>
         </div>
       </div>
     `;

@@ -461,7 +461,7 @@ function handleCreateTask(payload, actor) {
 
     const typePrefix = (taskData.Type === 'PM') ? 'PM' : 'CM';
     const ymPrefix = typePrefix + '-' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyyMM');
-    const newTaskId = generateUniqueDocId(CONFIG.SHEETS.TASKS, 1, ymPrefix);
+    const newTaskId = (taskData.TaskID && String(taskData.TaskID).trim()) ? String(taskData.TaskID).trim() : generateUniqueDocId(CONFIG.SHEETS.TASKS, 1, ymPrefix);
     const initialVersion = 'v1.0';
     const now = formatISO(new Date());
     const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
@@ -470,10 +470,18 @@ function handleCreateTask(payload, actor) {
     let afterUrl = taskData.AfterImgURL || '';
 
     if (taskData.BeforeImgBase64) {
-      beforeUrl = saveBase64ToDriveFolder(newTaskId, 'BEFORE', taskData.BeforeImgBase64).url;
+      try {
+        beforeUrl = saveBase64ToDriveFolder(newTaskId, 'BEFORE', taskData.BeforeImgBase64).url;
+      } catch (eDrive1) {
+        beforeUrl = taskData.BeforeImgURL || '';
+      }
     }
     if (taskData.AfterImgBase64) {
-      afterUrl = saveBase64ToDriveFolder(newTaskId, 'AFTER', taskData.AfterImgBase64).url;
+      try {
+        afterUrl = saveBase64ToDriveFolder(newTaskId, 'AFTER', taskData.AfterImgBase64).url;
+      } catch (eDrive2) {
+        afterUrl = taskData.AfterImgURL || '';
+      }
     }
 
     const newRow = [
@@ -488,7 +496,7 @@ function handleCreateTask(payload, actor) {
       taskData.MaterialsRequired || '-',
       taskData.CostRefIDs || '-',
       taskData.Priority || 'Normal',
-      taskData.Status || 'In Progress',
+      taskData.Status || 'Pending Level 2 Approval',
       taskData.AssignedContractorID || actor.userId,
       taskData.AssignedContractorName || actor.fullName,
       taskData.SupervisorID || 'USR-2026-0002',
@@ -505,6 +513,32 @@ function handleCreateTask(payload, actor) {
     ];
 
     sheet.appendRow(newRow);
+
+    // Also auto-append linked Memo to MEMOS sheet so Supervisor and Executive see it immediately
+    const memo = payload.memoData || taskData.memoData;
+    if (memo) {
+      const memoSheet = ss.getSheetByName(CONFIG.SHEETS.MEMOS);
+      if (memoSheet) {
+        memoSheet.appendRow([
+          memo.MemoID || ('MEMO-2026-' + newTaskId.split('-').pop()),
+          newTaskId,
+          memo.DocReference || ('ทวพ./ซบร./2569/' + newTaskId.split('-').pop()),
+          memo.Subject || ('ขออนุมัติงบประมาณ: ' + (taskData.Title || '-')),
+          Number(memo.EstimatedBudget || taskData.EstCost || 0),
+          memo.ReasonRationale || taskData.Description || '-',
+          memo.VendorName || 'ผู้รับเหมาตามทะเบียนมาตรฐาน',
+          memo.VendorQuotationURL || ('QT-' + newTaskId),
+          memo.SupervisorRemark || 'รอการตรวจสอบและอนุมัติซ่อม',
+          memo.RequestedBy || operatorStamp,
+          now,
+          '-',
+          '-',
+          '-',
+          'Pending Approval',
+          '-'
+        ]);
+      }
+    }
 
     recordDocumentRevision(
       newTaskId,
