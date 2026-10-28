@@ -66,36 +66,46 @@ const FMMS = (function() {
    */
 
   function init() {
-    initDeviceId();
-    loadConfig();
-    loadOrSeedDatabase();
-    checkUrlProvisioningParams();
-    startLiveClock();
-    renderAllViews();
-    generateProvisioningQrCode();
-    restoreSessionOrShowLogin();
+    try { initDeviceId(); } catch (e) { console.warn('initDeviceId error:', e); }
+    try { loadConfig(); } catch (e) { console.warn('loadConfig error:', e); }
+    try { loadOrSeedDatabase(); } catch (e) { console.warn('loadOrSeedDatabase error:', e); }
+    try { checkUrlProvisioningParams(); } catch (e) { console.warn('checkUrlProvisioningParams error:', e); }
+    try { startLiveClock(); } catch (e) { console.warn('startLiveClock error:', e); }
+    try { renderAllViews(); } catch (e) { console.warn('renderAllViews error:', e); }
+    try { generateProvisioningQrCode(); } catch (e) { console.warn('generateProvisioningQrCode error:', e); }
+    try { restoreSessionOrShowLogin(); } catch (e) { console.warn('restoreSessionOrShowLogin error:', e); }
     // Guarantee Landing Page is always presented on initial visit / load
-    showLandingPage();
-    pingConnection(false);
+    try { showLandingPage(); } catch (e) { console.warn('showLandingPage error:', e); }
+    try { pingConnection(false); } catch (e) { console.warn('pingConnection error:', e); }
 
-    window.addEventListener('online', function() {
-      pingConnection(false);
-    });
-    window.addEventListener('offline', function() {
-      updateConnectionUI(false, 0, 'OFFLINE (Local Queue Active)');
-    });
+    try {
+      window.addEventListener('online', function() {
+        pingConnection(false);
+      });
+      window.addEventListener('offline', function() {
+        updateConnectionUI(false, 0, 'OFFLINE (Local Queue Active)');
+      });
+    } catch (_) {}
 
     // Auto-sync polling every 30 seconds across all devices
     setInterval(function() {
-      if (state.config.gasWebAppUrl && navigator.onLine !== false) {
-        syncFromGasBackend(false);
+      try {
+        if (state.config.gasWebAppUrl && navigator.onLine !== false) {
+          syncFromGasBackend(false);
+        }
+      } catch (err) {
+        console.warn('Auto-sync interval warning:', err);
       }
     }, 30000);
 
     // Auto-sync when user switches back to this tab
     window.addEventListener('focus', function() {
-      if (state.config.gasWebAppUrl && navigator.onLine !== false) {
-        syncFromGasBackend(false);
+      try {
+        if (state.config.gasWebAppUrl && navigator.onLine !== false) {
+          syncFromGasBackend(false);
+        }
+      } catch (err) {
+        console.warn('Auto-sync focus warning:', err);
       }
     });
   }
@@ -1397,7 +1407,34 @@ const FMMS = (function() {
     });
   }
 
-  // handleImageUploadPreview integrated into handleMultiImageUpload
+  function removeImage(type, index) {
+    const list = type === 'before' ? state.compressedImages.beforeImages : state.compressedImages.afterImages;
+    if (index >= 0 && index < list.length) {
+      list.splice(index, 1);
+      if (type === 'before') {
+        state.compressedImages.beforeBase64 = (list[0] && list[0].url) || null;
+      } else {
+        state.compressedImages.afterBase64 = (list[0] && list[0].url) || null;
+      }
+      renderImageGallery(type);
+    }
+  }
+
+  function clearImages(type) {
+    if (type === 'before') {
+      state.compressedImages.beforeImages = [];
+      state.compressedImages.beforeBase64 = null;
+    } else {
+      state.compressedImages.afterImages = [];
+      state.compressedImages.afterBase64 = null;
+    }
+    renderImageGallery(type);
+  }
+
+  function handleImageUploadPreview(event, targetPreviewId, targetHiddenId) {
+    const type = (targetPreviewId && String(targetPreviewId).toLowerCase().includes('after')) ? 'after' : 'before';
+    return handleMultiImageUpload(event, type);
+  }
 
   async function handleContractorSubmit(event) {
     event.preventDefault();
