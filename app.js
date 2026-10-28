@@ -2751,6 +2751,97 @@ const FMMS = (function() {
     if (tabKey === 'report') { renderExecutiveReport(); renderReportTasksTable(); }
   }
 
+  
+  /**
+   * ==========================================================================
+   * 8.0 UNIFIED TASK LIFECYCLE HELPERS (Single Source of Truth)
+   * ==========================================================================
+   */
+  function isTaskClosed(t) {
+    if (!t) return false;
+    return t.Status === 'Closed';
+  }
+
+  function isTaskAwaitingInspection(t) {
+    if (!t) return false;
+    return t.Status === 'Completed';
+  }
+
+  function isTaskInProgress(t, memo) {
+    if (!t || isTaskClosed(t) || isTaskAwaitingInspection(t)) return false;
+    if (t.Status === 'Approved' || t.Status === 'In Progress') return true;
+    if (memo && memo.ApprovalStatus === 'Approved') return true;
+    const memos = (state.db && state.db.memos) || [];
+    return memos.some(function(m) {
+      return m.TaskID === t.TaskID && m.ApprovalStatus === 'Approved';
+    });
+  }
+
+  function isTaskPendingBudget(t, memo) {
+    if (!t || isTaskClosed(t) || isTaskAwaitingInspection(t)) return false;
+    if (isTaskInProgress(t, memo)) return false;
+    return true;
+  }
+
+
+  
+  function reconcileMemoAndTaskStatuses() {
+    if (!state.db) return;
+    const tasks = state.db.tasks || [];
+    const delIds = state.deletedTaskIds || [];
+
+    // 1. Purge memos tied to deleted tasks
+    state.db.memos = (state.db.memos || []).filter(function(m) {
+      return !delIds.includes(m.TaskID) && !delIds.includes(m.MemoID);
+    });
+
+    let stateChanged = false;
+
+    // 2. Harmonize memos with task status:
+    // If the referenced task is Approved, In Progress, Completed, or Closed,
+    // all its memos MUST be marked 'Approved' and not 'Pending Approval'
+    (state.db.memos || []).forEach(function(m) {
+      const task = tasks.find(function(t) { return t.TaskID === m.TaskID; });
+      if (task) {
+        if (task.Status === 'Approved' || task.Status === 'In Progress' || task.Status === 'Completed' || task.Status === 'Closed') {
+          if (m.ApprovalStatus === 'Pending Approval') {
+            m.ApprovalStatus = 'Approved';
+            if (!m.ApproverName || m.ApproverName === '-') m.ApproverName = 'ผู้บริหาร (อนุมัติแล้ว)';
+            if (!m.ApprovalDate || m.ApprovalDate === '-') m.ApprovalDate = task.UpdatedAt || getIsoNow();
+            stateChanged = true;
+          }
+        }
+      }
+    });
+
+    // 3. Harmonize task status with memos:
+    // If ANY memo for a task is Approved, the task CANNOT remain in a pending state!
+    tasks.forEach(function(t) {
+      if (t.Status === 'Pending Level 3 Approval' || t.Status === 'Pending Approval' || t.Status === 'Pending Level 2 Approval') {
+        const hasApprovedMemo = (state.db.memos || []).some(function(m) {
+          return m.TaskID === t.TaskID && m.ApprovalStatus === 'Approved';
+        });
+        if (hasApprovedMemo) {
+          t.Status = 'Approved';
+          stateChanged = true;
+          // Also harmonize all other memos for this task
+          (state.db.memos || []).forEach(function(m) {
+            if (m.TaskID === t.TaskID && m.ApprovalStatus === 'Pending Approval') {
+              m.ApprovalStatus = 'Approved';
+            }
+          });
+        }
+      }
+    });
+
+    if (stateChanged) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.DB_STATE, JSON.stringify(state.db));
+      } catch (_) {}
+    }
+  }
+
+
   function renderExecutivePipelineCards() {
     const tasks = state.db.tasks || [];
     const memos = state.db.memos || [];
@@ -4521,29 +4612,19 @@ const FMMS = (function() {
       pendingCount = tasks.filter(function(t) { return t.Status === 'Pending Level 2 Approval'; }).length;
       labelText = 'รอ ผค.งาน อนุมัติ';
     } else if (role === 3) {
-      // Level 3: Executive looks for memos waiting for Level 3 budget approval
+      // Level 3: Executive looks for tasks waiting for Level 3 budget approval
       reconcileMemoAndTaskStatuses();
       const delIds = state.deletedTaskIds || [];
       const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
       const memos = (state.db && state.db.memos) || [];
 
-      // Memos waiting for budget approval where task is NOT already Approved, In Progress, Completed, or Closed
-      const pendingMemos = memos.filter(function(m) {
-        if (m.ApprovalStatus !== 'Pending Approval') return false;
-        if (delIds.includes(m.TaskID) || delIds.includes(m.MemoID)) return false;
-        const linkedTask = tasks.find(function(t) { return t.TaskID === m.TaskID; });
-        if (!linkedTask) return false;
-        if (linkedTask.Status === 'Approved' || linkedTask.Status === 'In Progress' || linkedTask.Status === 'Completed' || linkedTask.Status === 'Closed') {
-          return false;
-        }
-        return true;
+      // Pending budget tasks count matches the "1. รออนุมัติงบ" filter count exactly
+      const pendingBudgetTasks = tasks.filter(function(t) {
+        const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
+        return isTaskPendingBudget(t, memo);
       });
 
-      const pendingTasks = tasks.filter(function(t) {
-        return t.Status === 'Pending Level 3 Approval';
-      });
-
-      pendingCount = Math.max(pendingMemos.length, pendingTasks.length);
+      pendingCount = pendingBudgetTasks.length;
       labelText = 'รอ ผู้บริหาร อนุมัติ';
     } else {
       btn.style.display = 'none';
@@ -4556,9 +4637,11 @@ const FMMS = (function() {
 
     if (pendingCount > 0) {
       badge.classList.remove('hidden');
+      badge.style.display = 'inline-block';
       btn.classList.add('ring-2', 'ring-amber-400');
     } else {
       badge.classList.add('hidden');
+      badge.style.display = 'none';
       btn.classList.remove('ring-2', 'ring-amber-400');
     }
   }
@@ -4593,8 +4676,10 @@ const FMMS = (function() {
         return !delIds.includes(t.TaskID) && t.Status === 'Pending Level 2 Approval';
       });
 
-      if (tasks.length === 0) {
-        if (!forceModal) return;
+      if (tasks.length === 0 && !forceModal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        return;
       }
 
       if (titleEl) titleEl.textContent = 'แจ้งเตือน: มีใบงานรอผู้ควบคุมงาน (ระดับ 2) พิจารณาอนุมัติ';
@@ -4640,48 +4725,42 @@ const FMMS = (function() {
       const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
       const memos = (state.db && state.db.memos) || [];
 
-      // STRICT FILTER: Memo must be Pending Approval AND linked task must NOT be Approved, In Progress, Completed, or Closed!
-      const validPendingMemos = memos.filter(function(m) {
-        if (m.ApprovalStatus !== 'Pending Approval') return false;
-        if (delIds.includes(m.TaskID) || delIds.includes(m.MemoID)) return false;
-        const linkedTask = tasks.find(function(t) { return t.TaskID === m.TaskID; });
-        if (!linkedTask) return false;
-        if (linkedTask.Status === 'Approved' || linkedTask.Status === 'In Progress' || linkedTask.Status === 'Completed' || linkedTask.Status === 'Closed') {
-          return false;
-        }
-        return true;
+      // Pending budget tasks count matches the "1. รออนุมัติงบ" filter count exactly
+      const pendingBudgetTasks = tasks.filter(function(t) {
+        const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
+        return isTaskPendingBudget(t, memo);
       });
 
-      // If zero pending memos and not manually forced, DO NOT show modal
-      if (validPendingMemos.length === 0 && !forceModal) {
+      if (pendingBudgetTasks.length === 0 && !forceModal) {
         modal.classList.add('hidden');
         modal.style.display = 'none';
         return;
       }
 
-      if (titleEl) titleEl.textContent = 'แจ้งเตือน: มีบันทึกข้อความขออนุมัติงบประมาณรอผู้บริหาร (ระดับ 3) พิจารณา';
-      if (noticeEl) noticeEl.textContent = 'มีบันทึกข้อความที่ผู้ควบคุมงาน (ลำดับ 2) ตรวจสอบและเสนอขออนุมัติงบประมาณ';
-      if (countBadge) countBadge.textContent = validPendingMemos.length + ' ฉบับ';
+      if (titleEl) titleEl.textContent = 'แจ้งเตือน: มีรายการขออนุมัติงบประมาณรอผู้บริหาร (ระดับ 3) พิจารณา';
+      if (noticeEl) noticeEl.textContent = 'มีรายการที่รอการพิจารณาอนุมัติงบประมาณเพื่อเริ่มงานซ่อมแซม';
+      if (countBadge) countBadge.textContent = pendingBudgetTasks.length + ' รายการ';
 
       if (step2Badge) step2Badge.className = 'p-2 rounded bg-teal-50 border border-teal-200 text-teal-800';
       if (step3Badge) step3Badge.className = 'p-2 rounded bg-blue-600 text-white font-bold ring-2 ring-blue-300 animate-pulse';
 
       if (tbody) {
-        if (validPendingMemos.length === 0) {
+        if (pendingBudgetTasks.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">ไม่มีรายการรออนุมัติงบประมาณสำหรับผู้บริหารในขณะนี้ (อนุมัติ/ปิดงานครบถ้วนแล้ว)</td></tr>';
         } else {
-          tbody.innerHTML = validPendingMemos.map(function(m) {
+          tbody.innerHTML = pendingBudgetTasks.map(function(t) {
+            const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
             return `
               <tr class="hover:bg-slate-50">
-                <td class="py-2.5 px-3 font-mono-code font-bold text-blue-900">${escapeHtml(m.MemoID)}</td>
+                <td class="py-2.5 px-3 font-mono-code font-bold text-blue-900">${escapeHtml(t.TaskID)}</td>
                 <td class="py-2.5 px-3">
-                  <div class="font-semibold text-slate-900">${escapeHtml(m.Subject)}</div>
-                  <div class="text-[11px] text-slate-500">อ้างอิง: ${escapeHtml(m.TaskID)}</div>
+                  <div class="font-semibold text-slate-900">${escapeHtml(t.Title)}</div>
+                  <div class="text-[11px] text-slate-500">📍 ${escapeHtml(t.Location || 'ไม่ระบุ')}</div>
                 </td>
-                <td class="py-2.5 px-3 text-right font-mono-code font-bold text-emerald-800">฿${formatCurrency(m.EstimatedBudget)}</td>
-                <td class="py-2.5 px-3 text-slate-700">${escapeHtml(m.RequestedBy || 'ผู้ควบคุมงาน')}</td>
+                <td class="py-2.5 px-3 text-right font-mono-code font-bold text-emerald-800">฿${formatCurrency(t.EstCost)}</td>
+                <td class="py-2.5 px-3 text-slate-700">${escapeHtml(t.AssignedContractorName || 'ช่างหน้างาน')}</td>
                 <td class="py-2.5 px-3 text-center">
-                  <button type="button" onclick="FMMS.selectMemoFromAlert('${m.MemoID}', '${m.TaskID}')"
+                  <button type="button" onclick="FMMS.selectTaskFromAlert('${t.TaskID}')"
                     class="bg-blue-700 hover:bg-blue-600 text-white text-[11px] font-semibold px-3 py-1 rounded transition shadow cursor-pointer">
                     พิจารณาอนุมัติ →
                   </button>
@@ -4722,20 +4801,29 @@ const FMMS = (function() {
     } else if (role === 3) {
       switchView('role3');
       switchExecutiveSubTab('cards');
+      filterExecutiveCards('PENDING_BUDGET');
     }
   }
 
   function selectTaskFromAlert(taskId) {
     closeApprovalAlertModal();
-    switchView('role2');
-    switchSupervisorSubTab('tasks');
-    selectSupervisorTask(taskId);
+    const role = state.session ? Number(state.session.roleLevel) : 0;
+    if (role === 2) {
+      switchView('role2');
+      switchSupervisorSubTab('tasks');
+      selectSupervisorTask(taskId);
+    } else {
+      switchView('role3');
+      switchExecutiveSubTab('cards');
+      filterExecutiveCards('PENDING_BUDGET');
+    }
   }
 
   function selectMemoFromAlert(memoId, taskId) {
     closeApprovalAlertModal();
     switchView('role3');
     switchExecutiveSubTab('cards');
+    filterExecutiveCards('PENDING_BUDGET');
   }
 
 
@@ -5162,34 +5250,6 @@ const FMMS = (function() {
   }
 
   
-  function reconcileMemoAndTaskStatuses() {
-    if (!state.db) return;
-    const tasks = state.db.tasks || [];
-    const delIds = state.deletedTaskIds || [];
-
-    // 1. Purge memos tied to deleted tasks
-    state.db.memos = (state.db.memos || []).filter(function(m) {
-      return !delIds.includes(m.TaskID) && !delIds.includes(m.MemoID);
-    });
-
-    // 2. Harmonize memos with task status:
-    // If the referenced task is Approved, In Progress, Completed, or Closed,
-    // its memos MUST NOT be 'Pending Approval'!
-    (state.db.memos || []).forEach(function(m) {
-      const task = tasks.find(function(t) { return t.TaskID === m.TaskID; });
-      if (task) {
-        if (task.Status === 'Approved' || task.Status === 'In Progress' || task.Status === 'Completed' || task.Status === 'Closed') {
-          if (m.ApprovalStatus === 'Pending Approval') {
-            m.ApprovalStatus = 'Approved';
-            if (!m.ApproverName || m.ApproverName === '-') m.ApproverName = 'ผู้บริหาร (อนุมัติแล้ว)';
-            if (!m.ApprovalDate || m.ApprovalDate === '-') m.ApprovalDate = task.UpdatedAt || getIsoNow();
-          }
-        }
-      }
-    });
-  }
-
-
   function renderAllViews() {
     renderReportTasksTable();
     renderCostReferences();
