@@ -177,6 +177,9 @@ function doPost(e) {
       case 'executiveApprove':
         result = handleExecutiveApprove(payload, actor);
         break;
+      case 'deleteTask':
+        result = handleDeleteTask(payload, actor);
+        break;
       case 'createSchedule':
         result = handleCreateSchedule(payload, actor);
         break;
@@ -1144,6 +1147,66 @@ function handleExecutiveApprove(payload, actor) {
   }
 }
 
+function handleDeleteTask(payload, actor) {
+  const taskId = payload.taskId;
+  if (!taskId) throw new Error('TaskID is required for deletion');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = getSpreadsheet();
+    const taskSheet = ss.getSheetByName(CONFIG.SHEETS.TASKS);
+    const data = taskSheet.getDataRange().getValues();
+    let deletedTask = false;
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][0]).trim() === taskId) {
+        taskSheet.deleteRow(i + 1);
+        deletedTask = true;
+        break;
+      }
+    }
+
+    // Delete linked memos if any
+    const memoSheet = ss.getSheetByName(CONFIG.SHEETS.MEMOS);
+    if (memoSheet) {
+      const memoData = memoSheet.getDataRange().getValues();
+      for (let j = memoData.length - 1; j >= 1; j--) {
+        if (String(memoData[j][1]).trim() === taskId || String(memoData[j][0]).trim() === taskId) {
+          memoSheet.deleteRow(j + 1);
+        }
+      }
+    }
+
+    // Delete linked revisions if any
+    const revSheet = ss.getSheetByName(CONFIG.SHEETS.REVISIONS);
+    if (revSheet) {
+      const revData = revSheet.getDataRange().getValues();
+      for (let k = revData.length - 1; k >= 1; k--) {
+        if (String(revData[k][0]).trim() === taskId) {
+          revSheet.deleteRow(k + 1);
+        }
+      }
+    }
+
+    writeAuditLog({
+      userId: actor.userId,
+      operatorName: actor.fullName,
+      roleLevel: actor.roleLevel,
+      action: 'DELETE_TASK',
+      targetId: taskId,
+      docVersion: '-',
+      details: 'ลบใบงาน ' + taskId + ' ออกจากระบบและ Google Sheets สำเร็จ',
+      beforeState: 'ACTIVE_RECORD',
+      afterState: 'DELETED',
+      clientInfo: actor.clientInfo || '',
+      status: 'SUCCESS'
+    });
+
+    return { ok: true, taskId: taskId, deleted: deletedTask, message: 'ลบใบงานออกจากระบบและ Google Sheets เรียบร้อย' };
+  } finally {
+    lock.releaseLock();
+  }
+}
 function handleCreateSchedule(payload, actor) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);

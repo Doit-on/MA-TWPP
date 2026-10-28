@@ -2093,6 +2093,10 @@ const FMMS = (function() {
             <button type="button" onclick="FMMS.openMemoPrintModalByTask('${task.TaskID}')" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-3 rounded transition">
               🖨 พิมพ์ A4
             </button>
+            <button type="button" onclick="FMMS.deleteTask('${task.TaskID}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-semibold py-2.5 px-3 rounded transition cursor-pointer text-xs flex items-center justify-center gap-1" title="ลบใบงานนี้ออกจากระบบและ Google Sheets">
+              <span>🗑️</span>
+              <span>ลบใบงาน</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2433,57 +2437,189 @@ const FMMS = (function() {
     }
   }
 
-  async function handleExecutiveDecision(memoId, decision) {
-    const memo = state.db.memos.find(function(m) { return m.MemoID === memoId; });
-    if (!memo) return;
+    /**
+   * ==========================================================================
+   * DIRECT TASK DELETION (LOCAL STATE + GOOGLE SHEETS / GAS BACKEND)
+   * ==========================================================================
+   */
+  async function deleteTask(taskId) {
+    if (!taskId) return;
+    const task = state.db.tasks.find(function(t) { return t.TaskID === taskId; });
+    const taskTitle = task ? task.Title : taskId;
+
+    const confirmed = window.confirm(
+      '⚠️ ยืนยันการลบใบงานออกจากระบบหรือไม่?\n\n' +
+      'รหัสใบงาน: ' + taskId + '\n' +
+      'หัวข้องาน: ' + taskTitle + '\n\n' +
+      'การลบนี้จะนำข้อมูลออกจากหน้าจอ และลบแถวออกจาก Google Sheets (Tasks, Memos) โดยตรงทันที ไม่ต้องเปิดไปลบใน Google Sheet เอง\n\n' +
+      'กด [ตกลง / OK] เพื่อยืนยันการลบ หรือกด [ยกเลิก / Cancel] เพื่อยกเลิก'
+    );
+    if (!confirmed) return;
 
     const actor = getCurrentActor();
     const now = getIsoNow();
-    const beforeStatus = memo.ApprovalStatus;
 
-    memo.ApprovalStatus = decision;
-    memo.ApprovedBy = actor.userId;
-    memo.ApproverName = actor.fullName;
-    memo.ApprovalDate = now;
-    memo.ExecutiveComment = decision === 'Approved'
-      ? 'อนุมัติงบประมาณให้ดำเนินการตามเสนอ และบันทึกค่าใช้จ่ายตามจริง'
-      : 'ตีกลับเพื่อทบทวนรายละเอียดใบเสนอราคาเพิ่มเติม';
-
-    const linkedTask = state.db.tasks.find(function(t) { return t.TaskID === memo.TaskID; });
-    if (linkedTask) {
-      linkedTask.Status = decision === 'Approved' ? 'Approved' : 'Rejected to Level 2';
-      linkedTask.UpdatedAt = now;
-      linkedTask.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
+    // 1. Remove from local state tasks
+    const taskIdx = state.db.tasks.findIndex(function(t) { return t.TaskID === taskId; });
+    if (taskIdx !== -1) {
+      state.db.tasks.splice(taskIdx, 1);
     }
+
+    // 2. Remove linked memos
+    state.db.memos = state.db.memos.filter(function(m) {
+      return m.TaskID !== taskId && m.MemoID !== taskId;
+    });
+
+    // 3. Record Audit Log
+    recordAuditLog(
+      'DELETE_TASK',
+      taskId,
+      'ผู้ใช้ (' + actor.fullName + ') สั่งลบใบงาน ' + taskId + ' (' + taskTitle + ') ออกจากระบบและ Google Sheets',
+      'ACTIVE_RECORD',
+      'DELETED',
+      'SUCCESS'
+    );
+
+    // 4. Close any open modals
+    closeReportEditTaskModal();
+    closeMemoPrintModal();
+
+    // 5. Persist & Refresh UI
+    persistDatabase();
+    renderAllViews();
+
+    showToast(
+      'ลบใบงาน ' + taskId + ' สำเร็จ',
+      'นำข้อมูลออกจากระบบและกำลังส่งคำสั่งลบไปยัง Google Sheets เบื้องหลัง...',
+      'info'
+    );
+
+    // 6. Sync deletion with Google Apps Script backend
+    try {
+      const res = await postToGasBackend('deleteTask', { taskId: taskId });
+      if (res && res.ok) {
+        showToast(
+          'ซิงค์การลบข้อมูลสำเร็จ',
+          'ลบแถวข้อมูลใบงาน ' + taskId + ' ใน Google Sheets เรียบร้อยแล้ว',
+          'success'
+        );
+      }
+    } catch (err) {
+      console.warn('Backend deleteTask sync failed or offline:', err);
+    }
+  }
+
+  function filterExecutiveCards(filterType) {
+    state.execApprovalFilter = filterType || 'ALL';
+
+    const btns = {
+      PENDING: document.getElementById('btnExecFilterPending'),
+      APPROVED: document.getElementById('btnExecFilterApproved'),
+      CLOSED: document.getElementById('btnExecFilterClosed'),
+      ALL: document.getElementById('btnExecFilterAll')
+    };
+
+    Object.keys(btns).forEach(function(k) {
+      const btn = btns[k];
+      if (!btn) return;
+      if (k === state.execApprovalFilter) {
+        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-teal-800 text-white border-2 border-teal-950 transition flex items-center gap-1.5 cursor-pointer shadow-md ring-2 ring-teal-400';
+      } else {
+        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer shadow-xs';
+      }
+    });
+
+    renderExecutivePipelineCards();
+  }
+
+  async function handleExecutiveDecision(targetId, decision) {
+    if (!targetId) return;
+
+    // Support targetId as MemoID or TaskID
+    let memo = state.db.memos.find(function(m) { return m.MemoID === targetId || m.TaskID === targetId; });
+    let task = state.db.tasks.find(function(t) { return t.TaskID === targetId || (memo && t.TaskID === memo.TaskID); });
+
+    const actor = getCurrentActor();
+    const now = getIsoNow();
+
+    // Auto-create memo if none exists yet for this task
+    if (!memo && task) {
+      const newMemoId = generateUniqueId(state.db.memos, 'MemoID', 'MEMO-2026');
+      memo = {
+        MemoID: newMemoId,
+        TaskID: task.TaskID,
+        DocReference: 'ทวพ./ซบร./2569/' + newMemoId.split('-').pop(),
+        Subject: 'ขออนุมัติงบประมาณดำเนินงานซ่อมบำรุง: ' + task.Title,
+        EstimatedBudget: Number(task.EstCost || 0),
+        ReasonRationale: task.Description || task.Title,
+        VendorName: 'ผู้รับเหมาตามทะเบียนมาตรฐาน',
+        VendorQuotationURL: 'QT-' + task.TaskID,
+        SupervisorRemark: 'ตรวจสอบความเสียหายหน้างานแล้ว เห็นควรอนุมัติดำเนินการ',
+        RequestedBy: actor.userId + ' (' + actor.fullName + ')',
+        RequestedAt: now,
+        ApprovedBy: '-',
+        ApproverName: '-',
+        ApprovalDate: '-',
+        ApprovalStatus: 'Pending Approval',
+        ExecutiveComment: '-'
+      };
+      state.db.memos.unshift(memo);
+    }
+
+    if (!memo && !task) return;
+
+    const beforeStatus = memo ? memo.ApprovalStatus : (task ? task.Status : '-');
+
+    if (memo) {
+      memo.ApprovalStatus = decision;
+      memo.ApprovedBy = actor.userId;
+      memo.ApproverName = actor.fullName;
+      memo.ApprovalDate = now;
+      memo.ExecutiveComment = decision === 'Approved'
+        ? 'อนุมัติงบประมาณให้ดำเนินการตามเสนอ และบันทึกค่าใช้จ่ายตามจริง'
+        : 'ตีกลับเพื่อทบทวนรายละเอียดใบเสนอราคาเพิ่มเติม';
+    }
+
+    if (task) {
+      task.Status = decision === 'Approved' ? 'Approved' : 'Rejected to Level 2';
+      task.UpdatedAt = now;
+      task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
+    }
+
+    const docId = memo ? memo.MemoID : task.TaskID;
 
     recordAuditLog(
       'EXECUTIVE_DECISION',
-      memo.MemoID,
-      'ผู้บริหาร (' + actor.fullName + ') กด ' + (decision === 'Approved' ? 'อนุมัติ' : 'ตีกลับ') + ' บันทึกข้อความ ' + memo.MemoID,
+      docId,
+      'ผู้บริหาร (' + actor.fullName + ') กด ' + (decision === 'Approved' ? 'อนุมัติงบประมาณ' : 'ตีกลับ') + ' เอกสาร ' + docId,
       beforeStatus,
       decision + ' @ ' + now,
       'SUCCESS'
     );
 
-    await postToGasBackend('executiveApprove', {
-      memoId: memoId,
-      decision: decision,
-      comment: memo.ExecutiveComment
-    });
+    if (memo) {
+      await postToGasBackend('executiveApprove', {
+        memoId: memo.MemoID,
+        decision: decision,
+        comment: memo.ExecutiveComment
+      });
+    }
 
     persistDatabase();
     renderAllViews();
+
     showToast(
-      (decision === 'Approved' ? 'อนุมัติ' : 'ตีกลับ') + 'บันทึกข้อความ ' + memoId + ' สำเร็จ',
-      'บันทึกชื่อผู้อนุมัติ (' + actor.fullName + ') และเวลาลงใน Google Sheets เรียบร้อยแล้ว',
+      (decision === 'Approved' ? 'อนุมัติงบประมาณสำเร็จ' : 'ตีกลับบันทึกข้อความสำเร็จ'),
+      'บันทึกชื่อผู้อนุมัติ (' + actor.fullName + ') วันที่ ' + formatThaiDateTime(now) + ' และซิงค์ลง Google Sheets เรียบร้อย',
       decision === 'Approved' ? 'success' : 'warning'
     );
+
     showCloudSyncConfirmation({
-      docId: memo.MemoID,
+      docId: docId,
       docType: 'บันทึกข้อความขออนุมัติงบประมาณ (Executive Decision)',
       actionTitle: decision === 'Approved' ? 'ผู้บริหารอนุมัติงบประมาณซ่อมบำรุง' : 'ผู้บริหารสั่งตีกลับบันทึกข้อความ',
       version: decision === 'Approved' ? 'v2.0 (Executive Approved / Finalized)' : 'v1.2 (Executive Revision Requested)',
-      details: 'ผู้บริหาร (' + actor.fullName + ') ลงนามพิจารณา ' + (decision === 'Approved' ? 'อนุมัติงบประมาณ' : 'ตีกลับ') + ' บันทึกข้อความ ' + memo.MemoID + ' บันทึกลง Google Sheet Data MA TWPP 8 Tabs และ Google Drive ครบถ้วนทุกเครื่อง'
+      details: 'ผู้บริหาร (' + actor.fullName + ') ลงนามพิจารณา ' + (decision === 'Approved' ? 'อนุมัติงบประมาณ' : 'ตีกลับ') + ' ใบงาน/บันทึกข้อความ ' + docId + ' บันทึกลง Google Sheet Data MA TWPP 8 Tabs และ Google Drive ครบถ้วน'
     });
   }
 
@@ -2538,6 +2674,26 @@ const FMMS = (function() {
     const container = document.getElementById('execCardsGrid');
     if (!container) return;
 
+    // Compute Quick Filter Counts
+    const pendingCount = tasks.filter(function(t) {
+      const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
+      return (t.Status === 'Pending Approval' || t.Status === 'Pending Level 3 Approval' || (memo && memo.ApprovalStatus === 'Pending Approval') || (Number(t.EstCost) > 0 && t.Status !== 'Approved' && t.Status !== 'In Progress' && t.Status !== 'Completed' && t.Status !== 'Closed'));
+    }).length;
+
+    const approvedCount = tasks.filter(function(t) {
+      const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
+      return (t.Status === 'Approved' || t.Status === 'In Progress' || (memo && memo.ApprovalStatus === 'Approved')) && t.Status !== 'Closed' && t.Status !== 'Completed';
+    }).length;
+
+    const closedCount = tasks.filter(function(t) {
+      return t.Status === 'Closed' || t.Status === 'Completed';
+    }).length;
+
+    setText('badgeExecFilterPending', pendingCount);
+    setText('badgeExecFilterApproved', approvedCount);
+    setText('badgeExecFilterClosed', closedCount);
+    setText('badgeExecFilterAll', tasks.length);
+
     // Populate Location Filter Dropdown with unique locations
     const locSelect = document.getElementById('execCardLocationFilter');
     if (locSelect && locSelect.options.length <= 1) {
@@ -2553,20 +2709,27 @@ const FMMS = (function() {
     const selectedLoc = getVal('execCardLocationFilter') || 'ALL';
     const selectedStatus = getVal('execCardStatusFilter') || 'ALL';
     const searchKeyword = (getVal('execCardSearchInput') || '').toLowerCase().trim();
+    const activeApprovalFilter = state.execApprovalFilter || 'ALL';
 
     const filtered = tasks.filter(function(t) {
+      const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
+      const isTaskPending = (t.Status === 'Pending Approval' || t.Status === 'Pending Level 3 Approval' || (memo && memo.ApprovalStatus === 'Pending Approval') || (Number(t.EstCost) > 0 && t.Status !== 'Approved' && t.Status !== 'In Progress' && t.Status !== 'Completed' && t.Status !== 'Closed'));
+      const isTaskApproved = (t.Status === 'Approved' || t.Status === 'In Progress' || (memo && memo.ApprovalStatus === 'Approved')) && t.Status !== 'Closed' && t.Status !== 'Completed';
+      const isTaskClosed = (t.Status === 'Closed' || t.Status === 'Completed');
+
+      // Quick Approval Status Filter
+      if (activeApprovalFilter === 'PENDING' && !isTaskPending) return false;
+      if (activeApprovalFilter === 'APPROVED' && !isTaskApproved) return false;
+      if (activeApprovalFilter === 'CLOSED' && !isTaskClosed) return false;
+
       // Location filter
       if (selectedLoc !== 'ALL' && t.Location !== selectedLoc) return false;
 
-      // Status filter
+      // Status dropdown filter
       if (selectedStatus !== 'ALL') {
-        const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
-        if (selectedStatus === 'Pending Approval') {
-          const isPending = t.Status === 'Pending Approval' || (memo && memo.ApprovalStatus === 'Pending Approval');
-          if (!isPending) return false;
-        } else if (t.Status !== selectedStatus) {
-          return false;
-        }
+        if (selectedStatus === 'Pending Level 3 Approval' && !isTaskPending) return false;
+        if (selectedStatus === 'Approved' && !isTaskApproved) return false;
+        if (selectedStatus !== 'Pending Level 3 Approval' && selectedStatus !== 'Approved' && t.Status !== selectedStatus) return false;
       }
 
       // Search keyword filter
@@ -2593,7 +2756,7 @@ const FMMS = (function() {
         <div class="col-span-full p-8 text-center bg-white border border-slate-200 rounded-lg text-slate-500">
           <div class="text-3xl mb-2">🔍</div>
           <div class="text-sm font-semibold text-slate-800">ไม่พบใบงานตามเงื่อนไขที่เลือก</div>
-          <div class="text-xs text-slate-500 mt-1">ลองเปลี่ยนตำแหน่งอาคาร หรือล้างคำค้นหา</div>
+          <div class="text-xs text-slate-500 mt-1">ลองเปลี่ยนตัวกรอง หรือคลิกปุ่ม "📋 ทั้งหมด" เพื่อดูใบงานทุกรายการ</div>
         </div>
       `;
       return;
@@ -2601,7 +2764,9 @@ const FMMS = (function() {
 
     container.innerHTML = filtered.map(function(t) {
       const memo = memos.find(function(m) { return m.TaskID === t.TaskID; });
-      const isPendingApproval = t.Status === 'Pending Approval' || (memo && memo.ApprovalStatus === 'Pending Approval');
+      const isTaskPending = (t.Status === 'Pending Approval' || t.Status === 'Pending Level 3 Approval' || (memo && memo.ApprovalStatus === 'Pending Approval') || (Number(t.EstCost) > 0 && t.Status !== 'Approved' && t.Status !== 'In Progress' && t.Status !== 'Completed' && t.Status !== 'Closed'));
+      const isTaskApproved = (t.Status === 'Approved' || t.Status === 'In Progress' || (memo && memo.ApprovalStatus === 'Approved')) && t.Status !== 'Closed' && t.Status !== 'Completed';
+      const isTaskClosed = (t.Status === 'Closed' || t.Status === 'Completed');
 
       // 5-Stage Journey Progress determination
       let stage = 1;
@@ -2611,7 +2776,9 @@ const FMMS = (function() {
         stage = 5;
       } else if (t.Status === 'In Progress') {
         stage = 4;
-      } else if (isPendingApproval) {
+      } else if (isTaskApproved) {
+        stage = 4;
+      } else if (isTaskPending) {
         stage = 3;
       } else if (Number(t.EstCost) > 0 || memo) {
         stage = 2;
@@ -2634,17 +2801,23 @@ const FMMS = (function() {
       return `
         <div class="enterprise-card overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between border-slate-300">
           
-          <!-- Card Header with Physical Location Prominence -->
+          <!-- Card Header with Physical Location & Direct Delete Button -->
           <div class="p-4 bg-slate-50 border-b border-slate-200">
-            <!-- Distinctive Physical Location Pill -->
             <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
               <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-teal-900 text-teal-100 font-bold text-xs tracking-wide shadow-sm">
                 <span class="text-sm">📍</span>
                 <span>${escapeHtml(t.Location || 'ไม่ระบุตำแหน่ง')}</span>
               </div>
-              <div class="flex items-center gap-1.5 font-mono-code text-[11px]">
+              <div class="flex items-center gap-2 font-mono-code text-[11px]">
                 <span class="px-2 py-0.5 rounded bg-white text-slate-800 font-bold border border-slate-300">${escapeHtml(t.TaskID)}</span>
                 ${priorityBadge}
+                <!-- Direct Delete Button on Card Header -->
+                <button type="button" onclick="FMMS.deleteTask('${t.TaskID}')"
+                  class="text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 px-2 py-0.5 rounded text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-xs"
+                  title="ลบใบงานนี้ออกจากระบบและ Google Sheets ทันที">
+                  <span>🗑️</span>
+                  <span>ลบ</span>
+                </button>
               </div>
             </div>
 
@@ -2654,6 +2827,69 @@ const FMMS = (function() {
               <span class="font-mono-code">${formatThaiDateTime(t.CreatedAt)}</span>
             </div>
           </div>
+
+          <!-- PROMINENT OFFICIAL DIGITAL APPROVAL SEAL & ACTION BANNER -->
+          ${isTaskApproved ? `
+            <div class="mx-4 my-3 p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-500 rounded-lg flex items-center justify-between gap-3 shadow-xs">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg font-bold shadow-sm">
+                  ✓
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950 flex items-center gap-1.5 flex-wrap">
+                    <span>ตราประทับ: ผ่านการอนุมัติระดับบริหารแล้ว</span>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-mono-code font-bold shadow-xs">OFFICIALLY APPROVED</span>
+                  </div>
+                  <div class="text-[11px] text-emerald-800 mt-0.5">
+                    ผู้อนุมัติ: <strong>${escapeHtml(memo && memo.ApproverName && memo.ApproverName !== '-' ? memo.ApproverName : (t.UpdatedBy || 'ผู้บริหารระดับสูง'))}</strong>
+                    • วันที่: <span class="font-mono-code">${memo && memo.ApprovalDate && memo.ApprovalDate !== '-' ? formatThaiDateTime(memo.ApprovalDate) : (t.UpdatedAt ? formatThaiDateTime(t.UpdatedAt) : 'อนุมัติแล้ว')}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right whitespace-nowrap pl-2">
+                <div class="text-[10px] text-emerald-700 uppercase font-mono-code font-semibold">วงเงินที่อนุมัติ</div>
+                <div class="text-base font-bold font-mono-code text-emerald-900">฿${formatCurrency(memo && memo.EstimatedBudget ? memo.EstimatedBudget : t.EstCost)}</div>
+              </div>
+            </div>
+          ` : isTaskPending ? `
+            <div class="mx-4 my-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-lg flex flex-wrap items-center justify-between gap-3 shadow-xs">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center text-lg font-bold shadow-sm animate-pulse">
+                  ⏳
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-amber-950 flex items-center gap-1.5 flex-wrap">
+                    <span>รอการพิจารณาอนุมัติงบประมาณจากผู้บริหาร</span>
+                    <span class="px-2 py-0.5 rounded-full bg-amber-600 text-white text-[10px] font-mono-code font-bold">PENDING APPROVAL</span>
+                  </div>
+                  <div class="text-[11px] text-amber-800 mt-0.5">
+                    วงเงินเสนอขออนุมัติ: <strong class="font-mono-code text-amber-950">฿${formatCurrency(memo ? memo.EstimatedBudget : t.EstCost)}</strong>
+                    • เสนอโดย: ${escapeHtml(memo ? memo.RequestedBy : (t.SupervisorName || 'ผู้ควบคุมงาน'))}
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo ? memo.MemoID : t.TaskID}', 'Approved')"
+                  class="bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white font-bold px-3 py-1.5 rounded-md text-xs shadow transition flex items-center gap-1.5 cursor-pointer">
+                  <span>✅</span>
+                  <span>อนุมัติงบทันที</span>
+                </button>
+                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo ? memo.MemoID : t.TaskID}', 'Rejected')"
+                  class="bg-rose-700 hover:bg-rose-600 active:bg-rose-800 text-white font-semibold px-2.5 py-1.5 rounded-md text-xs shadow transition flex items-center gap-1 cursor-pointer">
+                  <span>❌</span>
+                  <span>ตีกลับ</span>
+                </button>
+              </div>
+            </div>
+          ` : isTaskClosed ? `
+            <div class="mx-4 my-2.5 p-2.5 bg-slate-100 border border-slate-300 rounded-lg flex items-center justify-between text-xs text-slate-700">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🏁</span>
+                <span class="font-bold">ตรวจรับงานและปิดเอกสารสมบูรณ์แล้ว (Closed)</span>
+              </div>
+              <div class="font-mono-code text-[11px] text-slate-600">ค่าใช้จ่ายจริง: <strong class="text-slate-900">฿${formatCurrency(t.ActualCost)}</strong></div>
+            </div>
+          ` : ''}
 
           <!-- 5-Step Visual Pipeline Tracker Bar -->
           <div class="px-4 py-3 bg-white border-b border-slate-100">
@@ -2770,18 +3006,24 @@ const FMMS = (function() {
 
           <!-- Card Action Bar for Executive -->
           <div class="p-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div class="text-slate-500 text-[11px]">
-              ${memo ? `สถานะงบ: <strong class="text-slate-800">${escapeHtml(memo.ApprovalStatus)}</strong>` : 'งานซ่อมบำรุงตามรอบปกติ'}
+            <div class="text-slate-700 text-[11px] font-medium">
+              ${isTaskApproved ? '<span class="inline-flex items-center gap-1 font-bold text-emerald-700">✅ ได้รับอนุมัติงบประมาณแล้ว</span>' : (isTaskPending ? '<span class="inline-flex items-center gap-1 font-bold text-amber-700">⏳ รอผู้บริหารลงนามอนุมัติ</span>' : '<span class="text-slate-600 font-medium">สถานะ: ' + escapeHtml(t.Status) + '</span>')}
             </div>
             <div class="flex items-center gap-1.5 flex-wrap">
               <button type="button" onclick="FMMS.openMemoPrintModalByTask('${t.TaskID}')" class="border border-slate-300 hover:bg-slate-100 text-slate-800 px-3 py-1.5 rounded text-xs font-medium transition cursor-pointer">
                 📄 ดูบันทึกข้อความ A4
               </button>
-              ${memo && memo.ApprovalStatus === 'Pending Approval' ? `
-                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo.MemoID}', 'Approved')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded text-xs transition shadow cursor-pointer">
-                  ✓ อนุมัติงบ ฿${formatCurrency(memo.EstimatedBudget)}
+              <button type="button" onclick="FMMS.openEditTaskModalFromReport('${t.TaskID}')" class="border border-blue-400 hover:bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded text-xs font-medium transition cursor-pointer">
+                ✏️ แก้ไข
+              </button>
+              <button type="button" onclick="FMMS.deleteTask('${t.TaskID}')" class="border border-rose-300 hover:bg-rose-50 text-rose-700 px-2.5 py-1.5 rounded text-xs font-semibold transition cursor-pointer" title="ลบใบงานนี้ออกจากระบบ">
+                🗑️ ลบ
+              </button>
+              ${isTaskPending ? `
+                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo ? memo.MemoID : t.TaskID}', 'Approved')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded text-xs transition shadow cursor-pointer">
+                  ✓ อนุมัติงบ ฿${formatCurrency(memo ? memo.EstimatedBudget : t.EstCost)}
                 </button>
-                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo.MemoID}', 'Rejected')" class="bg-red-700 hover:bg-red-600 text-white font-semibold px-2.5 py-1.5 rounded text-xs transition cursor-pointer">
+                <button type="button" onclick="FMMS.handleExecutiveDecision('${memo ? memo.MemoID : t.TaskID}', 'Rejected')" class="bg-red-700 hover:bg-red-600 text-white font-semibold px-2.5 py-1.5 rounded text-xs transition cursor-pointer">
                   ✕ ตีกลับ
                 </button>
               ` : ''}
@@ -3216,14 +3458,21 @@ const FMMS = (function() {
             <div class="font-mono-code text-[10px] text-slate-500 mt-1">${formatThaiDateTime(memo.RequestedAt)}</div>
           </div>
 
-          <div class="border border-slate-400 p-3 rounded bg-slate-50 relative">
-            <div class="font-bold mb-3">ผลการพิจารณาอนุมัติ (ระดับ 3)</div>
-            <div class="inline-block px-3 py-1 rounded border font-mono-code font-bold text-xs mb-2 ${isApproved ? 'bg-emerald-100 text-emerald-900 border-emerald-400' : 'bg-amber-100 text-amber-900 border-amber-400'}">
-              [ ${escapeHtml(memo.ApprovalStatus.toUpperCase())} ]
+          <div class="border-2 ${isApproved ? 'border-emerald-600 bg-emerald-50/40' : 'border-amber-400 bg-amber-50/30'} p-3 rounded-lg relative overflow-hidden text-center">
+            ${isApproved ? `
+              <div class="absolute -right-3 -bottom-3 border-4 border-emerald-600/25 rounded-full w-24 h-24 flex items-center justify-center font-bold text-emerald-800/35 font-mono-code text-[10px] transform -rotate-12 pointer-events-none select-none">
+                APPROVED
+              </div>
+            ` : ''}
+            <div class="font-bold text-xs mb-1.5 ${isApproved ? 'text-emerald-900' : 'text-amber-900'}">ผลการพิจารณาอนุมัติ (ระดับบริหาร)</div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border font-mono-code font-bold text-xs mb-2 ${isApproved ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs' : 'bg-amber-500 text-white border-amber-600'}">
+              <span>${isApproved ? '✓ อนุมัติงบประมาณแล้ว' : '⏳ รอการพิจารณาอนุมัติ'}</span>
             </div>
-            <div class="font-semibold">${escapeHtml(memo.ApproverName !== '-' ? memo.ApproverName : 'รออนุมัติโดยผู้บริหาร')}</div>
-            <div class="text-[11px] text-slate-600">${escapeHtml(memo.ExecutiveComment !== '-' ? memo.ExecutiveComment : '')}</div>
-            <div class="font-mono-code text-[10px] text-slate-500 mt-1">${memo.ApprovalDate !== '-' ? formatThaiDateTime(memo.ApprovalDate) : '-'}</div>
+            <div class="font-bold text-slate-900 text-sm">${escapeHtml(memo.ApproverName !== '-' ? memo.ApproverName : 'รอผู้บริหารลงนามอนุมัติ')}</div>
+            <div class="text-[11px] text-slate-600 italic mt-0.5">"${escapeHtml(memo.ExecutiveComment !== '-' ? memo.ExecutiveComment : 'อยู่ระหว่างรอการเสนอแฟ้มอนุมัติ')}"</div>
+            <div class="font-mono-code text-[10px] text-slate-500 mt-1 border-t border-slate-200 pt-1">
+              วันที่อนุมัติ: <strong>${memo.ApprovalDate !== '-' ? formatThaiDateTime(memo.ApprovalDate) : '-'}</strong>
+            </div>
           </div>
         </div>
 
@@ -4775,6 +5024,12 @@ const FMMS = (function() {
                 <span>✏️</span>
                 <span>แก้ไข</span>
               </button>
+              <button type="button" onclick="FMMS.deleteTask('${t.TaskID}')"
+                class="border border-rose-300 hover:bg-rose-50 text-rose-700 text-xs font-semibold px-2 py-1.5 rounded transition flex items-center gap-1 cursor-pointer"
+                title="ลบใบงานนี้ออกจากระบบและ Google Sheets">
+                <span>🗑️</span>
+                <span>ลบ</span>
+              </button>
             </div>
           </td>
         </tr>
@@ -5139,7 +5394,9 @@ const FMMS = (function() {
     renderReportTasksTable: renderReportTasksTable,
     openEditTaskModalFromReport: openEditTaskModalFromReport,
     closeReportEditTaskModal: closeReportEditTaskModal,
-    handleSaveEditTaskFromReport: handleSaveEditTaskFromReport
+    handleSaveEditTaskFromReport: handleSaveEditTaskFromReport,
+    deleteTask: deleteTask,
+    filterExecutiveCards: filterExecutiveCards
   };
 })();
 
