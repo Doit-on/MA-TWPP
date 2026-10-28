@@ -16,7 +16,7 @@
 
   <!-- QR Code Generator & QR Scanner Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 
   <!-- Custom Styles -->
   <link rel="stylesheet" href="style.css">
@@ -1569,14 +1569,17 @@
           </label>
         </div>
 
-        <div class="border-t border-slate-200 pt-3">
-          <label class="block font-semibold text-slate-700 mb-1">หรือวางรหัส/ลิงก์ Provisioning Payload จากผู้ดูแลระบบ:</label>
+        <div class="border-t border-slate-200 pt-3 space-y-2">
+          <label class="block font-semibold text-slate-700">หรือใช้วิธีเชื่อมต่อทางเลือก:</label>
           <div class="flex gap-2">
             <input type="text" id="manualProvisionInput" placeholder="วางลิงก์หรือโค้ดตั้งค่าเครื่องใหม่..." class="flex-1 border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
-            <button type="button" onclick="FMMS.applyManualProvisionPayload()" class="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-4 py-2 rounded-md transition">
+            <button type="button" onclick="FMMS.applyManualProvisionPayload()" class="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-4 py-2 rounded-md transition cursor-pointer">
               เชื่อมต่อ
             </button>
           </div>
+          <button type="button" onclick="FMMS.applyDefaultCloudConfig()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-medium py-2 px-3 rounded-md transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+            <span>⚡ เชื่อมต่อ Cloud มาตรฐานทันที (ไม่ต้องสแกน)</span>
+          </button>
         </div>
       </div>
     </div>
@@ -2010,6 +2013,6 @@
   <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 max-w-md w-full px-4 pointer-events-none no-print"></div>
 
   <!-- Main Application Controller -->
-  <script src="app.js?v=2.5.2"></script>
+  <script src="app.js?v=2.5.3"></script>
 </body>
 </html>

@@ -3352,7 +3352,10 @@ const FMMS = (function() {
       at: state.config.lastSavedAt
     };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    const baseUrl = window.location.origin + window.location.pathname;
+    let baseUrl = window.location.origin + window.location.pathname;
+    if (!baseUrl || baseUrl.startsWith('null') || window.location.protocol === 'file:') {
+      baseUrl = 'https://doit-on.github.io/MA-TWPP/';
+    }
     return baseUrl + '?provision=' + encodeURIComponent(encoded);
   }
 
@@ -3403,19 +3406,47 @@ const FMMS = (function() {
   function applyProvisioningToken(rawText) {
     try {
       let token = String(rawText || '').trim();
-      if (token.includes('provision=')) {
-        const u = new URL(token);
-        token = u.searchParams.get('provision') || token;
-      }
-      const jsonStr = decodeURIComponent(escape(atob(token)));
-      const data = JSON.parse(jsonStr);
+      if (!token) return false;
 
-      if (data && data.sid && data.did) {
+      // Extract provision query parameter safely without new URL() crashing
+      if (token.includes('provision=')) {
+        const match = token.match(/provision=([^&#\s]+)/);
+        if (match && match[1]) {
+          token = decodeURIComponent(match[1]);
+        }
+      }
+
+      let data = null;
+
+      // 1. Try base64 JSON decode
+      try {
+        let standardB64 = token.replace(/-/g, '+').replace(/_/g, '/');
+        while (standardB64.length % 4) standardB64 += '=';
+        const jsonStr = decodeURIComponent(escape(atob(standardB64)));
+        data = JSON.parse(jsonStr);
+      } catch (_) {
+        // 2. Fallback: Check if it is already raw JSON
+        try {
+          data = JSON.parse(token);
+        } catch (_) {
+          // 3. Fallback: Direct Google Apps Script Web App URL
+          if (token.startsWith('https://script.google.com/macros/s/')) {
+            state.config.gasWebAppUrl = token;
+            saveConfig();
+            closeQrScannerModal();
+            pingConnection(true);
+            showToast('เชื่อมต่อ Web App สำเร็จ!', 'ตั้งค่า URL ของระบบคลาวด์เรียบร้อยแล้ว', 'success');
+            return true;
+          }
+        }
+      }
+
+      if (data && (data.sid || data.did || data.gas)) {
         state.config.gasWebAppUrl = data.gas || state.config.gasWebAppUrl;
-        state.config.spreadsheetId = data.sid;
-        state.config.driveFolderId = data.did;
-        state.config.orgName = data.org || state.config.orgName;
-        state.config.defaultRoleUser = data.usr || '';
+        if (data.sid) state.config.spreadsheetId = data.sid;
+        if (data.did) state.config.driveFolderId = data.did;
+        if (data.org) state.config.orgName = data.org;
+        if (data.usr) state.config.defaultRoleUser = data.usr;
         state.config.lastSavedBy = data.by || 'QR Provisioning';
         state.config.lastSavedAt = getIsoNow();
         saveConfig();
@@ -3427,7 +3458,7 @@ const FMMS = (function() {
         recordAuditLog(
           'DEVICE_QR_PROVISIONED',
           state.deviceId,
-          'เปิดใช้งานเครื่องใหม่ผ่านการสแกน QR Code เชื่อมต่อ Sheet: ' + data.sid + ' และ Drive: ' + data.did,
+          'เปิดใช้งานเครื่องใหม่ผ่านการสแกน QR Code เชื่อมต่อ Sheet: ' + state.config.spreadsheetId + ' และ Drive: ' + state.config.driveFolderId,
           'Unconfigured Device',
           'Provisioned & Bound (' + state.deviceId + ')',
           'SUCCESS'
@@ -3443,21 +3474,31 @@ const FMMS = (function() {
         );
         return true;
       }
+      throw new Error('ไม่พบข้อมูลการตั้งค่า (sid / did) ใน QR Code');
     } catch (err) {
-      showToast('รูปแบบ QR Code ไม่ถูกต้อง', 'กรุณาใช้ QR Code ที่สร้างจากหน้าตั้งค่าระบบของ Admin', 'error');
+      showToast('รูปแบบ QR Code ไม่ถูกต้อง', 'กรุณาใช้ QR Code จากหน้าตั้งค่าระบบ หรือใช้ปุ่มเชื่อมต่อด่วน', 'error');
     }
     return false;
   }
 
   function openQrScannerModal() {
     const modal = document.getElementById('qrScannerModal');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      setTimeout(function() {
+        startCameraQrScanner();
+      }, 250);
+    }
   }
 
   function closeQrScannerModal() {
     stopCameraQrScanner();
     const modal = document.getElementById('qrScannerModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
   }
 
   function openConnectionConfigModal() {
@@ -3466,55 +3507,133 @@ const FMMS = (function() {
     switchView('admin');
   }
 
-  function startCameraQrScanner() {
-    if (typeof Html5Qrcode === 'undefined') {
-      showToast('ไม่พบโมดูลกล้อง', 'สามารถเลือกไฟล์รูปภาพ QR Code หรือวางลิงก์แทนได้', 'warning');
-      return;
-    }
-    stopCameraQrScanner();
-    const html5QrCode = new Html5Qrcode('qrReaderViewport');
-    state.qrScannerInstance = html5QrCode;
-
-    html5QrCode.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 220, height: 220 } },
-      function(decodedText) {
-        applyProvisioningToken(decodedText);
-      },
-      function() {}
-    ).catch(function(err) {
-      showToast('ไม่สามารถเปิดกล้องได้ (' + err + ')', 'กรุณาอนุญาตการใช้กล้อง หรือใช้วิธีเลือกไฟล์ภาพ QR Code', 'warning');
-    });
-  }
-
-  function stopCameraQrScanner() {
+  async function stopCameraQrScanner() {
     if (state.qrScannerInstance) {
       try {
-        state.qrScannerInstance.stop().then(function() {
-          state.qrScannerInstance.clear();
-          state.qrScannerInstance = null;
-        }).catch(function() {});
+        const instance = state.qrScannerInstance;
+        state.qrScannerInstance = null;
+        if (instance.isScanning) {
+          await instance.stop();
+        }
+        instance.clear();
       } catch (_) {}
+    }
+    const vp = document.getElementById('qrReaderViewport');
+    if (vp && !state.qrScannerInstance) {
+      vp.innerHTML = '<div class="p-4 text-center text-slate-400">กดปุ่ม "📷 เปิดกล้องสแกน QR Code" หรือเลือกไฟล์ภาพ QR ด้านล่าง</div>';
     }
   }
 
-  function scanQrFromImageFile(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file || typeof Html5Qrcode === 'undefined') return;
-    const html5QrCode = new Html5Qrcode('qrReaderViewport');
-    html5QrCode.scanFile(file, true)
-      .then(function(decodedText) {
+  async function startCameraQrScanner() {
+    if (typeof Html5Qrcode === 'undefined') {
+      showToast('ไม่พบไลบรารีกล้อง', 'สามารถใช้วิธีเลือกไฟล์รูปภาพ QR Code หรือปุ่มเชื่อมต่อด่วนด้านล่างได้', 'warning');
+      return;
+    }
+
+    await stopCameraQrScanner();
+
+    const vp = document.getElementById('qrReaderViewport');
+    if (vp) {
+      vp.innerHTML = '<div class="p-6 text-center text-teal-400 flex flex-col items-center gap-2"><span class="animate-spin text-2xl">⏳</span><span>กำลังค้นหาและเปิดกล้อง...</span></div>';
+    }
+
+    try {
+      const html5QrCode = new Html5Qrcode('qrReaderViewport');
+      state.qrScannerInstance = html5QrCode;
+
+      const scanConfig = {
+        fps: 15,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
+          return { width: Math.max(edge, 180), height: Math.max(edge, 180) };
+        }
+      };
+
+      const onScanSuccess = function(decodedText) {
+        stopCameraQrScanner();
         applyProvisioningToken(decodedText);
-      })
-      .catch(function() {
-        showToast('ไม่พบ QR Code ในรูปภาพที่เลือก', 'กรุณาลองใหม่อีกครั้ง', 'error');
-      });
+      };
+
+      const onScanError = function() {
+        // silent progress
+      };
+
+      // Multi-tier camera initialization:
+      // Tier 1: Try back/environment camera (smartphones/tablets)
+      html5QrCode.start({ facingMode: 'environment' }, scanConfig, onScanSuccess, onScanError)
+        .catch(function(errEnv) {
+          console.log('Tier 1 (environment camera) failed, trying Tier 2 (user/webcam)...', errEnv);
+          // Tier 2: Try front camera / PC webcam
+          return html5QrCode.start({ facingMode: 'user' }, scanConfig, onScanSuccess, onScanError);
+        })
+        .catch(function(errUser) {
+          console.log('Tier 2 (user camera) failed, trying Tier 3 (enumerated cameras)...', errUser);
+          // Tier 3: Query available device cameras
+          return Html5Qrcode.getCameras().then(function(cameras) {
+            if (cameras && cameras.length > 0) {
+              const selectedCamId = cameras[cameras.length - 1].id;
+              return html5QrCode.start(selectedCamId, scanConfig, onScanSuccess, onScanError);
+            }
+            throw new Error('ไม่พบอุปกรณ์กล้องบนเครื่องนี้');
+          });
+        })
+        .catch(function(finalErr) {
+          console.warn('All camera start attempts failed:', finalErr);
+          state.qrScannerInstance = null;
+          if (vp) {
+            vp.innerHTML = `
+              <div class="p-4 text-center space-y-2">
+                <div class="text-rose-400 font-semibold">⚠️ ไม่สามารถเปิดกล้องได้</div>
+                <div class="text-slate-400 text-xs">${escapeHtml(finalErr.message || String(finalErr))}</div>
+                <div class="text-slate-500 text-[11px] pt-1">แนะนำ: กรุณาอนุญาตสิทธิ์กล้องในเบราว์เซอร์ หรือกดปุ่ม <strong>"🖼️ เลือกไฟล์ภาพ QR Code"</strong> ด้านล่าง</div>
+              </div>
+            `;
+          }
+          showToast('ไม่สามารถเปิดกล้องได้', 'กรุณาอนุญาตการเข้าถึงกล้อง หรือใช้วิธีเลือกไฟล์ภาพ QR Code ด้านล่าง', 'warning');
+        });
+    } catch (e) {
+      console.error('startCameraQrScanner exception:', e);
+      if (vp) {
+        vp.innerHTML = '<div class="p-4 text-center text-rose-400">เกิดข้อผิดพลาดในการเปิดระบบกล้อง</div>';
+      }
+    }
+  }
+
+  async function scanQrFromImageFile(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (typeof Html5Qrcode === 'undefined') {
+      showToast('ไม่พบไลบรารีอ่าน QR', 'กรุณาลองใหม่อีกครั้ง', 'warning');
+      return;
+    }
+
+    await stopCameraQrScanner();
+
+    try {
+      const html5QrCode = new Html5Qrcode('qrReaderViewport');
+      const decodedText = await html5QrCode.scanFile(file, true);
+      applyProvisioningToken(decodedText);
+      try { html5QrCode.clear(); } catch (_) {}
+    } catch (err) {
+      showToast('ไม่พบ QR Code ในรูปภาพที่เลือก', 'กรุณาตรวจสอบว่าภาพมีความคมชัดและมี QR Code ชัดเจน', 'error');
+    }
   }
 
   function applyManualProvisionPayload() {
     const val = getVal('manualProvisionInput');
     if (!val) return;
     applyProvisioningToken(val);
+  }
+
+  function applyDefaultCloudConfig() {
+    state.config.gasWebAppUrl = DEFAULT_CONFIG.gasWebAppUrl;
+    state.config.spreadsheetId = DEFAULT_CONFIG.spreadsheetId;
+    state.config.driveFolderId = DEFAULT_CONFIG.driveFolderId;
+    state.config.orgName = DEFAULT_CONFIG.orgName;
+    saveConfig();
+    closeQrScannerModal();
+    pingConnection(true);
+    showToast('เชื่อมต่อ Cloud สำเร็จ!', 'ตั้งค่าการเชื่อมต่อ Google Sheets & Drive เป็นค่าเริ่มต้นเรียบร้อยแล้ว', 'success');
   }
 
   /**
@@ -4799,6 +4918,7 @@ const FMMS = (function() {
     startCameraQrScanner: startCameraQrScanner,
     scanQrFromImageFile: scanQrFromImageFile,
     applyManualProvisionPayload: applyManualProvisionPayload,
+    applyDefaultCloudConfig: applyDefaultCloudConfig,
     renderSystemLogs: renderSystemLogs,
     exportTasksToCSV: exportTasksToCSV,
     exportMemosToCSV: exportMemosToCSV,
