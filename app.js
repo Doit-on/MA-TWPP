@@ -184,6 +184,7 @@ const FMMS = (function() {
             state.db.tasks = (state.db.tasks || []).filter(function(t) { return !state.deletedTaskIds.includes(t.TaskID); });
             state.db.memos = (state.db.memos || []).filter(function(m) { return !state.deletedTaskIds.includes(m.TaskID) && !state.deletedTaskIds.includes(m.MemoID); });
           }
+          reconcileMemoAndTaskStatuses();
           return;
         }
       }
@@ -709,6 +710,7 @@ const FMMS = (function() {
             return !delIds.includes(m.TaskID) && !delIds.includes(m.MemoID);
           });
         }
+        reconcileMemoAndTaskStatuses();
         if (json.data.users && json.data.users.length > 0) {
           state.db.users = json.data.users;
           ensureDefaultUsers();
@@ -2653,17 +2655,22 @@ const FMMS = (function() {
       task.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
     }
 
-    if (memo) {
-      memo.ApprovalStatus = (newStatus === 'Closed' || newStatus === 'Approved') ? 'Approved' : 'Rejected';
-      memo.ApprovedBy = actor.userId;
-      memo.ApproverName = actor.fullName;
-      memo.ApprovalDate = now;
-      memo.ExecutiveComment = newStatus === 'Closed'
+    // Update ALL matching memos for this task/memo, not just the first one found
+    const targetTaskId = task ? task.TaskID : (memo ? memo.TaskID : targetId);
+    const relatedMemos = (state.db.memos || []).filter(function(m) {
+      return m.MemoID === targetId || m.TaskID === targetTaskId || (task && m.TaskID === task.TaskID);
+    });
+    relatedMemos.forEach(function(m) {
+      m.ApprovalStatus = (newStatus === 'Closed' || newStatus === 'Approved') ? 'Approved' : 'Rejected';
+      m.ApprovedBy = actor.userId;
+      m.ApproverName = actor.fullName;
+      m.ApprovalDate = now;
+      m.ExecutiveComment = newStatus === 'Closed'
         ? 'ผู้บริหารตรวจสอบความเรียบร้อยและลงนามตรวจรับปิดงานสมบูรณ์'
         : (newStatus === 'Approved'
           ? 'ผู้บริหารอนุมัติงบประมาณและสั่งการให้ดำเนินการทันที (ข้ามขั้นตอน Supervisor)'
           : 'ตีกลับเพื่อแก้ไขรายละเอียดงาน');
-    }
+    });
 
     const docId = task ? task.TaskID : memo.MemoID;
 
@@ -4509,15 +4516,33 @@ const FMMS = (function() {
 
     if (role === 2) {
       // Level 2: Supervisor looks for tasks waiting for Level 2 approval
-      const tasks = (state.db && state.db.tasks) || [];
+      const delIds = state.deletedTaskIds || [];
+      const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
       pendingCount = tasks.filter(function(t) { return t.Status === 'Pending Level 2 Approval'; }).length;
       labelText = 'รอ ผค.งาน อนุมัติ';
     } else if (role === 3) {
       // Level 3: Executive looks for memos waiting for Level 3 budget approval
+      reconcileMemoAndTaskStatuses();
+      const delIds = state.deletedTaskIds || [];
+      const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
       const memos = (state.db && state.db.memos) || [];
-      const tasks = (state.db && state.db.tasks) || [];
-      const pendingMemos = memos.filter(function(m) { return m.ApprovalStatus === 'Pending Approval'; });
-      const pendingTasks = tasks.filter(function(t) { return t.Status === 'Pending Level 3 Approval'; });
+
+      // Memos waiting for budget approval where task is NOT already Approved, In Progress, Completed, or Closed
+      const pendingMemos = memos.filter(function(m) {
+        if (m.ApprovalStatus !== 'Pending Approval') return false;
+        if (delIds.includes(m.TaskID) || delIds.includes(m.MemoID)) return false;
+        const linkedTask = tasks.find(function(t) { return t.TaskID === m.TaskID; });
+        if (!linkedTask) return false;
+        if (linkedTask.Status === 'Approved' || linkedTask.Status === 'In Progress' || linkedTask.Status === 'Completed' || linkedTask.Status === 'Closed') {
+          return false;
+        }
+        return true;
+      });
+
+      const pendingTasks = tasks.filter(function(t) {
+        return t.Status === 'Pending Level 3 Approval';
+      });
+
       pendingCount = Math.max(pendingMemos.length, pendingTasks.length);
       labelText = 'รอ ผู้บริหาร อนุมัติ';
     } else {
@@ -4563,11 +4588,14 @@ const FMMS = (function() {
 
     if (role === 2) {
       // Supervisor Alert
+      const delIds = state.deletedTaskIds || [];
       const tasks = ((state.db && state.db.tasks) || []).filter(function(t) {
-        return t.Status === 'Pending Level 2 Approval';
+        return !delIds.includes(t.TaskID) && t.Status === 'Pending Level 2 Approval';
       });
 
-      if (tasks.length === 0 && !forceModal) return;
+      if (tasks.length === 0) {
+        if (!forceModal) return;
+      }
 
       if (titleEl) titleEl.textContent = 'แจ้งเตือน: มีใบงานรอผู้ควบคุมงาน (ระดับ 2) พิจารณาอนุมัติ';
       if (noticeEl) noticeEl.textContent = 'มีใบงานที่ช่างหน้างาน (ลำดับ 1) ส่งเข้ามาเพื่อขออนุมัติดำเนินการ';
@@ -4607,24 +4635,42 @@ const FMMS = (function() {
 
     } else if (role === 3) {
       // Executive Alert
-      const memos = ((state.db && state.db.memos) || []).filter(function(m) {
-        return m.ApprovalStatus === 'Pending Approval';
+      reconcileMemoAndTaskStatuses();
+      const delIds = state.deletedTaskIds || [];
+      const tasks = ((state.db && state.db.tasks) || []).filter(function(t) { return !delIds.includes(t.TaskID); });
+      const memos = (state.db && state.db.memos) || [];
+
+      // STRICT FILTER: Memo must be Pending Approval AND linked task must NOT be Approved, In Progress, Completed, or Closed!
+      const validPendingMemos = memos.filter(function(m) {
+        if (m.ApprovalStatus !== 'Pending Approval') return false;
+        if (delIds.includes(m.TaskID) || delIds.includes(m.MemoID)) return false;
+        const linkedTask = tasks.find(function(t) { return t.TaskID === m.TaskID; });
+        if (!linkedTask) return false;
+        if (linkedTask.Status === 'Approved' || linkedTask.Status === 'In Progress' || linkedTask.Status === 'Completed' || linkedTask.Status === 'Closed') {
+          return false;
+        }
+        return true;
       });
 
-      if (memos.length === 0 && !forceModal) return;
+      // If zero pending memos and not manually forced, DO NOT show modal
+      if (validPendingMemos.length === 0 && !forceModal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        return;
+      }
 
       if (titleEl) titleEl.textContent = 'แจ้งเตือน: มีบันทึกข้อความขออนุมัติงบประมาณรอผู้บริหาร (ระดับ 3) พิจารณา';
       if (noticeEl) noticeEl.textContent = 'มีบันทึกข้อความที่ผู้ควบคุมงาน (ลำดับ 2) ตรวจสอบและเสนอขออนุมัติงบประมาณ';
-      if (countBadge) countBadge.textContent = memos.length + ' ฉบับ';
+      if (countBadge) countBadge.textContent = validPendingMemos.length + ' ฉบับ';
 
       if (step2Badge) step2Badge.className = 'p-2 rounded bg-teal-50 border border-teal-200 text-teal-800';
       if (step3Badge) step3Badge.className = 'p-2 rounded bg-blue-600 text-white font-bold ring-2 ring-blue-300 animate-pulse';
 
       if (tbody) {
-        if (memos.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">ไม่มีรายการรออนุมัติงบประมาณสำหรับผู้บริหารในขณะนี้</td></tr>';
+        if (validPendingMemos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">ไม่มีรายการรออนุมัติงบประมาณสำหรับผู้บริหารในขณะนี้ (อนุมัติ/ปิดงานครบถ้วนแล้ว)</td></tr>';
         } else {
-          tbody.innerHTML = memos.map(function(m) {
+          tbody.innerHTML = validPendingMemos.map(function(m) {
             return `
               <tr class="hover:bg-slate-50">
                 <td class="py-2.5 px-3 font-mono-code font-bold text-blue-900">${escapeHtml(m.MemoID)}</td>
@@ -4657,8 +4703,7 @@ const FMMS = (function() {
 
   function closeApprovalAlertModal() {
     const role = state.session ? Number(state.session.roleLevel) : 0;
-    const chk = document.getElementById('chkDoNotShowAgainInSession');
-    if (chk && chk.checked && (role === 2 || role === 3)) {
+    if (role === 2 || role === 3) {
       sessionAlertDismissed['role' + role] = true;
     }
     const modal = document.getElementById('approvalAlertModal');
@@ -5115,6 +5160,35 @@ const FMMS = (function() {
 
     showToast('แก้ไขข้อมูลใบงาน ' + task.TaskID + ' สำเร็จ', 'อัปเดตตารางรายงานและฐานข้อมูลเรียบร้อยแล้ว', 'success');
   }
+
+  
+  function reconcileMemoAndTaskStatuses() {
+    if (!state.db) return;
+    const tasks = state.db.tasks || [];
+    const delIds = state.deletedTaskIds || [];
+
+    // 1. Purge memos tied to deleted tasks
+    state.db.memos = (state.db.memos || []).filter(function(m) {
+      return !delIds.includes(m.TaskID) && !delIds.includes(m.MemoID);
+    });
+
+    // 2. Harmonize memos with task status:
+    // If the referenced task is Approved, In Progress, Completed, or Closed,
+    // its memos MUST NOT be 'Pending Approval'!
+    (state.db.memos || []).forEach(function(m) {
+      const task = tasks.find(function(t) { return t.TaskID === m.TaskID; });
+      if (task) {
+        if (task.Status === 'Approved' || task.Status === 'In Progress' || task.Status === 'Completed' || task.Status === 'Closed') {
+          if (m.ApprovalStatus === 'Pending Approval') {
+            m.ApprovalStatus = 'Approved';
+            if (!m.ApproverName || m.ApproverName === '-') m.ApproverName = 'ผู้บริหาร (อนุมัติแล้ว)';
+            if (!m.ApprovalDate || m.ApprovalDate === '-') m.ApprovalDate = task.UpdatedAt || getIsoNow();
+          }
+        }
+      }
+    });
+  }
+
 
   function renderAllViews() {
     renderReportTasksTable();
