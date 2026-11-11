@@ -952,6 +952,21 @@ const FMMS = (function() {
         LastLoginAt: '2026-10-01T09:00:00+07:00'
       },
       {
+        UserID: 'USR-2026-0002',
+        Username: 'Supervisors',
+        PasswordPlain: 'super123',
+        FullName: 'กฤษกร ทรัพย์เงิน (Supervisor)',
+        RoleLevel: 2,
+        Department: 'บริหารทรัพย์สิน',
+        Phone: '081-900-1002',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T09:00:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-01T09:00:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-01T09:00:00+07:00'
+      },
+      {
         UserID: 'USR-2026-0003',
         Username: 'tech01',
         PasswordPlain: 'tech123',
@@ -1010,6 +1025,36 @@ const FMMS = (function() {
         UpdatedAt: '2026-10-01T08:30:00+07:00',
         UpdatedBy: 'SYSTEM_INIT',
         LastLoginAt: '2026-10-01T08:30:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0007',
+        Username: 'account',
+        PasswordPlain: 'acc123',
+        FullName: 'ฝ่ายบัญชีและการเงิน (Accounting & Finance)',
+        RoleLevel: 2.5,
+        Department: 'การเงินและบัญชี',
+        Phone: '081-900-1004',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T08:30:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-01T08:30:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-01T08:30:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0003',
+        Username: 'EXEC',
+        PasswordPlain: 'exec123',
+        FullName: 'Executive (ผู้บริหารระดับสูง)',
+        RoleLevel: 3,
+        Department: 'ฝ่ายบริหารจัดการอาคาร',
+        Phone: '081-900-1001',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T08:30:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-01T08:30:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-01T08:30:00+07:00'
       }
     ];
 
@@ -1022,6 +1067,23 @@ const FMMS = (function() {
       } else {
         if (!exists.PasswordPlain) exists.PasswordPlain = d.PasswordPlain;
         if (!exists.RoleLevel) exists.RoleLevel = d.RoleLevel;
+      }
+    });
+
+    // Auto-populate password for ANY user without PasswordPlain (e.g. pulled from Google Sheets)
+    state.db.users.forEach(function(u) {
+      const uname = String(u.Username || '').toLowerCase();
+      const role = Number(u.RoleLevel);
+      if (!u.PasswordPlain) {
+        if (uname === 'admin' || role === 3) {
+          u.PasswordPlain = (uname === 'exec' || uname === 'exec1') ? 'exec123' : 'admin123';
+        } else if (uname === 'account' || role === 2.5) {
+          u.PasswordPlain = 'acc123';
+        } else if (uname.includes('super') || role === 2) {
+          u.PasswordPlain = 'super123';
+        } else if (uname.includes('tech') || role === 1) {
+          u.PasswordPlain = 'tech123';
+        }
       }
     });
   }
@@ -1176,12 +1238,13 @@ const FMMS = (function() {
     }
 
     const isPasswordValid = user && password && (
+      (password === user.PasswordPlain) ||
       (password === expectedPassword) ||
-      (alias === 'admin' && (password === 'admin123' || password === user.PasswordPlain)) ||
-      (alias === 'account' && (password === 'acc123' || password === user.PasswordPlain)) ||
-      (alias === 'super1' && (password === 'super123' || password === 'sup123' || password === user.PasswordPlain)) ||
-      (alias === 'tech1' && (password === 'tech123' || password === user.PasswordPlain)) ||
-      (alias === 'exec1' && (password === 'exec123' || password === user.PasswordPlain))
+      (alias === 'admin' && (password === 'admin123' || password === 'admin')) ||
+      (alias === 'account' && (password === 'acc123' || password === 'account123')) ||
+      (alias === 'super1' && (password === 'super123' || password === 'sup123' || password === 'supervisor123')) ||
+      (alias === 'tech1' && (password === 'tech123' || password === 'tech')) ||
+      (alias === 'exec1' && (password === 'exec123' || password === 'exec'))
     );
 
     if (!user || !isPasswordValid) {
