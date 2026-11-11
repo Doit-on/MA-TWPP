@@ -31,9 +31,9 @@
     <div class="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
       <div class="flex items-center gap-2 text-xs font-mono-code text-slate-300">
         <span class="w-2 h-2 rounded-full bg-emerald-400 status-dot-live"></span>
-        <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.9.2-ENT</strong></span>
+        <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.9.3-ENT</strong></span>
         <span class="text-slate-600">|</span>
-        <span>FMMS ENTERPRISE VERSION: <strong class="text-teal-300">v2.9.2-ENT</strong></span>
+        <span>FMMS ENTERPRISE VERSION: <strong class="text-teal-300">v2.9.3-ENT</strong></span>
       </div>
       <div class="flex items-center gap-3 text-xs font-mono-code">
         <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition cursor-pointer">
@@ -63,7 +63,7 @@
         <!-- v2.6.0 Release Feature Highlights Pill -->
         <div class="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 text-teal-200 text-xs font-mono-code">
           <span class="w-2 h-2 rounded-full bg-teal-400"></span>
-          <span>RELEASE v2.9.2-ENT: ระบบพรีวิวเอกสาร A4 มาตรฐาน DS APP • รองรับจอมือถือ Auto-Fit Screen • ระบบลบผู้ใช้งานถาวรตัดวงจรลูป 100%</span>
+          <span>RELEASE v2.9.3-ENT: ระบบพรีวิวเอกสาร A4 มาตรฐาน DS APP • รองรับจอมือถือ Auto-Fit Screen • ระบบลบผู้ใช้งานถาวรตัดวงจรลูป 100%</span>
         </div>
       </div>
 
@@ -94,6 +94,9 @@
           </button>
           <button type="button" onclick="FMMS.quickLogin('super1', 'super123')" class="bg-amber-950/70 hover:bg-amber-800/80 border border-amber-500/40 text-amber-200 px-3.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 shadow">
             <span>📋 ผค.งาน (ระดับ 2)</span>
+          </button>
+          <button type="button" onclick="FMMS.quickLogin('account', 'acc123')" class="bg-emerald-950/70 hover:bg-emerald-800/80 border border-emerald-500/40 text-emerald-200 px-3.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 shadow">
+            <span>💰 ฝ่ายบัญชี (ระดับ 2.5)</span>
           </button>
           <button type="button" onclick="FMMS.quickLogin('exec1', 'exec123')" class="bg-indigo-950/70 hover:bg-indigo-800/80 border border-indigo-500/40 text-indigo-200 px-3.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 shadow">
             <span>🏛️ ผู้บริหาร (ระดับ 3)</span>
@@ -151,7 +154,7 @@
           FMMS ENTERPRISE
         </div>
         <div class="text-[11px] font-mono-code uppercase tracking-widest text-teal-700 mt-1">
-          DATA MA TWPP • SYS VER: v2.9.2-ENT
+          DATA MA TWPP • SYS VER: v2.9.3-ENT
         </div>
       </div>
 
@@ -197,6 +200,10 @@
             <span>📋 ผค.งาน (ระดับ 2)</span>
             <span class="text-[10px] text-amber-600 font-mono">super1</span>
           </button>
+          <button type="button" onclick="FMMS.quickLogin('account', 'acc123')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 py-2 px-2.5 rounded-lg font-medium text-left flex items-center justify-between transition cursor-pointer col-span-2">
+            <span>💰 ฝ่ายบัญชี/การเงิน (ระดับ 2.5)</span>
+            <span class="text-[10px] text-emerald-600 font-mono">account</span>
+          </button>
           <button type="button" onclick="FMMS.quickLogin('exec1', 'exec123')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 py-2 px-2.5 rounded-lg font-medium text-left flex items-center justify-between transition cursor-pointer">
             <span>🏛️ ผู้บริหาร (ระดับ 3)</span>
             <span class="text-[10px] text-indigo-600 font-mono">exec1</span>
@@ -238,7 +245,7 @@
         </span>
         <span class="text-slate-600">|</span>
         <span class="font-mono-code text-teal-300">
-          SYS VER: <strong id="headerSysVersion">v2.9.2-ENT</strong>
+          SYS VER: <strong id="headerSysVersion">v2.9.3-ENT</strong>
         </span>
         <span class="text-slate-600 hidden sm:inline">|</span>
         <span class="font-mono-code text-slate-400 hidden sm:inline">
@@ -247,6 +254,12 @@
       </div>
 
       <div class="flex items-center gap-2 font-mono-code">
+        <!-- Live Active Users Presence Counter -->
+        <button type="button" onclick="FMMS.openOnlineUsersModal()" class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-750 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[11px] font-mono-code transition cursor-pointer" title="ดูรายชื่อผู้ใช้งานที่กำลังออนไลน์อยู่ในระบบ">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>ออนไลน์: <strong id="onlineUsersCountDisplay">1</strong> คน</span>
+        </button>
+        <span class="text-slate-600 hidden sm:inline">|</span>
         <span id="liveClockDisplay" class="text-slate-300">26/10/2026 22:45:00</span>
         <button type="button" onclick="FMMS.showLandingPage()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[11px] transition">
           หน้าแรก (Landing)
@@ -284,10 +297,15 @@
           <button type="button" id="navBtnRole1" onclick="FMMS.switchView('role1')" class="px-2.5 py-1.5 rounded font-medium transition">
             1: ช่างหน้างาน
           </button>
-          <button type="button" id="navBtnRole2" onclick="FMMS.switchView('role2')" class="px-2.5 py-1.5 rounded font-medium transition">
-            2: ผู้ควบคุมงาน (แก้ไขเอกสาร)
+          <button type="button" id="navBtnRole2" onclick="FMMS.switchView('role2')" class="px-2.5 py-1.5 rounded font-medium transition whitespace-nowrap">
+            2: ผค.งาน (MA)
           </button>
-          <button type="button" id="navBtnRole3" onclick="FMMS.switchView('role3')" class="px-2.5 py-1.5 rounded font-medium transition">
+          <button type="button" id="navBtnPilot" onclick="FMMS.switchView('pilot')" class="px-2.5 py-1.5 rounded font-medium transition whitespace-nowrap flex items-center gap-1.5">
+            <span>🏗️</span>
+            <span>โครงการนำร่อง (Pilot)</span>
+            <span id="headerPilotBadge" class="hidden bg-teal-500 text-slate-950 font-bold px-1.5 py-0.2 rounded-full text-[9px]">0</span>
+          </button>
+          <button type="button" id="navBtnRole3" onclick="FMMS.switchView('role3')" class="px-2.5 py-1.5 rounded font-medium transition whitespace-nowrap">
             3: ผู้บริหาร
           </button>
           <button type="button" id="navBtnAdmin" onclick="FMMS.switchView('admin')" class="px-2.5 py-1.5 rounded font-medium transition">
@@ -1005,7 +1023,7 @@
           <div class="enterprise-card overflow-hidden">
             <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
               <h3 class="text-sm font-bold text-slate-900">สรุปงบประมาณและปริมาณงานแยกตามหมวดวิศวกรรม (MEP Breakdown)</h3>
-              <span class="text-[11px] font-mono-code text-slate-500">SYS VER: v2.9.2-ENT</span>
+              <span class="text-[11px] font-mono-code text-slate-500">SYS VER: v2.9.3-ENT</span>
             </div>
             <div class="p-4 overflow-x-auto">
               <table class="w-full text-xs text-left border-collapse">
@@ -1123,7 +1141,7 @@
         </div>
       </div>
 
-      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & PERFORMANCE REPORT (SYS VER: v2.9.2-ENT) -->
+      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & PERFORMANCE REPORT (SYS VER: v2.9.3-ENT) -->
       <div id="execSubViewReport" class="hidden space-y-6">
         <!-- Report Header & Actions -->
         <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
@@ -1133,7 +1151,7 @@
               <span class="text-xs text-slate-500">รายงานสรุปผลการบริหารงานซ่อมบำรุงและควบคุมต้นทุนวิศวกรรมอาคาร</span>
             </div>
             <h3 class="text-base font-bold text-slate-900 mt-1">รายงานสรุปผู้บริหารเชิงลึก (Executive Analytical & Financial Report)</h3>
-            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ ระบบบริหารงานซ่อมบำรุงวิศวกรรมอาคาร Version v2.9.2-ENT</p>
+            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ ระบบบริหารงานซ่อมบำรุงวิศวกรรมอาคาร Version v2.9.3-ENT</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button type="button" onclick="FMMS.printExecutiveReport()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow flex items-center gap-1.5 cursor-pointer">
@@ -1176,7 +1194,7 @@
               <h4 class="text-sm font-bold text-slate-900">การวิเคราะห์ต้นทุนและปริมาณงานแยกตาม 4 หมวดวิศวกรรมหลัก (MEP Breakdown)</h4>
               <p class="text-xs text-slate-500">HVAC (ปรับอากาศ) • Electrical (ไฟฟ้า) • Plumbing (สุขาภิบาล) • Fire & Safety (ดับเพลิง)</p>
             </div>
-            <span class="text-xs font-mono-code bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 font-semibold">SYS VER: v2.9.2-ENT</span>
+            <span class="text-xs font-mono-code bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 font-semibold">SYS VER: v2.9.3-ENT</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -1199,12 +1217,12 @@
           </div>
         </div>
 
-        <!-- Section 3: FMMS Engineering Performance Scorecards (v2.9.2-ENT) & Contractor Ledger -->
+        <!-- Section 3: FMMS Engineering Performance Scorecards (v2.9.3-ENT) & Contractor Ledger -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- FMMS Engineering Operational Health (v2.9.2-ENT) -->
+          <!-- FMMS Engineering Operational Health (v2.9.3-ENT) -->
           <div class="lg:col-span-5 enterprise-card overflow-hidden flex flex-col justify-between">
             <div class="enterprise-panel-header px-5 py-3.5">
-              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพงานวิศวกรรม (FMMS Performance Scorecard v2.9.2-ENT)</h4>
+              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพงานวิศวกรรม (FMMS Performance Scorecard v2.9.3-ENT)</h4>
               <p class="text-xs text-slate-500">เกณฑ์ประเมินการบำรุงรักษาเชิงป้องกันและประสิทธิผลงาน</p>
             </div>
             <div class="p-5 space-y-4 text-xs">
@@ -1319,7 +1337,7 @@
 
           <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500 font-mono-code">
             <div>พบข้อมูลในรายงาน: <strong id="repTasksCountText" class="text-slate-900">0</strong> รายการ</div>
-            <div>SYS VER: <strong class="text-teal-700">v2.9.2-ENT</strong> | FONT: TH Sarabun New (12pt / 14pt / 16pt)</div>
+            <div>SYS VER: <strong class="text-teal-700">v2.9.3-ENT</strong> | FONT: TH Sarabun New (12pt / 14pt / 16pt)</div>
           </div>
         </div>
       </div>
@@ -1463,6 +1481,7 @@
                 <select id="usrRoleLevel" class="w-full border border-slate-300 rounded px-3 py-2 bg-white">
                   <option value="1">ระดับ 1: ช่าง/ผู้รับเหมา (สร้างเอกสารใหม่)</option>
                   <option value="2">ระดับ 2: Supervisor (มีสิทธิ์แก้ไขเอกสาร)</option>
+                  <option value="2.5">ระดับ 2.5: ฝ่ายบัญชีและการเงิน (จัดการงวดงาน & สั่งจ่าย)</option>
                   <option value="3">ระดับ 3: ผู้บริหาร & Admin</option>
                 </select>
               </div>
@@ -1565,6 +1584,242 @@
       </div>
     </section>
 
+  
+    <!-- ======================================================================
+         VIEW PILOT: PILOT PROJECTS, CONTRACTS, MILESTONES & DISBURSEMENT
+         ====================================================================== -->
+    <section id="viewPilot" class="hidden space-y-6">
+      <!-- Pilot Projects Module Top Banner -->
+      <div class="enterprise-card p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-[11px] font-mono-code uppercase px-2.5 py-0.5 rounded bg-indigo-700 text-white font-bold tracking-wider">PILOT PROJECTS & CONTRACTS</span>
+            <span class="text-[11px] font-mono-code uppercase px-2.5 py-0.5 rounded bg-emerald-950 border border-emerald-500/50 text-emerald-300">แยกหมวดโครงการสัญญาชัดเจน • ไม่ปะปนกับงานซ่อม MA</span>
+            <span class="text-[11px] font-mono-code uppercase px-2.5 py-0.5 rounded bg-amber-950 border border-amber-500/50 text-amber-300">สิทธิ์บัญชีกำหนดงวดเงิน & ประกันผลงาน</span>
+          </div>
+          <h2 class="text-lg sm:text-xl font-bold mt-1.5 text-white flex items-center gap-2">
+            <span>🏗️ ระบบบริหารโครงการนำร่องและสัญญาปรับปรุงอาคาร</span>
+          </h2>
+          <p class="text-xs text-slate-300 mt-0.5">
+            กำกับดูแลงานจ้างเหมาตามสัญญา อ้างอิงไฟล์สัญญาหลัก กำหนดงวดงานแบบ 100% หรือแบ่งจ่าย ตรวจรับงานพร้อมภาพหลักฐาน และควบคุมการสั่งจ่ายเงินโดยฝ่ายบัญชี
+          </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" id="btnCreatePilotProject" onclick="FMMS.openCreateProjectModal()"
+            class="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition shadow flex items-center gap-2 cursor-pointer">
+            <span class="text-base font-bold">+</span>
+            <span>เพิ่มโครงการ / สัญญาใหม่</span>
+          </button>
+          <button type="button" onclick="FMMS.manualSyncCloud()"
+            class="bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer">
+            <span>🔄</span>
+            <span>ซิงค์ข้อมูล</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Financial & Contract Metrics Summary Scoreboard -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="enterprise-card p-3 sm:p-4 bg-white border-l-4 border-l-indigo-600">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">โครงการทั้งหมด</div>
+          <div class="text-xl sm:text-2xl font-bold font-mono-code text-indigo-950 mt-1" id="pilotMetricTotalProjects">0</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">สัญญาที่บันทึกในระบบ</div>
+        </div>
+        <div class="enterprise-card p-3 sm:p-4 bg-white border-l-4 border-l-teal-600">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">มูลค่าสัญญารวม</div>
+          <div class="text-xl sm:text-2xl font-bold font-mono-code text-teal-700 mt-1" id="pilotMetricTotalBudget">฿0</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">งบประมาณโครงการทั้งหมด</div>
+        </div>
+        <div class="enterprise-card p-3 sm:p-4 bg-white border-l-4 border-l-amber-500">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">เงินประกันผลงานสะสม</div>
+          <div class="text-xl sm:text-2xl font-bold font-mono-code text-amber-700 mt-1" id="pilotMetricTotalRetention">฿0</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">หักค้ำประกันรอคืนครบสัญญา</div>
+        </div>
+        <div class="enterprise-card p-3 sm:p-4 bg-white border-l-4 border-l-emerald-600">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">เบิกจ่ายแล้วสุทธิ</div>
+          <div class="text-xl sm:text-2xl font-bold font-mono-code text-emerald-700 mt-1" id="pilotMetricTotalPaid">฿0</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">มีหลักฐานสลิปโอนเงินครบ</div>
+        </div>
+      </div>
+
+      <!-- Sub-Tab Navigation Bar within Pilot Projects (Mobile-Friendly Horizontal Scroll) -->
+      <div class="bg-white border border-slate-200 rounded-lg p-1.5 flex items-center justify-between gap-2 shadow-sm overflow-x-auto no-scrollbar">
+        <div class="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
+          <button type="button" id="pilotSubTabBtnProjects" onclick="FMMS.switchPilotSubTab('projects')"
+            class="px-3 py-1.5 rounded-md font-semibold text-xs bg-indigo-600 text-white transition shadow-sm">
+            📑 รายการโครงการ & สัญญา
+          </button>
+          <button type="button" id="pilotSubTabBtnMilestones" onclick="FMMS.switchPilotSubTab('milestones')"
+            class="px-3 py-1.5 rounded-md font-medium text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+            📋 ตรวจรับงวดงาน & บัญชีสั่งจ่าย
+          </button>
+          <button type="button" id="pilotSubTabBtnRetention" onclick="FMMS.switchPilotSubTab('retention')"
+            class="px-3 py-1.5 rounded-md font-medium text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+            💰 บัญชีเงินประกันผลงาน & สรุปการเงิน
+          </button>
+        </div>
+        <div class="text-[11px] text-slate-500 font-mono-code hidden md:block pr-2">
+          SHEET: <span class="font-bold text-indigo-700">Pilot_Projects / Project_Milestones</span>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           SUB-TAB 1: PROJECTS & CONTRACTS DIRECTORY
+           ==================================================================== -->
+      <div id="pilotSubTabProjectsContent" class="space-y-4">
+        <!-- Search & Filter Bar -->
+        <div class="enterprise-card p-3 sm:p-4 bg-white flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+            <span class="text-slate-400 font-bold">🔍 ค้นหา:</span>
+            <input type="text" id="pilotSearchInput" oninput="FMMS.renderPilotProjectsTable()"
+              placeholder="ค้นหาเลขที่สัญญา, ชื่องาน, ผู้รับเหมา, พิกัด..."
+              class="flex-1 border border-slate-300 rounded-md px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="font-bold text-slate-600">สถานะสัญญา:</label>
+            <select id="pilotStatusFilter" onchange="FMMS.renderPilotProjectsTable()"
+              class="border border-slate-300 rounded-md px-3 py-2 bg-white text-xs">
+              <option value="ALL">ทุกสถานะ (All Projects)</option>
+              <option value="Contract Signed">เพิ่งทำสัญญา (Contract Signed)</option>
+              <option value="In Progress">กำลังดำเนินงาน (In Progress)</option>
+              <option value="Warranty Period">อยู่ในช่วงรับประกัน (Warranty Period)</option>
+              <option value="Completed">เสร็จสิ้นสมบูรณ์ (Completed)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Projects Table / Cards -->
+        <div class="enterprise-card overflow-hidden bg-white shadow-sm">
+          <div class="enterprise-panel-header px-5 py-3.5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">ทะเบียนสัญญาโครงการนำร่อง (Pilot Projects Ledger)</h3>
+              <p class="text-xs text-slate-500">แสดงสัญญาหลัก ผู้รับเหมา มูลค่าสัญญา อัตราเงินประกันผลงาน และสถานะ</p>
+            </div>
+            <div class="text-xs font-mono-code text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200" id="pilotProjectsCountText">
+              0 โครงการ
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase font-semibold">
+                  <th class="py-3 px-3">รหัสโครงการ / สัญญา</th>
+                  <th class="py-3 px-3">ชื่องาน & หมวดหมู่</th>
+                  <th class="py-3 px-3">ผู้รับเหมา & ติดต่อ</th>
+                  <th class="py-3 px-3 text-right">มูลค่าสัญญา</th>
+                  <th class="py-3 px-3 text-center">เงื่อนไขจ่ายเงิน</th>
+                  <th class="py-3 px-3 text-center">หักประกันผลงาน</th>
+                  <th class="py-3 px-3 text-center">สถานะ</th>
+                  <th class="py-3 px-3 text-right">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="pilotProjectsTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically Rendered by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           SUB-TAB 2: MILESTONES INSPECTION & ACCOUNTING PAYOUT
+           ==================================================================== -->
+      <div id="pilotSubTabMilestonesContent" class="hidden space-y-4">
+        <!-- Project Selector Dropdown Bar -->
+        <div class="enterprise-card p-3 sm:p-4 bg-indigo-50/70 border border-indigo-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2 flex-1 min-w-[280px]">
+            <label class="font-bold text-indigo-900 whitespace-nowrap">📂 เลือกโครงการเพื่อจัดการงวดงาน:</label>
+            <select id="pilotActiveProjectSelect" onchange="FMMS.handleSelectActiveProject(this.value)"
+              class="flex-1 border border-indigo-300 rounded-md px-3 py-2 bg-white text-xs font-semibold text-slate-800">
+              <!-- Populated by app.js -->
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btnAddMilestoneForProjectBtn" onclick="FMMS.openAddMilestoneModal()"
+              class="bg-indigo-700 hover:bg-indigo-600 text-white font-semibold px-3 py-2 rounded-md transition text-xs flex items-center gap-1.5 shadow">
+              <span>+ เพิ่มงวดงานใหม่ (ฝ่ายบัญชี)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Selected Project Header & Progress Bar -->
+        <div id="pilotSelectedProjectBanner" class="enterprise-card p-4 sm:p-5 bg-white space-y-3">
+          <!-- Populated by app.js -->
+        </div>
+
+        <!-- Milestones Table with Multi-Role Actions (Engineer Inspect vs. Accounting Pay) -->
+        <div class="enterprise-card overflow-hidden bg-white shadow-sm">
+          <div class="enterprise-panel-header px-5 py-3.5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">ตารางงวดงาน การตรวจรับ และการสั่งจ่ายเงิน (Milestones Ledger)</h3>
+              <p class="text-xs text-slate-500">ระบบ 3-Way Match: วิศวกรตรวจรับงานพร้อมภาพถ่าย ➔ ฝ่ายบัญชีตรวจสอบและสั่งจ่าย ➔ ผู้บริหารรับทราบ</p>
+            </div>
+            <div class="text-xs font-mono-code text-teal-700 bg-teal-50 px-2.5 py-1 rounded border border-teal-200" id="pilotMilestonesSummaryBadge">
+              0 งวดงาน
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase font-semibold">
+                  <th class="py-3 px-3">งวดที่</th>
+                  <th class="py-3 px-3">รายละเอียดงวดงาน</th>
+                  <th class="py-3 px-3 text-right">% ค่างวด</th>
+                  <th class="py-3 px-3 text-right">ยอดเงินงวด</th>
+                  <th class="py-3 px-3 text-right">หักประกันผลงาน</th>
+                  <th class="py-3 px-3 text-right">ยอดจ่ายสุทธิ</th>
+                  <th class="py-3 px-3 text-center">การตรวจรับ (วิศวกร)</th>
+                  <th class="py-3 px-3 text-center">การสั่งจ่าย (บัญชี)</th>
+                  <th class="py-3 px-3 text-right">จัดการ / พรีวิว A4</th>
+                </tr>
+              </thead>
+              <tbody id="pilotMilestonesTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically Rendered by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           SUB-TAB 3: RETENTION & FINANCIAL SUMMARY
+           ==================================================================== -->
+      <div id="pilotSubTabRetentionContent" class="hidden space-y-4">
+        <div class="enterprise-card p-5 bg-white space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">สรุปบัญชีเงินประกันผลงานและสถานะการเงินโครงการ (Retention Ledger)</h3>
+              <p class="text-xs text-slate-500">ติดตามยอดเงินประกันผลงานที่หักสะสมไว้ตามสัญญา วันครบกำหนดรับประกัน และการปลดล็อกคืนเงินให้ผู้รับเหมา</p>
+            </div>
+            <button type="button" onclick="FMMS.exportPilotFinancialsToCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-300 transition">
+              📥 ส่งออกไฟล์ CSV
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-100 text-slate-600 uppercase font-semibold">
+                  <th class="py-2.5 px-3">สัญญา / โครงการ</th>
+                  <th class="py-2.5 px-3">ผู้รับเหมา</th>
+                  <th class="py-2.5 px-3 text-right">มูลค่าสัญญารวม</th>
+                  <th class="py-2.5 px-3 text-right">อัตราหัก (%)</th>
+                  <th class="py-2.5 px-3 text-right">ประกันผลงานสะสม</th>
+                  <th class="py-2.5 px-3 text-right">จ่ายสุทธิแล้ว</th>
+                  <th class="py-2.5 px-3 text-right">ยอดคงเหลือตามสัญญา</th>
+                  <th class="py-2.5 px-3 text-center">ระยะรับประกัน</th>
+                  <th class="py-2.5 px-3 text-center">สถานะประกัน</th>
+                </tr>
+              </thead>
+              <tbody id="pilotRetentionTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically Rendered by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ========================================================================
@@ -1576,7 +1831,7 @@
       <div class="memo-topbar-left">
         <span class="memo-badge">A4 STANDARD</span>
         <div class="memo-topbar-title">
-          พรีวิวเอกสารทางการ (A4 Standard Report) • FMMS <span class="text-teal-400 font-mono-code">v2.9.2-ENT</span>
+          พรีวิวเอกสารทางการ (A4 Standard Report) • FMMS <span class="text-teal-400 font-mono-code">v2.9.3-ENT</span>
         </div>
       </div>
 
@@ -2211,5 +2466,347 @@
 
   <!-- Main Application Controller -->
   <script src="app.js?v=2.9.2"></script>
+
+  <!-- ========================================================================
+       MODAL: CREATE / EDIT PILOT PROJECT (CONTRACT & RETENTION POLICY)
+       ======================================================================== -->
+  <div id="pilotProjectModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-print">
+    <div class="bg-white border border-slate-300 rounded-xl max-w-2xl w-full overflow-hidden shadow-2xl my-auto">
+      <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between bg-slate-900 text-white">
+        <div>
+          <h3 class="text-sm font-bold text-white" id="pilotProjectModalTitle">บันทึกข้อมูลสัญญาโครงการนำร่อง (Pilot Project)</h3>
+          <p class="text-xs text-slate-300">ระบุรายละเอียดสัญญา ผู้รับเหมา มูลค่าสัญญา และนโยบายเงินประกันผลงาน</p>
+        </div>
+        <button type="button" onclick="FMMS.closePilotProjectModal()" class="text-slate-400 hover:text-white text-base font-bold">✕</button>
+      </div>
+
+      <form id="pilotProjectForm" onsubmit="FMMS.handleSavePilotProjectSubmit(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="prjEditId" value="">
+
+        <!-- Basic Contract Info -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">เลขที่สัญญาอ้างอิง (Contract No.) *</label>
+            <input type="text" id="prjContractNo" required placeholder="เช่น TWPP-CONT-2026/001"
+              class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">หมวดหมู่งานสัญญา *</label>
+            <select id="prjCategory" class="w-full border border-slate-300 rounded-md px-3 py-2 bg-white text-xs">
+              <option value="ปรับปรุงอาคาร & ตกแต่ง">ปรับปรุงอาคาร & ตกแต่ง (Renovation & Fit-out)</option>
+              <option value="ระบบปรับอากาศและเครื่องกล">ระบบปรับอากาศและเครื่องกล (HVAC & Mechanical)</option>
+              <option value="ระบบไฟฟ้าและพลังงาน">ระบบไฟฟ้าและพลังงาน (Electrical & Power)</option>
+              <option value="ระบบสุขาภิบาลและดับเพลิง">ระบบสุขาภิบาลและดับเพลิง (Plumbing & Fire)</option>
+              <option value="งานวิศวกรรมโครงสร้าง">งานวิศวกรรมโครงสร้าง (Civil & Structure)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">ชื่องานตามสัญญา (Project / Contract Title) *</label>
+          <input type="text" id="prjContractTitle" required placeholder="เช่น โครงการปรับปรุงระบบท่อและสุขาภิบาล ชั้น 2-4 อาคาร A"
+            class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ชื่อผู้รับเหมา / บริษัทคู่สัญญา *</label>
+            <input type="text" id="prjContractorName" required placeholder="เช่น บริษัท สยามคอนสตรัคชั่น จำกัด"
+              class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ผู้รับเหมา</label>
+            <input type="text" id="prjContractorPhone" placeholder="08x-xxx-xxxx"
+              class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+          </div>
+        </div>
+
+        <!-- Budget & Retention & Payment Mode -->
+        <div class="bg-indigo-50/70 border border-indigo-200 rounded-lg p-3 space-y-3">
+          <div class="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+            <span>💰</span>
+            <span>เงื่อนไขทางการเงิน & นโยบายเงินประกันผลงาน (Accounting Configuration):</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">มูลค่าสัญญารวม (บาท) *</label>
+              <input type="number" id="prjTotalBudget" required min="1" step="0.01" placeholder="0.00" oninput="FMMS.calculateProjectRetentionPreview()"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs font-bold text-indigo-900 bg-white">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">เงินประกันผลงาน (Retention) *</label>
+              <select id="prjRetentionPreset" onchange="FMMS.handleRetentionPresetChange(this.value)"
+                class="w-full border border-slate-300 rounded-md px-2.5 py-2 bg-white text-xs">
+                <option value="5">5% (อัตรามาตรฐานแนะนำ)</option>
+                <option value="0">0% (ไม่หักเงินประกัน)</option>
+                <option value="3">3% (งานระบบย่อย)</option>
+                <option value="10">10% (งานโครงสร้าง/เสี่ยงสูง)</option>
+                <option value="custom">กำหนดเอง (Custom % / บาท)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">เงื่อนไขการเบิกจ่าย *</label>
+              <select id="prjPaymentMode" class="w-full border border-slate-300 rounded-md px-2.5 py-2 bg-white text-xs">
+                <option value="MILESTONE_INSTALLMENTS">แบ่งจ่ายตามงวดงาน (Milestones)</option>
+                <option value="LUMP_SUM_100">จ่ายก้อนเดียว 100% เมื่องานเสร็จ</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Custom Retention Input Box (Appears when Custom is selected) -->
+          <div id="prjCustomRetentionContainer" class="hidden grid grid-cols-2 gap-3 pt-1 border-t border-indigo-200">
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">ระบุร้อยละหักประกัน (%):</label>
+              <input type="number" id="prjCustomRetentionPercent" min="0" max="50" step="0.1" value="5" oninput="FMMS.calculateProjectRetentionPreview()"
+                class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs font-mono-code bg-white">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">คำนวณเป็นยอดเงินประกัน (บาท):</label>
+              <input type="number" id="prjCalculatedRetentionAmount" readonly
+                class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs font-mono-code bg-slate-100 text-amber-700 font-bold">
+            </div>
+          </div>
+        </div>
+
+        <!-- Dates & Warranty & Contract Attachment Link -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">วันเริ่มสัญญา</label>
+            <input type="date" id="prjStartDate" class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">วันสิ้นสุดสัญญา</label>
+            <input type="date" id="prjEndDate" class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ระยะเวลารับประกัน (เดือน)</label>
+            <input type="number" id="prjWarrantyMonths" min="0" value="12" class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs font-mono-code">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">ลิงก์ไฟล์สัญญา / เอกสารแนบใน Google Drive (Contract URL)</label>
+          <input type="text" id="prjContractFileURL" placeholder="วางลิงก์ไฟล์ PDF สัญญาจาก Google Drive หรือคลังเอกสาร..."
+            class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="FMMS.closePilotProjectModal()"
+            class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-lg transition font-medium text-xs">
+            ยกเลิก
+          </button>
+          <button type="submit"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-lg transition shadow text-xs">
+            💾 บันทึกข้อมูลโครงการ
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: MILESTONE INSPECTION & WORK VERIFICATION (SUPERVISOR / ENGINEER)
+       ======================================================================== -->
+  <div id="milestoneInspectionModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-print">
+    <div class="bg-white border border-slate-300 rounded-xl max-w-xl w-full overflow-hidden shadow-2xl my-auto">
+      <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between bg-teal-800 text-white">
+        <div>
+          <h3 class="text-sm font-bold text-white">ตรวจรับงานงวดสัญญา (Interim Work Inspection)</h3>
+          <p class="text-xs text-teal-200">วิศวกรผู้ควบคุมงานตรวจสอบความถูกต้องตามเกณฑ์ก่อนส่งเรื่องให้ฝ่ายบัญชีสั่งจ่าย</p>
+        </div>
+        <button type="button" onclick="FMMS.closeMilestoneInspectionModal()" class="text-teal-200 hover:text-white text-base font-bold">✕</button>
+      </div>
+
+      <form id="milestoneInspectionForm" onsubmit="FMMS.handleMilestoneInspectionSubmit(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="inspMilestoneId" value="">
+
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+          <div class="font-bold text-slate-800" id="inspMilestoneHeaderTitle">งวดที่ 1: งานรื้อถอนและวางท่อเมน</div>
+          <div class="text-slate-600" id="inspMilestoneHeaderDetails">ยอดเงินงวด: ฿50,000 | สัญญา: PRJ-2026-0001</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ผลการตรวจรับงานวิศวกรรม *</label>
+            <select id="inspWorkStatus" class="w-full border border-slate-300 rounded-md px-3 py-2 bg-white text-xs font-semibold">
+              <option value="Inspected & Approved">✅ ผ่านการตรวจรับ 100% (อนุมัติส่งเรื่องเบิกจ่าย)</option>
+              <option value="Rejected">❌ ไม่ผ่านการตรวจรับ (ให้ผู้รับเหมาแก้ไขงาน)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">วันที่ตรวจรับงาน *</label>
+            <input type="date" id="inspDate" required class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">ความเห็นวิศวกรผู้ตรวจรับ (Inspection Notes / Remarks)</label>
+          <textarea id="inspNotes" rows="2" placeholder="ระบุผลการตรวจสอบงาน ชิ้นงานที่ส่งมอบ และผลการทดสอบระบบ..."
+            class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs"></textarea>
+        </div>
+
+        <!-- 5 Inspection Photos Upload Area -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="block font-semibold text-slate-700">📷 ภาพถ่ายหลักฐานการตรวจรับงวดงาน (สูงสุด 5 ภาพ):</label>
+            <span class="text-[11px] text-slate-400 font-mono-code" id="inspPhotoCountText">0 / 5 ภาพ</span>
+          </div>
+
+          <div id="inspPhotoGallery" class="grid grid-cols-5 gap-1.5 min-h-[70px] bg-slate-50 border border-slate-200 rounded p-1.5 items-center text-center">
+            <span class="col-span-5 text-slate-400 text-xs">ยังไม่มีภาพถ่ายตรวจรับ</span>
+          </div>
+
+          <label class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-medium py-2 px-3 rounded-md text-center cursor-pointer transition flex items-center justify-center gap-1.5">
+            <span>📷 ถ่ายภาพ / แนบรูปตรวจรับงาน</span>
+            <input type="file" accept="image/*" multiple onchange="FMMS.handleMilestonePhotoUpload(event)" class="hidden">
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="FMMS.closeMilestoneInspectionModal()"
+            class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg transition font-medium text-xs">
+            ยกเลิก
+          </button>
+          <button type="submit"
+            class="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-5 py-2 rounded-lg transition shadow text-xs">
+            ✓ ยืนยันการตรวจรับงานงวดนี้
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: MILESTONE PAYMENT & BANK SLIP VOUCHER (ACCOUNTING TEAM)
+       ======================================================================== -->
+  <div id="milestonePaymentModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-print">
+    <div class="bg-white border border-slate-300 rounded-xl max-w-lg w-full overflow-hidden shadow-2xl my-auto">
+      <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between bg-emerald-800 text-white">
+        <div>
+          <h3 class="text-sm font-bold text-white">บันทึกการสั่งจ่ายเงินงวด & แนบสลิปโอนเงิน (Accounting Payout)</h3>
+          <p class="text-xs text-emerald-200">ดำเนินการโดยฝ่ายบัญชีและการเงิน เพื่อบันทึกหลักฐานการจ่ายเงินจริง</p>
+        </div>
+        <button type="button" onclick="FMMS.closeMilestonePaymentModal()" class="text-emerald-200 hover:text-white text-base font-bold">✕</button>
+      </div>
+
+      <form id="milestonePaymentForm" onsubmit="FMMS.handleMilestonePaymentSubmit(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="payMilestoneId" value="">
+
+        <div class="bg-emerald-50/70 border border-emerald-200 rounded-lg p-3 text-xs space-y-1.5">
+          <div class="font-bold text-emerald-950" id="payMilestoneTitle">งวดที่ 1: งานรื้อถอนและวางท่อเมน</div>
+          <div class="flex justify-between border-b border-emerald-200/60 pb-1">
+            <span class="text-slate-600">ยอดเงินงวดเต็ม:</span>
+            <span class="font-mono-code font-bold text-slate-800" id="payRawAmountText">฿50,000</span>
+          </div>
+          <div class="flex justify-between border-b border-emerald-200/60 pb-1">
+            <span class="text-slate-600">หักเงินประกันผลงาน (Retention):</span>
+            <span class="font-mono-code font-bold text-amber-700" id="payRetentionDeductedText">- ฿2,500</span>
+          </div>
+          <div class="flex justify-between pt-0.5 text-sm">
+            <span class="font-bold text-emerald-950">ยอดสั่งจ่ายสุทธิ (Net Payout):</span>
+            <span class="font-mono-code font-bold text-emerald-800" id="payNetPayableText">฿47,500</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">เลขที่ใบสำคัญจ่าย (Payment Voucher No.) *</label>
+            <input type="text" id="payVoucherNo" required placeholder="PV-2026/001"
+              class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">วันที่โอนเงิน / สั่งจ่าย *</label>
+            <input type="date" id="payDate" required class="w-full border border-slate-300 rounded-md px-3 py-2 text-xs">
+          </div>
+        </div>
+
+        <!-- Payment Slip Upload -->
+        <div class="space-y-2">
+          <label class="block font-semibold text-slate-700">หลักฐานสลิปการโอนเงิน / ใบสำคัญสั่งจ่าย (Payment Slip):</label>
+          <div id="paySlipPreviewContainer" class="hidden rounded border border-slate-300 p-2 bg-slate-50 flex items-center justify-between">
+            <img id="paySlipPreviewImg" src="" class="h-20 object-contain rounded">
+            <button type="button" onclick="FMMS.removePaymentSlip()" class="text-rose-600 hover:text-rose-800 text-xs font-semibold">ลบภาพนี้ ✕</button>
+          </div>
+          <label class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-medium py-2 px-3 rounded-md text-center cursor-pointer transition flex items-center justify-center gap-1.5">
+            <span>🧾 อัปโหลดรูปสลิปธนาคาร / เอกสารจ่ายเงิน</span>
+            <input type="file" accept="image/*" onchange="FMMS.handlePaymentSlipUpload(event)" class="hidden">
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="FMMS.closeMilestonePaymentModal()"
+            class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg transition font-medium text-xs">
+            ยกเลิก
+          </button>
+          <button type="submit"
+            class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold px-5 py-2 rounded-lg transition shadow text-xs">
+            💳 บันทึกการจ่ายเงินเรียบร้อย
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: ITEM COLLISION LOCK WARNING POPUP (FIRST-COME, FIRST-SERVED)
+       ======================================================================== -->
+  <div id="itemLockWarningModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 no-print">
+    <div class="bg-white border-2 border-amber-500 rounded-xl max-w-md w-full overflow-hidden shadow-2xl p-6 text-center space-y-4 animate-scaleUp">
+      <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+        ⚠️
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-slate-900">กำลังมีผู้ใช้งานดำเนินการ ณ จุดนี้</h3>
+        <p class="text-xs text-slate-600 mt-2 leading-relaxed" id="itemLockWarningMessage">
+          ผู้ใช้งาน <strong class="text-amber-800" id="itemLockOperatorName">คุณสมชาย (Supervisor)</strong> กำลังดำเนินการแก้ไขข้อมูลในรายการนี้อยู่ กรุณารอสักครู่ เพื่อป้องกันข้อมูลบันทึกซ้ำซ้อน
+        </p>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded p-2.5 text-[11px] text-amber-900 font-mono-code text-left space-y-1">
+        <div>รายการ: <span id="itemLockTargetTitle" class="font-bold">-</span></div>
+        <div>เริ่มดำเนินการเมื่อ: <span id="itemLockTimestamp">-</span></div>
+        <div class="text-slate-500 text-[10px]">* ระบบใช้หลักการผู้เข้าก่อนทำงานได้ก่อน และจะปลดล็อกอัตโนมัติเมื่อผู้ใช้ดำเนินการเสร็จ</div>
+      </div>
+      <button type="button" onclick="FMMS.closeItemLockWarningModal()"
+        class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg text-xs transition cursor-pointer">
+        เข้าใจแล้ว / ตกลง
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: LIVE ACTIVE USERS PRESENCE DIRECTORY
+       ======================================================================== -->
+  <div id="onlineUsersModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 no-print">
+    <div class="bg-white border border-slate-300 rounded-xl max-w-lg w-full overflow-hidden shadow-2xl">
+      <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between bg-slate-900 text-white">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <h3 class="text-sm font-bold text-white">ผู้ใช้งานที่กำลังออนไลน์ในระบบ (Live Active Users)</h3>
+        </div>
+        <button type="button" onclick="FMMS.closeOnlineUsersModal()" class="text-slate-400 hover:text-white text-base font-bold">✕</button>
+      </div>
+
+      <div class="p-5 space-y-3 text-xs">
+        <div class="text-slate-500 text-[11px]">
+          แสดงรายชื่อผู้ที่กำลังเปิดใช้งานระบบ FMMS อยู่ในขณะนี้ มีการส่งสัญญาณ Heartbeat แบบเรียลไทม์:
+        </div>
+
+        <div id="onlineUsersListContainer" class="space-y-2 max-h-72 overflow-y-auto">
+          <!-- Populated by app.js -->
+        </div>
+
+        <div class="border-t border-slate-200 pt-3 flex items-center justify-between text-[11px] text-slate-400">
+          <div>เครื่องนี้: <strong id="onlineUsersCurrentDevId" class="text-slate-700 font-mono-code">-</strong></div>
+          <button type="button" onclick="FMMS.closeOnlineUsersModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded transition">
+            ปิดหน้าต่าง
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

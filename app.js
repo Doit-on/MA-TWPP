@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (FMMS Enterprise v2.9.2-ENT)
+ * Facility Maintenance Management System (FMMS Enterprise v2.9.3-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -45,6 +45,12 @@ const FMMS = (function() {
     executiveSubTab: 'cards',
     deletedTaskIds: [],
     deletedUserIds: [],
+    selectedProjectId: null,
+    pilotSubTab: 'projects',
+    activeEditingItem: null,
+    activeEditingPhotos: [],
+    activePaymentSlip: null,
+    lastUserActivity: Date.now(),
     compressedImages: {
       beforeImages: [],
       afterImages: [],
@@ -58,7 +64,9 @@ const FMMS = (function() {
       schedules: [],
       memos: [],
       costs: [],
-      logs: []
+      logs: [],
+      projects: [],
+      milestones: []
     }
   };
 
@@ -71,9 +79,9 @@ const FMMS = (function() {
   function init() {
     try {
       const hV = document.getElementById('headerSysVersion');
-      if (hV) hV.textContent = 'v2.9.2-ENT';
+      if (hV) hV.textContent = 'v2.9.3-ENT';
       const lV = document.getElementById('landingBuildVer');
-      if (lV) lV.textContent = 'v2.9.2-ENT';
+      if (lV) lV.textContent = 'v2.9.3-ENT';
     } catch (_) {}
     try {
       // Clear legacy permanent deletion blocklist so live Google Sheet records are never suppressed
@@ -93,6 +101,8 @@ const FMMS = (function() {
     try { pingConnection(false); } catch (e) { console.warn('pingConnection error:', e); }
     // Immediately sync latest data from Google Sheets upon application startup
     try { syncFromGasBackend(false); } catch (e) { console.warn('Initial sync error:', e); }
+    try { initLivePresenceEngine(); } catch (e) { console.warn('Presence engine error:', e); }
+    try { initIdleAutoSaveDetector(); } catch (e) { console.warn('Idle detector error:', e); }
 
     try {
       window.addEventListener('online', function() {
@@ -219,365 +229,50 @@ const FMMS = (function() {
   }
 
   function loadOrSeedDatabase() {
+    const MOCK_TASK_IDS = ['CM-202610-0045', 'CM-202610-0041', 'CM-202610-0042', 'PM-202610-0043', 'PM-202610-0044'];
+    const MOCK_MEMO_IDS = ['MEMO-2026-0018', 'MEMO-2026-0017'];
+
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.DB_STATE);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
+        if (parsed) {
           state.db = parsed;
+          // Filter out legacy mock data if cached in localStorage so user's real task is preserved cleanly
+          if (Array.isArray(state.db.tasks)) {
+            state.db.tasks = state.db.tasks.filter(function(t) { return !MOCK_TASK_IDS.includes(t.TaskID); });
+          }
+          if (Array.isArray(state.db.memos)) {
+            state.db.memos = state.db.memos.filter(function(m) { return !MOCK_MEMO_IDS.includes(m.MemoID); });
+          }
+          if (!Array.isArray(state.db.projects)) state.db.projects = [];
+          if (!Array.isArray(state.db.milestones)) state.db.milestones = [];
           reconcileMemoAndTaskStatuses();
+          ensureDefaultUsers();
           return;
         }
       }
     } catch (e) {
-      console.warn('Seeding fresh database state', e);
+      console.warn('Database load warning', e);
     }
 
-    
     const defaultCosts = [
       { CostID: 'COST-001', ItemCode: 'MAT-HVAC-001', Category: 'แอร์/เครื่องกล', ItemName: 'คอยล์โซลินอยด์วาล์วน้ำเย็น 24VAC (AHU)', Spec: 'Danfoss / Honeywell', Unit: 'ชุด', UnitPrice: 8500, LaborRate: 2500, PreferredVendor: 'หจก. ไทยคูลลิ่ง เอ็นจิเนียริ่ง' },
       { CostID: 'COST-002', ItemCode: 'MAT-PLUMB-002', Category: 'ประปา/สุขาภิบาล', ItemName: 'ชุดแมคคานิคอลซีล Booster Pump SIC/SIC', Spec: 'Grundfos / Ebara', Unit: 'ชุด', UnitPrice: 16500, LaborRate: 4500, PreferredVendor: 'บจก. สยามเมคคานิคอล ซัพพลาย' },
-      { CostID: 'COST-003', ItemCode: 'MAT-ELEC-003', Category: 'ไฟฟ้า', ItemName: 'สเปรย์ทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner', Spec: 'CRC ElectroX 400g', Unit: 'กระป๋อง', UnitPrice: 650, LaborRate: 500, PreferredVendor: 'บจก. ไฟฟ้าธนบุรี เอ็นจิเนียริ่ง' },
-      { CostID: 'COST-004', ItemCode: 'MAT-FIRE-004', Category: 'ความปลอดภัย/ดับเพลิง', ItemName: 'น้ำกลั่นและแบตเตอรี่ตู้คอนโทรลปั๊มดับเพลิง', Spec: 'GS Battery 12V 100Ah', Unit: 'ชุด', UnitPrice: 4200, LaborRate: 800, PreferredVendor: 'บจก. ไฟร์เซฟตี้ แอนด์ เทค' }
+      { CostID: 'COST-003', ItemCode: 'MAT-ELEC-003', Category: 'ไฟฟ้า', ItemName: 'สเปรย์ทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner', Spec: 'CRC ElectroX 400g', Unit: 'กระป๋อง', UnitPrice: 650, LaborRate: 500, PreferredVendor: 'บจก. ไฟฟ้าธนบุรี เอ็นจิเนียริ่ง' }
     ];
-    const DEFAULT_5_BEFORE_PHOTOS = [
-      'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1581092162384-8987c1d64718?auto=format&fit=crop&w=600&q=75'
-    ];
-    const DEFAULT_5_AFTER_PHOTOS = [
-      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=600&q=75',
-      'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=600&q=75'
-    ];
-    const now = getIsoNow();
+
     state.db = {
       costs: defaultCosts,
-      users: [
-        {
-          UserID: 'USR-2026-0001',
-          Username: 'admin',
-          PasswordPlain: 'admin123',
-          FullName: 'คุณนิพนธ์ (Executive & System Admin)',
-          RoleLevel: 3,
-          Department: 'บริหารจัดการอาคารและวิศวกรรม',
-          Phone: '081-900-1001',
-          Status: 'Active',
-          CreatedAt: '2026-10-01T08:30:00+07:00',
-          CreatedBy: 'SYSTEM_INIT (Root)',
-          UpdatedAt: now,
-          UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-          LastLoginAt: now
-        },
-        {
-          UserID: 'USR-2026-0002',
-          Username: 'supervisor',
-          PasswordPlain: 'sup123',
-          FullName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-          RoleLevel: 2,
-          Department: 'วิศวกรรมซ่อมบำรุง (MEP Control)',
-          Phone: '081-900-1002',
-          Status: 'Active',
-          CreatedAt: '2026-10-01T09:00:00+07:00',
-          CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-          UpdatedAt: now,
-          UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-          LastLoginAt: now
-        },
-        {
-          UserID: 'USR-2026-0003',
-          Username: 'tech01',
-          PasswordPlain: 'tech123',
-          FullName: 'นายช่าง สมชาย สายลุย (Contractor)',
-          RoleLevel: 1,
-          Department: 'ทีมปฏิบัติการภาคสนาม ชุดที่ 1',
-          Phone: '089-455-2211',
-          Status: 'Active',
-          CreatedAt: '2026-10-02T10:15:00+07:00',
-          CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-          UpdatedAt: now,
-          UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-          LastLoginAt: now
-        }
-      ],
-      tasks: [
-        {
-          TaskID: 'CM-202610-0045',
-          Type: 'CM',
-          Category: 'ประปา/สุขาภิบาล',
-          Title: 'ท่อน้ำดีแตก รั่วซึมเข้าฝ้าเพดานห้องประชุมชั้น 3',
-          Location: 'อาคาร B ชั้น 3 ห้องประชุมย่อย 2',
-          Description: 'ท่อ PPR ขนาด 1 นิ้วแตก ทำให้น้ำรั่วซึมหยดลงฝ้าทีบาร์และพรมห้องประชุม',
-          InitialAnalysis: 'ต้องตัดต่อท่อ PPR 1 นิ้วใหม่ และเปลี่ยนแผ่นฝ้าทีบาร์ 4 แผ่น',
-          MaterialsRequired: 'ท่อ PPR 1 นิ้ว 1 เส้น, ข้อต่อตรง PPR 2 ตัว, แผ่นฝ้า Gyproc 4 แผ่น',
-          Priority: 'High',
-          Status: 'Pending Level 2 Approval',
-          AssignedContractorID: 'USR-2026-0003',
-          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
-          SupervisorID: 'USR-2026-0002',
-          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-          EstCost: 8500,
-          ActualCost: 0,
-          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
-          AfterImages: [],
-          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
-          AfterImgURL: '',
-          CreatedAt: '2026-10-27T08:00:00+07:00',
-          CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
-          UpdatedAt: '2026-10-27T08:00:00+07:00',
-          UpdatedBy: 'USR-2026-0003 (นายช่าง สมชาย)'
-        },
-        {
-          TaskID: 'CM-202610-0041',
-          Type: 'CM',
-          Category: 'แอร์/เครื่องกล',
-          Title: 'เครื่องส่งลมเย็น AHU-03 ห้องประชุมใหญ่ชั้น 2 ไม่ทำความเย็น',
-          Location: 'อาคาร A ชั้น 2 ห้องประชุมใหญ่',
-          Description: 'อุณหภูมิห้องสูง 28.5°C พัดลมทำงานปกติแต่โซลินอยด์วาล์วน้ำเย็นไม่เปิด',
-          InitialAnalysis: 'คอยล์โซลินอยด์วาล์ว 24VAC ขาด และต้องล้างสเตรนเนอร์น้ำเย็น',
-          MaterialsRequired: 'Solenoid Coil 24VAC 1 ตัว, ปะเก็นยาง EPDM 2 ชิ้น',
-          Priority: 'High',
-          Status: 'In Progress',
-          AssignedContractorID: 'USR-2026-0003',
-          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
-          SupervisorID: 'USR-2026-0002',
-          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-          EstCost: 14500,
-          ActualCost: 13800,
-          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
-          AfterImages: DEFAULT_5_AFTER_PHOTOS,
-          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
-          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
-          CreatedAt: '2026-10-24T09:20:00+07:00',
-          CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
-          UpdatedAt: '2026-10-25T14:10:00+07:00',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        },
-        {
-          TaskID: 'CM-202610-0042',
-          Type: 'CM',
-          Category: 'ประปา/สุขาภิบาล',
-          Title: 'ปั๊มน้ำแรงดันสูง Booster Pump ตัวที่ 2 มีเสียงดังและแรงดันตก',
-          Location: 'ห้องเครื่องดาดฟ้า อาคารหลัก',
-          Description: 'แรงดันน้ำในระบบลดลงเหลือ 2.1 Bar มอเตอร์มีเสียงดังที่ชุดตลับลูกปืนและซีลกันรั่วซึม',
-          InitialAnalysis: 'Mechanical Seal สึกหรอและลูกปืนเพลาหลักชำรุด ต้องถอดโอเวอร์ฮอล',
-          MaterialsRequired: 'ชุด Mechanical Seal SIC/SIC 1 ชุด, ตลับลูกปืน SKF 6306 จำนวน 2 ตลับ',
-          Priority: 'Critical',
-          Status: 'Pending Level 3 Approval',
-          AssignedContractorID: 'USR-2026-0003',
-          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
-          SupervisorID: 'USR-2026-0002',
-          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-          EstCost: 38500,
-          ActualCost: 0,
-          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
-          AfterImages: [],
-          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
-          AfterImgURL: '',
-          CreatedAt: '2026-10-25T11:05:00+07:00',
-          CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
-          UpdatedAt: '2026-10-26T10:30:00+07:00',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        },
-        {
-          TaskID: 'PM-202610-0043',
-          Type: 'PM',
-          Category: 'ไฟฟ้า',
-          Title: 'ตรวจเช็กตู้ควบคุมไฟฟ้าหลัก MDB และส่องกล้องความร้อน (Thermoscan) ประจำไตรมาส',
-          Location: 'ห้องไฟฟ้าหลัก ชั้น G',
-          Description: 'ตรวจสอบจุดต่อทางไฟฟ้า Busbar, ACB, MCCB และวัดค่าโหลดกระแสไฟทั้ง 3 เฟส',
-          InitialAnalysis: 'จุดต่อทุกจุดอุณหภูมิปกติ ไม่เกิน 45°C ขันทอร์คเรียบร้อย',
-          MaterialsRequired: 'น้ำยาทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner 3 กระป๋อง',
-          Priority: 'Normal',
-          Status: 'Closed',
-          AssignedContractorID: 'USR-2026-0003',
-          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
-          SupervisorID: 'USR-2026-0002',
-          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-          EstCost: 12000,
-          ActualCost: 12000,
-          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
-          AfterImages: DEFAULT_5_AFTER_PHOTOS,
-          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
-          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
-          CreatedAt: '2026-10-18T08:45:00+07:00',
-          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)',
-          UpdatedAt: '2026-10-20T17:00:00+07:00',
-          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        },
-        {
-          TaskID: 'PM-202610-0044',
-          Type: 'PM',
-          Category: 'ความปลอดภัย/ดับเพลิง',
-          Title: 'ทดสอบเดินเครื่องสูบน้ำดับเพลิง (Fire Pump & Jockey Pump) ประจำเดือน',
-          Location: 'ห้องปั๊มดับเพลิง อาคารจอดรถ ชั้น B1',
-          Description: 'ทดสอบแรงดันท่อเมนดับเพลิง ตรวจสอบแบตเตอรี่ตู้ควบคุม และระดับน้ำมันดีเซล',
-          InitialAnalysis: 'ระบบทำงานอัตโนมัติตามเกณฑ์ NFPA-20 แรงดันคงที่ 8.5 Bar',
-          MaterialsRequired: 'น้ำกลั่นเติมแบตเตอรี่ 4 ขวด',
-          Priority: 'Normal',
-          Status: 'Completed',
-          AssignedContractorID: 'USR-2026-0003',
-          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
-          SupervisorID: 'USR-2026-0002',
-          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-          EstCost: 4500,
-          ActualCost: 4200,
-          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
-          AfterImages: DEFAULT_5_AFTER_PHOTOS,
-          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
-          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
-          CreatedAt: '2026-10-22T09:00:00+07:00',
-          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)',
-          UpdatedAt: '2026-10-26T16:15:00+07:00',
-          UpdatedBy: 'USR-2026-0003 (นายช่าง สมชาย)'
-        }
-      ],
-      schedules: [
-        {
-          ScheduleID: 'SCH-2026-0001',
-          EquipmentCode: 'AHU-A2-03',
-          EquipmentName: 'เครื่องส่งลมเย็น AHU ห้องประชุมชั้น 2',
-          Category: 'แอร์/เครื่องกล',
-          Location: 'อาคาร A ชั้น 2',
-          Frequency: 'Monthly',
-          NextDueDate: '2026-11-15',
-          AssignedTeam: 'ทีมปรับอากาศ',
-          ChecklistItems: 'ล้างฟิลเตอร์, วัดกระแสไฟมอเตอร์, ตรวจสายพาน, ล้างถาดน้ำทิ้ง',
-          Status: 'Active',
-          CreatedAt: '2026-10-01T10:00:00+07:00',
-          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        },
-        {
-          ScheduleID: 'SCH-2026-0002',
-          EquipmentCode: 'MDB-MAIN-01',
-          EquipmentName: 'ตู้สวิตช์บอร์ดไฟฟ้าหลัก MDB อาคาร A',
-          Category: 'ไฟฟ้า',
-          Location: 'ห้องไฟฟ้า ชั้น G',
-          Frequency: 'Quarterly',
-          NextDueDate: '2026-12-01',
-          AssignedTeam: 'ทีมวิศวกรรมไฟฟ้า',
-          ChecklistItems: 'ส่องกล้อง Thermoscan, วัดค่าแรงดันและกระแส 3 เฟส, ทดสอบระบบป้องกัน Ground Fault',
-          Status: 'Active',
-          CreatedAt: '2026-10-01T10:30:00+07:00',
-          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        },
-        {
-          ScheduleID: 'SCH-2026-0003',
-          EquipmentCode: 'FP-B1-01',
-          EquipmentName: 'ชุดเครื่องสูบน้ำดับเพลิง Fire Pump 500 GPM',
-          Category: 'ความปลอดภัย/ดับเพลิง',
-          Location: 'ห้องปั๊มน้ำ ชั้น B1',
-          Frequency: 'Weekly',
-          NextDueDate: '2026-11-02',
-          AssignedTeam: 'ทีมเครื่องกลและดับเพลิง',
-          ChecklistItems: 'ทดสอบสตาร์ทเครื่องยนต์ 15 นาที, ตรวจแรงดันท่อเมน, ตรวจโวลต์แบตเตอรี่ 2 ชุด',
-          Status: 'Active',
-          CreatedAt: '2026-10-05T11:00:00+07:00',
-          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
-        }
-      ],
-      memos: [
-        {
-          MemoID: 'MEMO-2026-0018',
-          TaskID: 'CM-202610-0042',
-          DocReference: 'ทวพ./ซบร./2569/0018',
-          Subject: 'ขออนุมัติงบประมาณซ่อมบำรุงชุดปั๊มน้ำแรงดันสูง Booster Pump ตัวที่ 2 (เร่งด่วน)',
-          EstimatedBudget: 38500,
-          ReasonRationale: 'เนื่องจากชุด Mechanical Seal และตลับลูกปืนของ Booster Pump ตัวที่ 2 ชำรุดเสียหาย ทำให้แรงดันน้ำในอาคารตกและเสี่ยงต่อการที่มอเตอร์ไหม้ จึงจำเป็นต้องเปลี่ยนอะไหล่เร่งด่วนเพื่อความต่อเนื่องของระบบประปาอาคาร',
-          VendorName: 'บริษัท สยามเมคคานิคอล ซัพพลาย จำกัด',
-          VendorQuotationURL: 'QT-2026-8841',
-          SupervisorRemark: 'ตรวจสอบราคาเทียบ 3 รายแล้ว เป็นราคาที่เหมาะสมและมีอะไหล่พร้อมติดตั้งภายใน 24 ชม.',
-          RequestedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
-          RequestedAt: '2026-10-26T10:30:00+07:00',
-          ApprovedBy: '-',
-          ApproverName: '-',
-          ApprovalDate: '-',
-          ApprovalStatus: 'Pending Approval',
-          ExecutiveComment: '-'
-        },
-        {
-          MemoID: 'MEMO-2026-0017',
-          TaskID: 'CM-202610-0041',
-          DocReference: 'ทวพ./ซบร./2569/0017',
-          Subject: 'ขออนุมัติเปลี่ยนคอยล์โซลินอยด์วาล์วน้ำเย็นและล้างสเตรนเนอร์ AHU-03',
-          EstimatedBudget: 14500,
-          ReasonRationale: 'เพื่อแก้ไขปัญหาระบบปรับอากาศห้องประชุมใหญ่ชั้น 2 ไม่ทำความเย็น รองรับการประชุมผู้บริหาร',
-          VendorName: 'หจก. ไทยคูลลิ่ง เอ็นจิเนียริ่ง',
-          VendorQuotationURL: 'QT-2026-7712',
-          SupervisorRemark: 'เห็นควรอนุมัติดำเนินการ',
-          RequestedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
-          RequestedAt: '2026-10-24T13:15:00+07:00',
-          ApprovedBy: 'USR-2026-0001',
-          ApproverName: 'คุณนิพนธ์ (Executive & System Admin)',
-          ApprovalDate: '2026-10-24T16:40:00+07:00',
-          ApprovalStatus: 'Approved',
-          ExecutiveComment: 'อนุมัติให้ดำเนินการตามเสนอ เน้นย้ำตรวจสอบความเรียบร้อยหลังซ่อม'
-        }
-      ],
-      logs: [
-        {
-          LogID: 'LOG-20261026-0004',
-          Timestamp: '2026-10-26T10:30:12+07:00',
-          UserID: 'USR-2026-0002',
-          OperatorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
-          RoleLevel: 2,
-          Action: 'REQUEST_APPROVAL_MEMO',
-          TargetID: 'MEMO-2026-0018',
-          Details: 'ออกบันทึกขออนุมัติงบซ่อม Booster Pump อ้างอิงใบงาน CM-202610-0042 วงเงิน 38,500 บาท',
-          BeforeState: 'Task Status: In Progress',
-          AfterState: 'Memo Status: Pending Approval',
-          ClientInfo: 'Desktop Chrome Win11',
-          Status: 'SUCCESS'
-        },
-        {
-          LogID: 'LOG-20261025-0003',
-          Timestamp: '2026-10-25T11:05:44+07:00',
-          UserID: 'USR-2026-0003',
-          OperatorName: 'นายช่าง สมชาย สายลุย (Contractor)',
-          RoleLevel: 1,
-          Action: 'CREATE_TASK',
-          TargetID: 'CM-202610-0042',
-          Details: 'เปิดใบงานซ่อมเฉพาะจุด (CM): ปั๊มน้ำแรงดันสูง Booster Pump ตัวที่ 2 พร้อมแนบภาพถ่ายหน้างาน',
-          BeforeState: 'NONE',
-          AfterState: 'TaskID: CM-202610-0042 (Mutex Verified)',
-          ClientInfo: 'Mobile Safari iOS',
-          Status: 'SUCCESS'
-        },
-        {
-          LogID: 'LOG-20261024-0002',
-          Timestamp: '2026-10-24T16:40:05+07:00',
-          UserID: 'USR-2026-0001',
-          OperatorName: 'คุณนิพนธ์ (Executive & System Admin)',
-          RoleLevel: 3,
-          Action: 'EXECUTIVE_DECISION',
-          TargetID: 'MEMO-2026-0017',
-          Details: 'ผู้บริหารอนุมัติบันทึกข้อความ MEMO-2026-0017 (ใบงาน CM-202610-0041)',
-          BeforeState: 'Pending Approval',
-          AfterState: 'Approved (฿14,500)',
-          ClientInfo: 'Desktop Edge Win11',
-          Status: 'SUCCESS'
-        },
-        {
-          LogID: 'LOG-20261002-0001',
-          Timestamp: '2026-10-02T10:15:00+07:00',
-          UserID: 'USR-2026-0001',
-          OperatorName: 'คุณนิพนธ์ (Executive & System Admin)',
-          RoleLevel: 3,
-          Action: 'USER_MANAGEMENT_CREATE',
-          TargetID: 'USR-2026-0003',
-          Details: 'Admin สร้างบัญชีผู้ใช้งาน tech01 กำหนดสิทธิ์ระดับ 1 (ช่างหน้างาน)',
-          BeforeState: 'NONE',
-          AfterState: 'RoleLevel: 1, Status: Active',
-          ClientInfo: 'Admin Console',
-          Status: 'SUCCESS'
-        }
-      ]
+      users: [],
+      tasks: [], // Clean start - User's real task from Google Sheets or localStorage only
+      schedules: [],
+      memos: [],
+      logs: [],
+      projects: [],
+      milestones: []
     };
-
+    ensureDefaultUsers();
     persistDatabase();
   }
 
@@ -615,6 +310,7 @@ const FMMS = (function() {
     }
     updateNextTaskIdPreview();
   }
+
 
   /**
    * ==========================================================================
@@ -841,6 +537,12 @@ const FMMS = (function() {
         }
         if (json.data.schedules && json.data.schedules.length > 0) state.db.schedules = json.data.schedules;
         if (json.data.logs && json.data.logs.length > 0) state.db.logs = json.data.logs;
+        if (json.data.projects && Array.isArray(json.data.projects)) {
+          state.db.projects = json.data.projects;
+        }
+        if (json.data.milestones && Array.isArray(json.data.milestones)) {
+          state.db.milestones = json.data.milestones;
+        }
         if (json.data.costRefs && json.data.costRefs.length > 0) {
           state.db.costs = json.data.costRefs.map(function(cr) {
             return {
@@ -976,6 +678,30 @@ const FMMS = (function() {
       state.db.users.unshift(adminUser);
     }
 
+    // Role 2.5: Dedicated Accounting & Finance Officer
+    const accountUser = {
+      UserID: 'USR-2026-0004',
+      Username: 'account',
+      PasswordPlain: 'acc123',
+      FullName: 'ฝ่ายบัญชีและการเงิน (Accounting & Finance)',
+      RoleLevel: 2.5,
+      Department: 'การเงินและบัญชี',
+      Phone: '081-900-1004',
+      Status: 'Active',
+      CreatedAt: '2026-10-01T08:30:00+07:00',
+      CreatedBy: 'SYSTEM_INIT (Root)',
+      UpdatedAt: '2026-10-01T08:30:00+07:00',
+      UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+      LastLoginAt: '2026-10-01T08:30:00+07:00'
+    };
+
+    const hasAccount = state.db.users.find(function(u) {
+      return u.UserID === 'USR-2026-0004' || String(u.Username || '').toLowerCase() === 'account';
+    });
+    if (!hasAccount && !blacklist.includes('USR-2026-0004') && !blacklist.includes('account')) {
+      state.db.users.push(accountUser);
+    }
+
     // Filter out ANY user that is in the deleted blacklist so they can NEVER bounce back
     state.db.users = state.db.users.filter(function(u) {
       const uid = String(u.UserID || '').trim();
@@ -1075,6 +801,7 @@ const FMMS = (function() {
     if (username === 'super' || username === 'supervisor') alias = 'super1';
     if (username === 'exec' || username === 'executive') alias = 'exec1';
     if (username === 'admin' || username === 'administrator') alias = 'admin';
+    if (username === 'account' || username === 'acc' || username === 'finance' || username === 'accounting') alias = 'account';
 
     let user = state.db.users.find(function(u) {
       const uName = String(u.Username || '').toLowerCase();
@@ -1090,6 +817,7 @@ const FMMS = (function() {
 
     const isMatchPreset =
       ((alias === 'admin') && (password === 'admin123' || password === 'admin' || password === '1234')) ||
+      ((alias === 'account') && (password === 'acc123' || password === 'account123' || password === 'acc' || password === '1234')) ||
       ((alias === 'exec1') && (password === 'exec123' || password === 'exec' || password === '1234')) ||
       ((alias === 'super1') && (password === 'super123' || password === 'sup123' || password === 'super' || password === '1234')) ||
       ((alias === 'tech1' || alias === 'tech01') && (password === 'tech123' || password === 'tech' || password === '1234'));
@@ -1235,6 +963,12 @@ const FMMS = (function() {
   }
 
   function logout() {
+    if (state.activeEditingItem) {
+      try {
+        autoSaveActiveDraft();
+        releaseItemLock(state.activeEditingItem.targetId);
+      } catch (_) {}
+    }
     if (state.session) {
       recordAuditLog('LOGOUT', state.session.userId, 'ผู้ใช้งานออกจากระบบ', 'Active', 'Logged Out', 'SUCCESS');
     }
@@ -1242,13 +976,14 @@ const FMMS = (function() {
     localStorage.removeItem(STORAGE_KEYS.SESSION);
     hideOverlay('authOverlay');
     showLandingPage();
-    showToast('ออกจากระบบแล้ว', 'ระบบกลับสู่หน้าแรก (Landing Page) เรียบร้อยแล้ว', 'info');
+    showToast('ออกจากระบบ', 'ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว', 'info');
   }
 
   function showAccessDeniedModal(currentRole, targetViewKey, reasonText) {
     const roleNames = {
       1: 'ระดับ 1: ช่างหน้างาน (Field Contractor / Technician)',
       2: 'ระดับ 2: ผู้ควบคุมงาน (Engineering Supervisor)',
+      2.5: 'ระดับ 2.5: ฝ่ายบัญชีและการเงิน (Accounting & Finance)',
       3: 'ระดับ 3: ผู้บริหารระดับสูง (Executive & System Admin)'
     };
     const targetNames = {
@@ -1327,22 +1062,32 @@ const FMMS = (function() {
     const role = state.session ? Number(state.session.roleLevel) : 0;
 
     // Strict Access Control Guard with Formal Denial Popup:
-    // Level 1: CANNOT access role2, role3, admin
-    if (role === 1 && viewKey !== 'role1') {
+    // Level 1: Can only access role1 or view pilot
+    if (role === 1 && viewKey !== 'role1' && viewKey !== 'pilot') {
       showAccessDeniedModal(
         1,
         viewKey,
-        'ระดับ 1 (ช่างหน้างาน) ไม่มีสิทธิ์เข้าถึงหรือมองเห็นข้อมูลของระดับ 2 (ผู้ควบคุมงาน) และระดับ 3 (ผู้บริหาร) เพื่อรักษาความปลอดภัยของระบบ'
+        'ระดับ 1 (ช่างหน้างาน) ไม่มีสิทธิ์เข้าถึงส่วนควบคุมงานวิศวกรรมและการตั้งค่าระบบ เพื่อรักษาความปลอดภัย'
       );
       return;
     }
 
-    // Level 2: CANNOT access role3, admin
+    // Level 2: CANNOT access role3 or admin
     if (role === 2 && (viewKey === 'role3' || viewKey === 'admin')) {
       showAccessDeniedModal(
         2,
         viewKey,
-        'ระดับ 2 (ผู้ควบคุมงาน) ไม่มีสิทธิ์เข้าถึงหน้าจอผู้บริหารระดับ 3 และส่วนการตั้งค่าระบบ เนื่องจากสิทธิ์การใช้งานไม่ถึงเกณฑ์'
+        'ระดับ 2 (ผู้ควบคุมงาน) ไม่มีสิทธิ์เข้าถึงหน้าจอผู้บริหารระดับ 3 และส่วนการตั้งค่าระบบ'
+      );
+      return;
+    }
+
+    // Level 2.5 (Accounting): CANNOT access role1 or admin
+    if (role === 2.5 && (viewKey === 'role1' || viewKey === 'admin')) {
+      showAccessDeniedModal(
+        2.5,
+        viewKey,
+        'ฝ่ายบัญชีและการเงิน (ระดับ 2.5) ดูแลส่วนโครงการนำร่อง งวดเงิน และรายงานผู้บริหาร โดยจำกัดสิทธิ์ในส่วนปฏิบัติการช่างและการตั้งค่าระบบ'
       );
       return;
     }
@@ -1352,6 +1097,7 @@ const FMMS = (function() {
     const views = {
       role1: document.getElementById('viewRole1'),
       role2: document.getElementById('viewRole2'),
+      pilot: document.getElementById('viewPilot'),
       role3: document.getElementById('viewRole3'),
       admin: document.getElementById('viewAdmin')
     };
@@ -1371,6 +1117,7 @@ const FMMS = (function() {
     const navBtns = {
       role1: document.getElementById('navBtnRole1'),
       role2: document.getElementById('navBtnRole2'),
+      pilot: document.getElementById('navBtnPilot'),
       role3: document.getElementById('navBtnRole3'),
       admin: document.getElementById('navBtnAdmin')
     };
@@ -3588,7 +3335,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // FMMS Engineering Performance Scorecard (v2.9.2-ENT)
+    // FMMS Engineering Performance Scorecard (v2.9.3-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -3884,7 +3631,7 @@ const FMMS = (function() {
           <img src="logo-cropped.png" alt="TWPP Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
         </div>
         <div class="flex-1 min-w-0 pr-2">
-          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.2-ENT (DATA MA TWPP)</div>
+          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.3-ENT (DATA MA TWPP)</div>
           <h1 class="doc-title" style="font-size: 13.5pt; font-weight: 700; color: #000000; line-height: 1.15; margin: 1px 0;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
@@ -4049,7 +3796,7 @@ const FMMS = (function() {
             <div class="flex items-center gap-2">
               <img src="logo-cropped.png" alt="TWPP" class="w-8 h-8 object-contain">
               <div>
-                <div class="text-[10px] font-mono-code text-teal-600 font-bold">FMMS TWPP • v2.9.2-ENT</div>
+                <div class="text-[10px] font-mono-code text-teal-600 font-bold">FMMS TWPP • v2.9.3-ENT</div>
                 <div class="text-xs font-bold text-slate-800">${isClosed ? 'ใบรายงานตรวจรับและปิดงาน' : 'บันทึกข้อความขออนุมัติ'}</div>
               </div>
             </div>
@@ -4358,7 +4105,7 @@ const FMMS = (function() {
         docId: userId,
         docType: 'ข้อมูลผู้ใช้งาน (Sheet: Users)',
         actionTitle: 'ลบบัญชีผู้ใช้งานออกจากระบบถาวร',
-        version: 'v2.9.2-ENT',
+        version: 'v2.9.3-ENT',
         details: 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจาก Google Sheets เรียบร้อยแล้ว'
       });
     } catch (err) {
@@ -4468,7 +4215,7 @@ const FMMS = (function() {
       docId: 'CFG-TWPP-SYSTEM',
       docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
       actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
-      version: 'v2.9.2-ENT (Enterprise Config Updated)',
+      version: 'v2.9.3-ENT (Enterprise Config Updated)',
       details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
     });
     showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
@@ -4959,7 +4706,7 @@ const FMMS = (function() {
       docId: 'GSHEET-FULL-SYNC',
       docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
       actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
-      version: 'v2.9.2-ENT (Multi-Tab Master Database)',
+      version: 'v2.9.3-ENT (Multi-Tab Master Database)',
       details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
     });
   }
@@ -5446,7 +5193,7 @@ const FMMS = (function() {
           <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
             <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
             <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
-            <div class="text-teal-900 font-bold">SYS VER: v2.9.2-ENT</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.9.3-ENT</div>
           </div>
         </div>
 
@@ -5615,7 +5362,7 @@ const FMMS = (function() {
         <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
           <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
           <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
-          <span>System Version: v2.9.2-ENT</span>
+          <span>System Version: v2.9.3-ENT</span>
         </div>
       </div>
     `;
@@ -6256,7 +6003,1546 @@ const FMMS = (function() {
   }
 
 
-  return {
+
+  /**
+   * ============================================================================
+   * 15. LIVE MULTI-USER PRESENCE, COLLISION LOCK & IDLE AUTO-SAVE ENGINE
+   * ============================================================================
+   */
+
+  function initLivePresenceEngine() {
+    updateLivePresence();
+    setInterval(updateLivePresence, 15000);
+
+    window.addEventListener('beforeunload', function() {
+      try {
+        localStorage.removeItem('FMMS_PRESENCE_' + state.deviceId);
+        if (state.activeEditingItem) {
+          releaseItemLock(state.activeEditingItem.targetId);
+        }
+      } catch (_) {}
+    });
+  }
+
+  function updateLivePresence() {
+    const actor = getCurrentActor();
+    const now = Date.now();
+    const presenceData = {
+      deviceId: state.deviceId,
+      userId: actor.userId,
+      username: actor.username || actor.userId,
+      fullName: actor.fullName,
+      roleLevel: actor.roleLevel,
+      lastSeen: now
+    };
+
+    try {
+      localStorage.setItem('FMMS_PRESENCE_' + state.deviceId, JSON.stringify(presenceData));
+    } catch (_) {}
+
+    // Scan all active presence keys in localStorage
+    const activeUsers = [];
+    const seenUsers = new Set();
+
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('FMMS_PRESENCE_')) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const p = JSON.parse(raw);
+              if (now - p.lastSeen < 45000) { // Active within 45 seconds
+                const uKey = (p.userId || p.username || '').toLowerCase();
+                if (!seenUsers.has(uKey)) {
+                  seenUsers.add(uKey);
+                  activeUsers.push(p);
+                }
+              } else {
+                localStorage.removeItem(key); // Clean stale presence
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    // Ensure at least 1 (current user) is displayed
+    const count = Math.max(1, activeUsers.length);
+    const badge = document.getElementById('onlineUsersCountDisplay');
+    if (badge) {
+      badge.textContent = count;
+    }
+  }
+
+  function openOnlineUsersModal() {
+    updateLivePresence();
+    const modal = document.getElementById('onlineUsersModal');
+    const container = document.getElementById('onlineUsersListContainer');
+    const devIdEl = document.getElementById('onlineUsersCurrentDevId');
+    if (devIdEl) devIdEl.textContent = state.deviceId;
+
+    if (container) {
+      const now = Date.now();
+      const activeList = [];
+      const seen = new Set();
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('FMMS_PRESENCE_')) {
+          try {
+            const p = JSON.parse(localStorage.getItem(key));
+            if (now - p.lastSeen < 45000 && !seen.has(p.deviceId)) {
+              seen.add(p.deviceId);
+              activeList.push(p);
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (activeList.length === 0) {
+        const actor = getCurrentActor();
+        activeList.push({
+          deviceId: state.deviceId,
+          userId: actor.userId,
+          fullName: actor.fullName,
+          roleLevel: actor.roleLevel,
+          lastSeen: now
+        });
+      }
+
+      container.innerHTML = activeList.map(function(u) {
+        const isCurrent = u.deviceId === state.deviceId;
+        const roleLabel = Number(u.roleLevel) === 3
+          ? 'ผู้บริหาร & Admin (ระดับ 3)'
+          : Number(u.roleLevel) === 2.5
+            ? 'ฝ่ายบัญชีและการเงิน (ระดับ 2.5)'
+            : Number(u.roleLevel) === 2
+              ? 'ผู้ควบคุมงานวิศวกรรม (ระดับ 2)'
+              : 'ช่างปฏิบัติการภาคสนาม (ระดับ 1)';
+
+        return `
+          <div class="p-2.5 rounded-lg border ${isCurrent ? 'border-teal-500 bg-teal-50/50' : 'border-slate-200 bg-slate-50'} flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <div>
+                <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>${escapeHtml(u.fullName)}</span>
+                  ${isCurrent ? '<span class="text-[10px] bg-teal-600 text-white font-mono-code px-1.5 py-0.2 rounded">เครื่องนี้</span>' : ''}
+                </div>
+                <div class="text-[11px] text-slate-500 font-mono-code">${escapeHtml(u.userId)} • ${roleLabel}</div>
+              </div>
+            </div>
+            <div class="text-[10px] font-mono-code text-slate-400 text-right">
+              <div>${escapeHtml(u.deviceId || '-')}</div>
+              <div class="text-emerald-700 font-bold">🟢 Active</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeOnlineUsersModal() {
+    const modal = document.getElementById('onlineUsersModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  // COLLISION LOCK: First-come, first-served
+  function acquireItemLock(targetId, targetType, targetTitle) {
+    const actor = getCurrentActor();
+    const lockKey = 'FMMS_LOCK_' + targetId;
+    const now = Date.now();
+
+    try {
+      const raw = localStorage.getItem(lockKey);
+      if (raw) {
+        const existingLock = JSON.parse(raw);
+        // Lock lease is 5 minutes (300,000 ms)
+        if (now - existingLock.lockedAt < 300000 && existingLock.userId !== actor.userId) {
+          showItemLockWarning(existingLock);
+          return false;
+        }
+      }
+
+      // Grant Lock
+      const newLock = {
+        targetId: targetId,
+        targetType: targetType || 'DOCUMENT',
+        targetTitle: targetTitle || targetId,
+        userId: actor.userId,
+        userName: actor.fullName,
+        lockedAt: now
+      };
+      localStorage.setItem(lockKey, JSON.stringify(newLock));
+      state.activeEditingItem = newLock;
+      state.lastUserActivity = now;
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  function releaseItemLock(targetId) {
+    if (!targetId) return;
+    try {
+      localStorage.removeItem('FMMS_LOCK_' + targetId);
+    } catch (_) {}
+    if (state.activeEditingItem && state.activeEditingItem.targetId === targetId) {
+      state.activeEditingItem = null;
+    }
+  }
+
+  function showItemLockWarning(lockObj) {
+    const modal = document.getElementById('itemLockWarningModal');
+    const nameEl = document.getElementById('itemLockOperatorName');
+    const titleEl = document.getElementById('itemLockTargetTitle');
+    const timeEl = document.getElementById('itemLockTimestamp');
+
+    const opName = lockObj.userName || lockObj.userId || 'ผู้ใช้งานอื่น';
+    if (nameEl) nameEl.textContent = opName;
+    if (titleEl) titleEl.textContent = lockObj.targetTitle || lockObj.targetId || '-';
+    if (timeEl) timeEl.textContent = formatThaiDateTime(new Date(lockObj.lockedAt).toISOString());
+
+    if (modal) modal.classList.remove('hidden');
+    showToast('กำลังมีผู้ใช้งานดำเนินการ', 'User ' + opName + ' กำลังดำเนินการอยู่ กรุณารอ', 'warning');
+  }
+
+  function closeItemLockWarningModal() {
+    const modal = document.getElementById('itemLockWarningModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  // IDLE DETECTOR & AUTO-SAVE
+  function initIdleAutoSaveDetector() {
+    const updateActivity = function() {
+      state.lastUserActivity = Date.now();
+    };
+
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('input', updateActivity);
+    window.addEventListener('click', updateActivity);
+
+    // Check idle status every 15 seconds
+    setInterval(function() {
+      const now = Date.now();
+      // If user has an active editing lock and inactive for 2 minutes (120,000 ms), auto-save
+      if (state.activeEditingItem && (now - state.lastUserActivity > 120000)) {
+        autoSaveActiveDraft();
+      }
+    }, 15000);
+  }
+
+  function autoSaveActiveDraft() {
+    if (!state.activeEditingItem) return;
+    const targetId = state.activeEditingItem.targetId;
+
+    persistDatabase();
+    showToast('บันทึกข้อมูลอัตโนมัติ', 'ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว (' + (state.activeEditingItem.targetTitle || targetId) + ')', 'info');
+    state.lastUserActivity = Date.now(); // reset timer
+  }
+
+  /**
+   * ============================================================================
+   * 16. PILOT PROJECTS & MILESTONE CONTRACT WORKFLOW ENGINE
+   * ============================================================================
+   */
+
+  function renderPilotViews() {
+    renderPilotSummaryScoreboard();
+    renderPilotProjectsTable();
+    populateActiveProjectDropdown();
+    renderPilotMilestonesTable();
+    renderPilotRetentionTable();
+  }
+
+  function switchPilotSubTab(tabKey) {
+    state.pilotSubTab = tabKey;
+    const tabs = {
+      projects: document.getElementById('pilotSubTabProjectsContent'),
+      milestones: document.getElementById('pilotSubTabMilestonesContent'),
+      retention: document.getElementById('pilotSubTabRetentionContent')
+    };
+
+    const btns = {
+      projects: document.getElementById('pilotSubTabBtnProjects'),
+      milestones: document.getElementById('pilotSubTabBtnMilestones'),
+      retention: document.getElementById('pilotSubTabBtnRetention')
+    };
+
+    Object.keys(tabs).forEach(function(k) {
+      if (tabs[k]) {
+        if (k === tabKey) {
+          tabs[k].classList.remove('hidden');
+        } else {
+          tabs[k].classList.add('hidden');
+        }
+      }
+      if (btns[k]) {
+        if (k === tabKey) {
+          btns[k].className = 'px-3 py-1.5 rounded-md font-semibold text-xs bg-indigo-600 text-white transition shadow-sm';
+        } else {
+          btns[k].className = 'px-3 py-1.5 rounded-md font-medium text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition';
+        }
+      }
+    });
+
+    if (tabKey === 'milestones') {
+      populateActiveProjectDropdown();
+      renderPilotMilestonesTable();
+    } else if (tabKey === 'retention') {
+      renderPilotRetentionTable();
+    } else {
+      renderPilotProjectsTable();
+    }
+  }
+
+  function renderPilotSummaryScoreboard() {
+    const projects = state.db.projects || [];
+    const milestones = state.db.milestones || [];
+
+    const totalProjects = projects.length;
+    let totalBudget = 0;
+    let totalRetentionHeld = 0;
+    let totalPaid = 0;
+
+    projects.forEach(function(p) {
+      totalBudget += Number(p.TotalBudget || 0);
+    });
+
+    milestones.forEach(function(m) {
+      if (m.PaymentStatus === 'Paid') {
+        totalPaid += Number(m.NetPayable || (Number(m.Amount || 0) - Number(m.RetentionDeducted || 0)));
+        totalRetentionHeld += Number(m.RetentionDeducted || 0);
+      }
+    });
+
+    setText('pilotMetricTotalProjects', totalProjects);
+    setText('pilotMetricTotalBudget', '฿' + formatCurrency(totalBudget));
+    setText('pilotMetricTotalRetention', '฿' + formatCurrency(totalRetentionHeld));
+    setText('pilotMetricTotalPaid', '฿' + formatCurrency(totalPaid));
+
+    const badge = document.getElementById('headerPilotBadge');
+    if (badge) {
+      if (totalProjects > 0) {
+        badge.textContent = totalProjects;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+  }
+
+  function renderPilotProjectsTable() {
+    const tbody = document.getElementById('pilotProjectsTableBody');
+    const countEl = document.getElementById('pilotProjectsCountText');
+    if (!tbody) return;
+
+    const projects = state.db.projects || [];
+    const q = String(getVal('pilotSearchInput') || '').trim().toLowerCase();
+    const statusFilter = getVal('pilotStatusFilter') || 'ALL';
+
+    const filtered = projects.filter(function(p) {
+      if (statusFilter !== 'ALL' && p.Status !== statusFilter) return false;
+      if (q) {
+        const corpus = [p.ProjectID, p.ContractNo, p.ContractTitle, p.Category, p.ContractorName, p.Location].join(' ').toLowerCase();
+        return corpus.includes(q);
+      }
+      return true;
+    });
+
+    if (countEl) countEl.textContent = filtered.length + ' โครงการ';
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-10 text-slate-400">
+            <div class="text-2xl mb-1">🏗️</div>
+            <div>ยังไม่มีข้อมูลสัญญาโครงการนำร่อง</div>
+            <div class="text-[11px] text-slate-400 mt-1">กดปุ่ม "+ เพิ่มโครงการ / สัญญาใหม่" ด้านบนเพื่อเริ่มบันทึกงาน</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const actor = getCurrentActor();
+    const canManage = Number(actor.roleLevel) >= 2.5;
+
+    tbody.innerHTML = filtered.map(function(p) {
+      const budget = Number(p.TotalBudget || 0);
+      const retPct = Number(p.RetentionPercent !== undefined ? p.RetentionPercent : 5);
+      const retAmt = Number(p.RetentionAmount || (budget * retPct / 100));
+
+      const statusBadge = p.Status === 'Completed'
+        ? '<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">✓ เสร็จสมบูรณ์</span>'
+        : p.Status === 'Warranty Period'
+          ? '<span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">🛡️ อยู่ในช่วงรับประกัน</span>'
+          : p.Status === 'Contract Signed'
+            ? '<span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">📄 เพิ่งทำสัญญา</span>'
+            : '<span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-bold">⏳ กำลังดำเนินงาน</span>';
+
+      const modeBadge = p.PaymentMode === 'LUMP_SUM_100'
+        ? '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono-code text-[10px]">จ่ายครบ 100%</span>'
+        : '<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 font-mono-code text-[10px]">แบ่งจ่ายตามงวด</span>';
+
+      return `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-3">
+            <div class="font-mono-code font-bold text-slate-900">${escapeHtml(p.ProjectID)}</div>
+            <div class="font-mono-code text-[11px] text-indigo-700 font-semibold">${escapeHtml(p.ContractNo || '-')}</div>
+            <div class="text-[10px] text-slate-400 font-mono-code">Ver: ${escapeHtml(p.DocVersion || 'v1.0')}</div>
+          </td>
+          <td class="py-3 px-3">
+            <div class="font-bold text-slate-900 text-xs">${escapeHtml(p.ContractTitle)}</div>
+            <div class="text-[11px] text-slate-500">${escapeHtml(p.Category || 'ทั่วไป')} • 📍 ${escapeHtml(p.Location || 'พิกัดโครงการ')}</div>
+            ${p.ContractFileURL ? `<a href="${escapeHtml(p.ContractFileURL)}" target="_blank" class="text-[10px] text-indigo-600 hover:underline inline-flex items-center gap-1 font-mono-code mt-0.5">📎 เปิดดูไฟล์สัญญา ↗</a>` : ''}
+          </td>
+          <td class="py-3 px-3">
+            <div class="font-semibold text-slate-800">${escapeHtml(p.ContractorName)}</div>
+            <div class="text-[11px] text-slate-500 font-mono-code">📞 ${escapeHtml(p.ContractorPhone || '-')}</div>
+          </td>
+          <td class="py-3 px-3 text-right font-mono-code font-bold text-slate-900">
+            ฿${formatCurrency(budget)}
+          </td>
+          <td class="py-3 px-3 text-center">
+            ${modeBadge}
+          </td>
+          <td class="py-3 px-3 text-center">
+            <div class="font-bold text-amber-800 font-mono-code">${retPct}%</div>
+            <div class="text-[10px] text-slate-400 font-mono-code">(฿${formatCurrency(retAmt)})</div>
+          </td>
+          <td class="py-3 px-3 text-center whitespace-nowrap">
+            ${statusBadge}
+          </td>
+          <td class="py-3 px-3 text-right whitespace-nowrap">
+            <div class="flex items-center justify-end gap-1.5">
+              <button type="button" onclick="FMMS.handleSelectActiveProject('${p.ProjectID}'); FMMS.switchPilotSubTab('milestones');"
+                class="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer" title="จัดการงวดงานและการเบิกจ่าย">
+                📋 งวดงาน
+              </button>
+              ${canManage ? `
+                <button type="button" onclick="FMMS.editPilotProject('${p.ProjectID}')"
+                  class="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer" title="แก้ไขข้อมูลสัญญา">
+                  ✏️ แก้ไข
+                </button>
+              ` : ''}
+              ${Number(actor.roleLevel) === 3 ? `
+                <button type="button" onclick="FMMS.deletePilotProject('${p.ProjectID}')"
+                  class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 px-2 py-1 rounded text-xs font-semibold transition cursor-pointer" title="ลบโครงการนี้">
+                  🗑
+                </button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function handleRetentionPresetChange(val) {
+    const customContainer = document.getElementById('prjCustomRetentionContainer');
+    if (customContainer) {
+      if (val === 'custom') {
+        customContainer.classList.remove('hidden');
+      } else {
+        customContainer.classList.add('hidden');
+      }
+    }
+    calculateProjectRetentionPreview();
+  }
+
+  function calculateProjectRetentionPreview() {
+    const budget = Number(getVal('prjTotalBudget') || 0);
+    const preset = getVal('prjRetentionPreset');
+    let percent = 5;
+
+    if (preset === 'custom') {
+      percent = Number(getVal('prjCustomRetentionPercent') || 0);
+    } else {
+      percent = Number(preset || 0);
+    }
+
+    const calculatedAmt = (budget * percent) / 100;
+    const calcInput = document.getElementById('prjCalculatedRetentionAmount');
+    if (calcInput) {
+      calcInput.value = calculatedAmt.toFixed(2);
+    }
+  }
+
+  function openCreateProjectModal() {
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2.5) {
+      showToast('จำกัดสิทธิ์เฉพาะฝ่ายบัญชีหรือผู้บริหาร', 'เฉพาะระดับ 2.5 (บัญชี) หรือระดับ 3 (Admin / Executive) เท่านั้นที่สามารถเพิ่มโครงการได้', 'warning');
+      return;
+    }
+
+    setVal('prjEditId', '');
+    setText('pilotProjectModalTitle', 'เพิ่มสัญญาโครงการนำร่องใหม่ (Create Pilot Project)');
+    const form = document.getElementById('pilotProjectForm');
+    if (form) form.reset();
+
+    setVal('prjContractNo', 'TWPP-CONT-' + UtilitiesDateYear() + '/' + Math.floor(100 + Math.random() * 900));
+    setVal('prjTotalBudget', '');
+    setVal('prjRetentionPreset', '5');
+    handleRetentionPresetChange('5');
+
+    const modal = document.getElementById('pilotProjectModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function editPilotProject(projectId) {
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2.5) {
+      showToast('จำกัดสิทธิ์เฉพาะฝ่ายบัญชีหรือผู้บริหาร', 'คุณไม่มีสิทธิ์แก้ไขข้อมูลสัญญาโครงการ', 'warning');
+      return;
+    }
+
+    const p = (state.db.projects || []).find(function(item) { return item.ProjectID === projectId; });
+    if (!p) return;
+
+    // Check Collision Lock
+    const locked = acquireItemLock(projectId, 'PROJECT', p.ContractTitle || projectId);
+    if (!locked) return; // Prevent concurrent edit!
+
+    setVal('prjEditId', p.ProjectID);
+    setText('pilotProjectModalTitle', 'แก้ไขสัญญาโครงการ: ' + p.ProjectID + ' (' + (p.ContractNo || '') + ')');
+    setVal('prjContractNo', p.ContractNo || '');
+    setVal('prjCategory', p.Category || 'ปรับปรุงอาคาร & ตกแต่ง');
+    setVal('prjContractTitle', p.ContractTitle || '');
+    setVal('prjContractorName', p.ContractorName || '');
+    setVal('prjContractorPhone', p.ContractorPhone || '');
+    setVal('prjTotalBudget', p.TotalBudget || '');
+    setVal('prjPaymentMode', p.PaymentMode || 'MILESTONE_INSTALLMENTS');
+    setVal('prjStartDate', p.StartDate || '');
+    setVal('prjEndDate', p.EndDate || '');
+    setVal('prjWarrantyMonths', p.WarrantyMonths || 12);
+    setVal('prjContractFileURL', p.ContractFileURL || '');
+
+    const retPct = Number(p.RetentionPercent !== undefined ? p.RetentionPercent : 5);
+    if ([0, 3, 5, 10].includes(retPct)) {
+      setVal('prjRetentionPreset', String(retPct));
+      handleRetentionPresetChange(String(retPct));
+    } else {
+      setVal('prjRetentionPreset', 'custom');
+      handleRetentionPresetChange('custom');
+      setVal('prjCustomRetentionPercent', retPct);
+    }
+    calculateProjectRetentionPreview();
+
+    const modal = document.getElementById('pilotProjectModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closePilotProjectModal() {
+    const modal = document.getElementById('pilotProjectModal');
+    if (modal) modal.classList.add('hidden');
+    if (state.activeEditingItem) {
+      releaseItemLock(state.activeEditingItem.targetId);
+    }
+  }
+
+  async function handleSavePilotProjectSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2.5) {
+      showToast('จำกัดสิทธิ์เฉพาะฝ่ายบัญชีหรือผู้บริหาร', 'เฉพาะระดับ 2.5 (บัญชี) หรือระดับ 3 (Admin / Executive) เท่านั้นที่สามารถบันทึกได้', 'error');
+      return;
+    }
+
+    const editId = getVal('prjEditId');
+    const contractNo = String(getVal('prjContractNo') || '').trim();
+    const category = getVal('prjCategory');
+    const title = String(getVal('prjContractTitle') || '').trim();
+    const contractor = String(getVal('prjContractorName') || '').trim();
+    const phone = String(getVal('prjContractorPhone') || '').trim();
+    const totalBudget = Number(getVal('prjTotalBudget') || 0);
+    const paymentMode = getVal('prjPaymentMode');
+    const startDate = getVal('prjStartDate');
+    const endDate = getVal('prjEndDate');
+    const warranty = Number(getVal('prjWarrantyMonths') || 12);
+    const fileUrl = String(getVal('prjContractFileURL') || '').trim();
+
+    const preset = getVal('prjRetentionPreset');
+    const retPercent = preset === 'custom' ? Number(getVal('prjCustomRetentionPercent') || 0) : Number(preset || 0);
+    const retAmount = (totalBudget * retPercent) / 100;
+    const now = getIsoNow();
+    const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
+
+    let projectObj = null;
+
+    if (editId) {
+      projectObj = (state.db.projects || []).find(function(p) { return p.ProjectID === editId; });
+      if (projectObj) {
+        projectObj.ContractNo = contractNo;
+        projectObj.Category = category;
+        projectObj.ContractTitle = title;
+        projectObj.ContractorName = contractor;
+        projectObj.ContractorPhone = phone;
+        projectObj.TotalBudget = totalBudget;
+        projectObj.RetentionPercent = retPercent;
+        projectObj.RetentionAmount = retAmount;
+        projectObj.PaymentMode = paymentMode;
+        projectObj.StartDate = startDate;
+        projectObj.EndDate = endDate;
+        projectObj.WarrantyMonths = warranty;
+        projectObj.ContractFileURL = fileUrl;
+        projectObj.UpdatedAt = now;
+        projectObj.UpdatedBy = operatorStamp;
+      }
+    } else {
+      const newId = 'PRJ-' + UtilitiesDateYear() + '-' + String(Math.floor(100 + Math.random() * 900));
+      projectObj = {
+        ProjectID: newId,
+        DocVersion: 'v1.0',
+        ContractNo: contractNo,
+        Category: category,
+        ContractTitle: title,
+        Location: 'พื้นที่โครงการ',
+        ContractorName: contractor,
+        ContractorPhone: phone,
+        TotalBudget: totalBudget,
+        RetentionPercent: retPercent,
+        RetentionAmount: retAmount,
+        PaymentMode: paymentMode,
+        StartDate: startDate,
+        EndDate: endDate,
+        WarrantyMonths: warranty,
+        ContractFileURL: fileUrl,
+        Status: 'Contract Signed',
+        CreatedAt: now,
+        CreatedBy: operatorStamp,
+        UpdatedAt: now,
+        UpdatedBy: operatorStamp
+      };
+      if (!Array.isArray(state.db.projects)) state.db.projects = [];
+      state.db.projects.unshift(projectObj);
+
+      // Auto-generate initial milestone(s) if none exist
+      if (paymentMode === 'LUMP_SUM_100') {
+        const lumpMilestone = {
+          MilestoneID: newId + '-MS01',
+          ProjectID: newId,
+          MilestoneNo: 1,
+          MilestoneTitle: 'งวดเดียว 100%: ส่งมอบงานเสร็จสมบูรณ์ตามสัญญา',
+          Description: 'ส่งมอบงานครบถ้วน ทดสอบระบบ และลงนามตรวจรับ 100%',
+          Percentage: 100,
+          Amount: totalBudget,
+          RetentionDeducted: retAmount,
+          NetPayable: totalBudget - retAmount,
+          DueDate: endDate || startDate,
+          WorkStatus: 'Pending',
+          PaymentStatus: 'Unpaid',
+          InspectionDate: '',
+          InspectorName: '',
+          InspectionPhotos: [],
+          PaymentDate: '',
+          PaidBy: '',
+          PaymentSlipURL: '',
+          PaymentVoucherNo: '',
+          UpdatedAt: now,
+          UpdatedBy: operatorStamp
+        };
+        if (!Array.isArray(state.db.milestones)) state.db.milestones = [];
+        state.db.milestones.push(lumpMilestone);
+      }
+    }
+
+    persistDatabase();
+    closePilotProjectModal();
+    renderPilotViews();
+    showToast('บันทึกสัญญาสำเร็จ', 'บันทึกโครงการ ' + projectObj.ProjectID + ' (' + projectObj.ContractTitle + ') เรียบร้อยแล้ว', 'success');
+
+    // Sync to Google Sheets
+    try {
+      postToGasBackend('savePilotProject', {
+        project: projectObj
+      }).then(function() {
+        showCloudSyncConfirmation({
+          docId: projectObj.ProjectID,
+          docType: 'สัญญาโครงการนำร่อง (Sheet: Pilot_Projects)',
+          actionTitle: 'บันทึกโครงการ/สัญญาสู่ Google Sheets',
+          version: projectObj.DocVersion || 'v1.0',
+          details: projectObj.ContractTitle + ' สัญญา: ' + projectObj.ContractNo + ' วงเงิน ฿' + formatCurrency(totalBudget)
+        });
+      }).catch(function(err) {
+        console.warn('Sync pilot project warning:', err);
+      });
+    } catch (_) {}
+  }
+
+  async function deletePilotProject(projectId) {
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 3) {
+      showToast('จำกัดสิทธิ์เฉพาะ Admin หรือผู้บริหาร', 'คุณไม่มีสิทธิ์ลบโครงการ', 'error');
+      return;
+    }
+
+    const confirmed = confirm('⚠️ ยืนยันการลบโครงการ ' + projectId + ' หรือไม่?\n\nข้อมูลโครงการและงวดงานทั้งหมดจะถูกลบออกจากฐานข้อมูลอย่างถาวร');
+    if (!confirmed) return;
+
+    state.db.projects = (state.db.projects || []).filter(function(p) { return p.ProjectID !== projectId; });
+    state.db.milestones = (state.db.milestones || []).filter(function(m) { return m.ProjectID !== projectId; });
+
+    if (state.selectedProjectId === projectId) {
+      state.selectedProjectId = null;
+    }
+
+    persistDatabase();
+    renderPilotViews();
+    showToast('ลบโครงการเรียบร้อย', 'ลบโครงการ ' + projectId + ' ออกจากระบบแล้ว', 'success');
+
+    try {
+      postToGasBackend('deletePilotProject', { projectId: projectId });
+    } catch (_) {}
+  }
+
+  function populateActiveProjectDropdown() {
+    const select = document.getElementById('pilotActiveProjectSelect');
+    if (!select) return;
+
+    const projects = state.db.projects || [];
+    if (projects.length === 0) {
+      select.innerHTML = '<option value="">-- ยังไม่มีโครงการในระบบ --</option>';
+      return;
+    }
+
+    if (!state.selectedProjectId || !projects.some(function(p) { return p.ProjectID === state.selectedProjectId; })) {
+      state.selectedProjectId = projects[0].ProjectID;
+    }
+
+    select.innerHTML = projects.map(function(p) {
+      const isSel = p.ProjectID === state.selectedProjectId ? 'selected' : '';
+      return `<option value="${p.ProjectID}" ${isSel}>${escapeHtml(p.ProjectID)} - ${escapeHtml(p.ContractTitle)} (สัญญา: ${escapeHtml(p.ContractNo || '-')})</option>`;
+    }).join('');
+  }
+
+  function handleSelectActiveProject(projectId) {
+    state.selectedProjectId = projectId;
+    renderPilotMilestonesTable();
+  }
+
+  function renderPilotMilestonesTable() {
+    const bannerEl = document.getElementById('pilotSelectedProjectBanner');
+    const tbody = document.getElementById('pilotMilestonesTableBody');
+    const summaryBadge = document.getElementById('pilotMilestonesSummaryBadge');
+    if (!tbody) return;
+
+    const projects = state.db.projects || [];
+    const activeProject = projects.find(function(p) { return p.ProjectID === state.selectedProjectId; }) || projects[0];
+
+    if (!activeProject) {
+      if (bannerEl) bannerEl.innerHTML = '<div class="text-center py-4 text-slate-400">กรุณาเลือกโครงการจากรายการด้านบน</div>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400">ยังไม่มีงวดงาน</td></tr>';
+      return;
+    }
+
+    state.selectedProjectId = activeProject.ProjectID;
+    const allMilestones = state.db.milestones || [];
+    const projectMilestones = allMilestones.filter(function(m) { return m.ProjectID === activeProject.ProjectID; });
+
+    // Calculate Project Progress & Completion %
+    let paidCount = 0;
+    let approvedCount = 0;
+    let totalMilestoneAmount = 0;
+    let totalPaidNet = 0;
+    let totalRetentionHeld = 0;
+
+    projectMilestones.forEach(function(m) {
+      totalMilestoneAmount += Number(m.Amount || 0);
+      if (m.PaymentStatus === 'Paid') {
+        paidCount++;
+        totalPaidNet += Number(m.NetPayable || (Number(m.Amount || 0) - Number(m.RetentionDeducted || 0)));
+        totalRetentionHeld += Number(m.RetentionDeducted || 0);
+      }
+      if (m.WorkStatus === 'Inspected & Approved') {
+        approvedCount++;
+      }
+    });
+
+    const progressPct = projectMilestones.length > 0 ? Math.round((approvedCount / projectMilestones.length) * 100) : 0;
+    const paymentProgressPct = activeProject.TotalBudget > 0 ? Math.round((totalPaidNet / activeProject.TotalBudget) * 100) : 0;
+
+    if (bannerEl) {
+      bannerEl.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono-code bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded">${escapeHtml(activeProject.ProjectID)}</span>
+              <span class="text-xs font-mono-code text-slate-500">สัญญา: ${escapeHtml(activeProject.ContractNo || '-')}</span>
+              <span class="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono-code">${activeProject.PaymentMode === 'LUMP_SUM_100' ? 'จ่ายก้อนเดียว 100%' : 'แบ่งจ่ายตามงวดงาน'}</span>
+            </div>
+            <h4 class="text-base font-bold text-slate-900 mt-1">${escapeHtml(activeProject.ContractTitle)}</h4>
+            <div class="text-xs text-slate-500 mt-0.5">👷 ผู้รับเหมา: <strong>${escapeHtml(activeProject.ContractorName)}</strong> | วงเงินสัญญา: <strong class="text-indigo-900 font-mono-code font-bold">฿${formatCurrency(activeProject.TotalBudget)}</strong></div>
+          </div>
+          <div class="text-right text-xs">
+            <div class="font-bold text-slate-700">หักเงินประกันผลงาน (Retention): <span class="text-amber-800 font-mono-code">${Number(activeProject.RetentionPercent || 5)}%</span></div>
+            <div class="text-slate-500 font-mono-code text-[11px]">สะสมแล้ว: <strong class="text-amber-700">฿${formatCurrency(totalRetentionHeld)}</strong></div>
+          </div>
+        </div>
+
+        <!-- Progress Bar Strip -->
+        <div class="space-y-1.5 pt-1">
+          <div class="flex justify-between text-xs font-semibold text-slate-700">
+            <span>ความคืบหน้าการตรวจรับงาน: ${progressPct}% (${approvedCount}/${projectMilestones.length} งวด)</span>
+            <span>เบิกจ่ายแล้ว: ${paymentProgressPct}% (฿${formatCurrency(totalPaidNet)} จาก ฿${formatCurrency(activeProject.TotalBudget)})</span>
+          </div>
+          <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden flex">
+            <div class="bg-teal-500 h-full transition-all duration-500" style="width: ${progressPct}%" title="ผ่านการตรวจรับ ${progressPct}%"></div>
+            <div class="bg-emerald-600 h-full transition-all duration-500" style="width: ${paymentProgressPct}%" title="จ่ายเงินแล้ว ${paymentProgressPct}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (summaryBadge) {
+      summaryBadge.textContent = projectMilestones.length + ' งวดงาน (' + approvedCount + ' ผ่านตรวจรับ / ' + paidCount + ' จ่ายแล้ว)';
+    }
+
+    if (projectMilestones.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" class="text-center py-10 text-slate-400">
+            <div>ยังไม่มีการกำหนดงวดงานสำหรับโครงการนี้</div>
+            <div class="text-[11px] text-slate-500 mt-1">ฝ่ายบัญชีสามารถกดปุ่ม "+ เพิ่มงวดงานใหม่" เพื่อกำหนดรายละเอียดและแบ่งงวดเงินได้</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const actor = getCurrentActor();
+    const isEngineer = Number(actor.roleLevel) === 2 || Number(actor.roleLevel) === 3;
+    const isAccount = Number(actor.roleLevel) === 2.5 || Number(actor.roleLevel) === 3;
+
+    tbody.innerHTML = projectMilestones.map(function(m) {
+      const amt = Number(m.Amount || 0);
+      const retDeducted = Number(m.RetentionDeducted || (amt * Number(activeProject.RetentionPercent || 5) / 100));
+      const netPayable = Number(m.NetPayable || (amt - retDeducted));
+
+      const isInspected = m.WorkStatus === 'Inspected & Approved';
+      const isPaid = m.PaymentStatus === 'Paid';
+
+      const workBadge = isInspected
+        ? `<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 font-bold inline-flex items-center gap-1">✓ ตรวจรับแล้ว</span>`
+        : m.WorkStatus === 'Rejected'
+          ? `<span class="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-bold">❌ สั่งแก้ไขงาน</span>`
+          : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">⏳ รอดำเนินการ</span>`;
+
+      const payBadge = isPaid
+        ? `<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold inline-flex items-center gap-1">💳 จ่ายแล้ว</span>`
+        : isInspected
+          ? `<span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-bold">⏳ รอคำสั่งจ่าย</span>`
+          : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-400">ยังไม่ถึงกำหนด</span>`;
+
+      return `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-3 font-mono-code font-bold text-slate-800 whitespace-nowrap">
+            #${m.MilestoneNo || 1}
+          </td>
+          <td class="py-3 px-3">
+            <div class="font-bold text-slate-900">${escapeHtml(m.MilestoneTitle)}</div>
+            <div class="text-[11px] text-slate-500">${escapeHtml(m.Description || '-')}</div>
+            <div class="text-[10px] text-slate-400 font-mono-code mt-0.5">กำหนดส่ง: ${m.DueDate || '-'}</div>
+          </td>
+          <td class="py-3 px-3 text-right font-mono-code font-bold text-slate-700">
+            ${Number(m.Percentage || 0)}%
+          </td>
+          <td class="py-3 px-3 text-right font-mono-code font-bold text-slate-900">
+            ฿${formatCurrency(amt)}
+          </td>
+          <td class="py-3 px-3 text-right font-mono-code font-bold text-amber-700">
+            -฿${formatCurrency(retDeducted)}
+          </td>
+          <td class="py-3 px-3 text-right font-mono-code font-bold text-emerald-800">
+            ฿${formatCurrency(netPayable)}
+          </td>
+          <td class="py-3 px-3 text-center whitespace-nowrap">
+            ${workBadge}
+            ${isInspected && m.InspectorName ? `<div class="text-[10px] text-slate-500 mt-0.5">${escapeHtml(m.InspectorName)}</div>` : ''}
+          </td>
+          <td class="py-3 px-3 text-center whitespace-nowrap">
+            ${payBadge}
+            ${isPaid && m.PaymentVoucherNo ? `<div class="text-[10px] text-emerald-700 font-mono-code mt-0.5">${escapeHtml(m.PaymentVoucherNo)}</div>` : ''}
+          </td>
+          <td class="py-3 px-3 text-right whitespace-nowrap">
+            <div class="flex items-center justify-end gap-1.5">
+              <!-- Engineer Inspection Button -->
+              ${isEngineer && !isInspected ? `
+                <button type="button" onclick="FMMS.openMilestoneInspectionModal('${m.MilestoneID}')"
+                  class="bg-teal-700 hover:bg-teal-600 text-white px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer" title="วิศวกรตรวจรับงานงวดนี้">
+                  🔍 ตรวจรับ
+                </button>
+              ` : ''}
+
+              <!-- Accounting Payment Button (3-Way Match Check: Requires Inspection first!) -->
+              ${isAccount && isInspected && !isPaid ? `
+                <button type="button" onclick="FMMS.openMilestonePaymentModal('${m.MilestoneID}')"
+                  class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer" title="ฝ่ายบัญชีสั่งจ่ายเงินงวดและแนบสลิป">
+                  💳 สั่งจ่าย
+                </button>
+              ` : ''}
+
+              <!-- A4 Official Certificate Preview -->
+              <button type="button" onclick="FMMS.openMilestonePrintModal('${m.MilestoneID}')"
+                class="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer" title="เปิดพรีวิวใบตรวจรับและสั่งจ่ายมาตรฐาน A4">
+                📄 A4
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openAddMilestoneModal() {
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2.5) {
+      showToast('จำกัดสิทธิ์เฉพาะฝ่ายบัญชีหรือผู้บริหาร', 'คุณไม่มีสิทธิ์กำหนดงวดเงินสัญญา', 'warning');
+      return;
+    }
+
+    if (!state.selectedProjectId) {
+      showToast('ไม่ได้เลือกโครงการ', 'กรุณาเลือกโครงการจากรายการด้านบนก่อนเพิ่มงวดงาน', 'warning');
+      return;
+    }
+
+    const projects = state.db.projects || [];
+    const activeProject = projects.find(function(p) { return p.ProjectID === state.selectedProjectId; });
+    if (!activeProject) return;
+
+    const allMilestones = state.db.milestones || [];
+    const projectMilestones = allMilestones.filter(function(m) { return m.ProjectID === activeProject.ProjectID; });
+    const nextSeq = projectMilestones.length + 1;
+
+    const msTitle = prompt('ระบุชื่องวดงานที่ ' + nextSeq + ':', 'งวดที่ ' + nextSeq + ': ส่งมอบงานตามข้อตกลงสัญญา');
+    if (!msTitle) return;
+
+    const rawPct = prompt('ระบุร้อยละ (%) ค่างวดงาน (เช่น 25, 30, 50):', '25');
+    const pct = Number(rawPct || 0);
+    if (pct <= 0 || pct > 100) {
+      showToast('ร้อยละไม่ถูกต้อง', 'กรุณาระบุร้อยละระหว่าง 1 ถึง 100', 'warning');
+      return;
+    }
+
+    const amount = (Number(activeProject.TotalBudget || 0) * pct) / 100;
+    const retDeducted = (amount * Number(activeProject.RetentionPercent || 5)) / 100;
+    const netPayable = amount - retDeducted;
+    const now = getIsoNow();
+
+    const newMilestone = {
+      MilestoneID: activeProject.ProjectID + '-MS' + String(nextSeq).padStart(2, '0'),
+      ProjectID: activeProject.ProjectID,
+      MilestoneNo: nextSeq,
+      MilestoneTitle: msTitle,
+      Description: 'ดำเนินงานตามขอบเขตสัญญา งวดที่ ' + nextSeq,
+      Percentage: pct,
+      Amount: amount,
+      RetentionDeducted: retDeducted,
+      NetPayable: netPayable,
+      DueDate: activeProject.EndDate || activeProject.StartDate || '',
+      WorkStatus: 'Pending',
+      PaymentStatus: 'Unpaid',
+      InspectionDate: '',
+      InspectorName: '',
+      InspectionPhotos: [],
+      PaymentDate: '',
+      PaidBy: '',
+      PaymentSlipURL: '',
+      PaymentVoucherNo: '',
+      UpdatedAt: now,
+      UpdatedBy: actor.userId + ' (' + actor.fullName + ')'
+    };
+
+    if (!Array.isArray(state.db.milestones)) state.db.milestones = [];
+    state.db.milestones.push(newMilestone);
+    persistDatabase();
+    renderPilotMilestonesTable();
+    showToast('เพิ่มงวดงานสำเร็จ', 'เพิ่มงวดที่ ' + nextSeq + ' (฿' + formatCurrency(amount) + ') เรียบร้อยแล้ว', 'success');
+
+    // Sync to GAS
+    try {
+      const updatedMs = state.db.milestones.filter(function(m) { return m.ProjectID === activeProject.ProjectID; });
+      postToGasBackend('saveProjectMilestones', {
+        projectId: activeProject.ProjectID,
+        milestones: updatedMs
+      });
+    } catch (_) {}
+  }
+
+  function openMilestoneInspectionModal(milestoneId) {
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2) {
+      showToast('จำกัดสิทธิ์เฉพาะวิศวกรผู้ควบคุมงาน', 'ช่างหน้างานไม่มีสิทธิ์ตรวจรับงวดงาน', 'error');
+      return;
+    }
+
+    const m = (state.db.milestones || []).find(function(item) { return item.MilestoneID === milestoneId; });
+    if (!m) return;
+
+    // Check collision lock!
+    const locked = acquireItemLock(milestoneId, 'MILESTONE_INSP', m.MilestoneTitle || milestoneId);
+    if (!locked) return;
+
+    setVal('inspMilestoneId', m.MilestoneID);
+    setText('inspMilestoneHeaderTitle', 'งวดที่ ' + (m.MilestoneNo || 1) + ': ' + m.MilestoneTitle);
+    setText('inspMilestoneHeaderDetails', 'ยอดเงินงวด: ฿' + formatCurrency(m.Amount) + ' | สัญญา: ' + m.ProjectID);
+    setVal('inspDate', UtilitiesDateToday());
+    setVal('inspNotes', m.InspectorNotes || '');
+
+    state.activeEditingPhotos = Array.isArray(m.InspectionPhotos) ? [...m.InspectionPhotos] : [];
+    renderMilestoneInspectionPhotosPreview();
+
+    const modal = document.getElementById('milestoneInspectionModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeMilestoneInspectionModal() {
+    const modal = document.getElementById('milestoneInspectionModal');
+    if (modal) modal.classList.add('hidden');
+    if (state.activeEditingItem) {
+      releaseItemLock(state.activeEditingItem.targetId);
+    }
+  }
+
+  function handleMilestonePhotoUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    if (!Array.isArray(state.activeEditingPhotos)) state.activeEditingPhotos = [];
+    const availableSlots = 5 - state.activeEditingPhotos.length;
+    if (availableSlots <= 0) {
+      showToast('แนบภาพครบ 5 ภาพแล้ว', 'สามารถแนบภาพตรวจรับได้สูงสุดไม่เกิน 5 ภาพต่อหนึ่งงวดงาน', 'warning');
+      return;
+    }
+
+    let filesToProcess = Array.from(files).slice(0, availableSlots);
+    filesToProcess.forEach(function(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 1280;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Watermark
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+          ctx.fillRect(0, height - 28, width, 28);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '12px monospace';
+          ctx.fillText('FMMS PILOT INSPECTION | ' + formatThaiDateTime(getIsoNow()), 10, height - 10);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          state.activeEditingPhotos.push(dataUrl);
+          renderMilestoneInspectionPhotosPreview();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    event.target.value = '';
+  }
+
+  function renderMilestoneInspectionPhotosPreview() {
+    const container = document.getElementById('inspPhotoGallery');
+    const countEl = document.getElementById('inspPhotoCountText');
+    if (!container) return;
+
+    const photos = state.activeEditingPhotos || [];
+    if (countEl) countEl.textContent = photos.length + ' / 5 ภาพ';
+
+    if (photos.length === 0) {
+      container.innerHTML = '<span class="col-span-5 text-slate-400 text-xs py-3">ยังไม่มีภาพถ่ายตรวจรับ (แนบได้สูงสุด 5 ภาพ)</span>';
+      return;
+    }
+
+    container.innerHTML = photos.map(function(url, idx) {
+      return `
+        <div class="relative group rounded border border-slate-300 overflow-hidden bg-white h-16 flex items-center justify-center">
+          <img src="${url}" class="w-full h-full object-cover">
+          <button type="button" onclick="FMMS.removeMilestoneInspectionPhoto(${idx})"
+            class="absolute top-0.5 right-0.5 bg-rose-600 hover:bg-rose-700 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] shadow" title="ลบภาพนี้">✕</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function removeMilestoneInspectionPhoto(idx) {
+    if (state.activeEditingPhotos && idx >= 0 && idx < state.activeEditingPhotos.length) {
+      state.activeEditingPhotos.splice(idx, 1);
+      renderMilestoneInspectionPhotosPreview();
+    }
+  }
+
+  async function handleMilestoneInspectionSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2) {
+      showToast('จำกัดสิทธิ์เฉพาะวิศวกรผู้ควบคุมงาน', 'คุณไม่มีสิทธิ์ตรวจรับงวดงาน', 'error');
+      return;
+    }
+
+    const msId = getVal('inspMilestoneId');
+    const status = getVal('inspWorkStatus');
+    const inspDate = getVal('inspDate');
+    const notes = String(getVal('inspNotes') || '').trim();
+
+    const m = (state.db.milestones || []).find(function(item) { return item.MilestoneID === msId; });
+    if (!m) return;
+
+    const now = getIsoNow();
+    m.WorkStatus = status;
+    m.InspectionDate = inspDate || now;
+    m.InspectorName = actor.fullName;
+    m.InspectorNotes = notes;
+    m.InspectionPhotos = state.activeEditingPhotos || [];
+    m.UpdatedAt = now;
+    m.UpdatedBy = actor.userId + ' (' + actor.fullName + ')';
+
+    persistDatabase();
+    closeMilestoneInspectionModal();
+    renderPilotMilestonesTable();
+    showToast('บันทึกการตรวจรับสำเร็จ', 'ตรวจรับงวดงาน ' + m.MilestoneID + ' เรียบร้อยแล้ว พร้อมส่งต่อให้ฝ่ายบัญชี', 'success');
+
+    // Sync to GAS
+    try {
+      postToGasBackend('inspectMilestone', {
+        milestoneId: msId,
+        inspection: {
+          WorkStatus: status,
+          InspectionDate: inspDate,
+          InspectorName: actor.fullName,
+          InspectorNotes: notes,
+          InspectionPhotos: m.InspectionPhotos
+        }
+      });
+    } catch (_) {}
+  }
+
+  function openMilestonePaymentModal(milestoneId) {
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2.5) {
+      showToast('จำกัดสิทธิ์เฉพาะฝ่ายบัญชีหรือผู้บริหาร', 'เฉพาะระดับ 2.5 (บัญชี) หรือระดับ 3 (ผู้บริหาร) เท่านั้นที่สั่งจ่ายเงินได้', 'error');
+      return;
+    }
+
+    const m = (state.db.milestones || []).find(function(item) { return item.MilestoneID === milestoneId; });
+    if (!m) return;
+
+    // 3-Way Match Guard
+    if (m.WorkStatus !== 'Inspected & Approved') {
+      showToast('ยังไม่สามารถสั่งจ่ายได้', 'งวดงานนี้ยังไม่ผ่านการตรวจรับจากวิศวกรผู้ควบคุมงานตามหลัก 3-Way Match', 'warning');
+      return;
+    }
+
+    // Check collision lock!
+    const locked = acquireItemLock(milestoneId, 'MILESTONE_PAY', m.MilestoneTitle || milestoneId);
+    if (!locked) return;
+
+    setVal('payMilestoneId', m.MilestoneID);
+    setText('payMilestoneTitle', 'งวดที่ ' + (m.MilestoneNo || 1) + ': ' + m.MilestoneTitle);
+    setText('payRawAmountText', '฿' + formatCurrency(m.Amount));
+    setText('payRetentionDeductedText', '- ฿' + formatCurrency(m.RetentionDeducted));
+    setText('payNetPayableText', '฿' + formatCurrency(m.NetPayable));
+
+    setVal('payVoucherNo', 'PV-' + UtilitiesDateYear() + '/' + Math.floor(100 + Math.random() * 900));
+    setVal('payDate', UtilitiesDateToday());
+
+    state.activePaymentSlip = m.PaymentSlipURL || null;
+    const previewContainer = document.getElementById('paySlipPreviewContainer');
+    const previewImg = document.getElementById('paySlipPreviewImg');
+    if (previewContainer && previewImg) {
+      if (state.activePaymentSlip) {
+        previewImg.src = state.activePaymentSlip;
+        previewContainer.classList.remove('hidden');
+      } else {
+        previewContainer.classList.add('hidden');
+      }
+    }
+
+    const modal = document.getElementById('milestonePaymentModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeMilestonePaymentModal() {
+    const modal = document.getElementById('milestonePaymentModal');
+    if (modal) modal.classList.add('hidden');
+    if (state.activeEditingItem) {
+      releaseItemLock(state.activeEditingItem.targetId);
+    }
+  }
+
+  function handlePaymentSlipUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const maxDim = 1200;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        state.activePaymentSlip = dataUrl;
+
+        const previewContainer = document.getElementById('paySlipPreviewContainer');
+        const previewImg = document.getElementById('paySlipPreviewImg');
+        if (previewContainer && previewImg) {
+          previewImg.src = dataUrl;
+          previewContainer.classList.remove('hidden');
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+
+  function removePaymentSlip() {
+    state.activePaymentSlip = null;
+    const previewContainer = document.getElementById('paySlipPreviewContainer');
+    if (previewContainer) previewContainer.classList.add('hidden');
+  }
+
+  async function handleMilestonePaymentSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const actor = getCurrentActor();
+    if (Number(actor.roleLevel) < 2.5) {
+      showToast('จำกัดสิทธิ์เฉพาะฝ่ายบัญชีหรือผู้บริหาร', 'คุณไม่มีสิทธิ์สั่งจ่ายเงิน', 'error');
+      return;
+    }
+
+    const msId = getVal('payMilestoneId');
+    const voucherNo = String(getVal('payVoucherNo') || '').trim();
+    const payDate = getVal('payDate');
+
+    const m = (state.db.milestones || []).find(function(item) { return item.MilestoneID === msId; });
+    if (!m) return;
+
+    const now = getIsoNow();
+    const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
+
+    m.PaymentStatus = 'Paid';
+    m.PaymentVoucherNo = voucherNo;
+    m.PaymentDate = payDate || now;
+    m.PaidBy = operatorStamp;
+    m.PaymentSlipURL = state.activePaymentSlip || '';
+    m.UpdatedAt = now;
+    m.UpdatedBy = operatorStamp;
+
+    persistDatabase();
+    closeMilestonePaymentModal();
+    renderPilotViews();
+    showToast('บันทึกการสั่งจ่ายสำเร็จ', 'จ่ายเงินงวด ' + m.MilestoneID + ' ยอดสุทธิ ฿' + formatCurrency(m.NetPayable) + ' เรียบร้อยแล้ว', 'success');
+
+    // Sync to GAS
+    try {
+      postToGasBackend('payoutMilestone', {
+        milestoneId: msId,
+        payout: {
+          PaymentVoucherNo: voucherNo,
+          PaymentDate: payDate,
+          PaidBy: operatorStamp,
+          PaymentSlipURL: m.PaymentSlipURL
+        }
+      });
+    } catch (_) {}
+  }
+
+  function renderPilotRetentionTable() {
+    const tbody = document.getElementById('pilotRetentionTableBody');
+    if (!tbody) return;
+
+    const projects = state.db.projects || [];
+    const milestones = state.db.milestones || [];
+
+    if (projects.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400">ยังไม่มีข้อมูลสัญญาโครงการ</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = projects.map(function(p) {
+      const budget = Number(p.TotalBudget || 0);
+      const retPct = Number(p.RetentionPercent !== undefined ? p.RetentionPercent : 5);
+
+      const prjMilestones = milestones.filter(function(m) { return m.ProjectID === p.ProjectID; });
+      let paidNet = 0;
+      let retHeld = 0;
+
+      prjMilestones.forEach(function(m) {
+        if (m.PaymentStatus === 'Paid') {
+          paidNet += Number(m.NetPayable || 0);
+          retHeld += Number(m.RetentionDeducted || 0);
+        }
+      });
+
+      const remainingBudget = Math.max(0, budget - (paidNet + retHeld));
+      const warrantyStatus = p.Status === 'Completed'
+        ? '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono-code text-[11px]">ปลดล็อกแล้ว</span>'
+        : p.Status === 'Warranty Period'
+          ? '<span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[11px]">🛡️ รอครบกำหนดประกัน</span>'
+          : '<span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-mono-code text-[11px]">กำลังก่อสร้าง/ปรับปรุง</span>';
+
+      return `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-2.5 px-3">
+            <div class="font-bold text-slate-900">${escapeHtml(p.ProjectID)}</div>
+            <div class="text-[11px] text-slate-500 font-mono-code">${escapeHtml(p.ContractNo || '-')}</div>
+          </td>
+          <td class="py-2.5 px-3 font-semibold text-slate-800">
+            ${escapeHtml(p.ContractorName)}
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono-code font-bold text-slate-900">
+            ฿${formatCurrency(budget)}
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono-code font-bold text-amber-800">
+            ${retPct}%
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono-code font-bold text-amber-700 bg-amber-50/50">
+            ฿${formatCurrency(retHeld)}
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono-code font-bold text-emerald-800">
+            ฿${formatCurrency(paidNet)}
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono-code font-bold text-slate-600">
+            ฿${formatCurrency(remainingBudget)}
+          </td>
+          <td class="py-2.5 px-3 text-center font-mono-code text-xs">
+            ${p.WarrantyMonths || 12} เดือน
+          </td>
+          <td class="py-2.5 px-3 text-center">
+            ${warrantyStatus}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function exportPilotFinancialsToCSV() {
+    const headers = ['ProjectID', 'ContractNo', 'ContractTitle', 'ContractorName', 'TotalBudget', 'RetentionPercent', 'RetentionAmountHeld', 'NetPaid', 'RemainingBudget', 'WarrantyMonths', 'Status'];
+    const projects = state.db.projects || [];
+    const milestones = state.db.milestones || [];
+
+    const rows = projects.map(function(p) {
+      const budget = Number(p.TotalBudget || 0);
+      const retPct = Number(p.RetentionPercent !== undefined ? p.RetentionPercent : 5);
+      const prjMilestones = milestones.filter(function(m) { return m.ProjectID === p.ProjectID; });
+      let paidNet = 0;
+      let retHeld = 0;
+      prjMilestones.forEach(function(m) {
+        if (m.PaymentStatus === 'Paid') {
+          paidNet += Number(m.NetPayable || 0);
+          retHeld += Number(m.RetentionDeducted || 0);
+        }
+      });
+      const remaining = Math.max(0, budget - (paidNet + retHeld));
+
+      return [
+        p.ProjectID,
+        p.ContractNo || '-',
+        p.ContractTitle || '-',
+        p.ContractorName || '-',
+        budget,
+        retPct,
+        retHeld,
+        paidNet,
+        remaining,
+        p.WarrantyMonths || 12,
+        p.Status || 'In Progress'
+      ];
+    });
+
+    downloadCSV('FMMS_Pilot_Financial_Retention_Report.csv', headers, rows);
+  }
+
+  function openMilestonePrintModal(milestoneId) {
+    const m = (state.db.milestones || []).find(function(item) { return item.MilestoneID === milestoneId; });
+    if (!m) return;
+
+    const p = (state.db.projects || []).find(function(item) { return item.ProjectID === m.ProjectID; }) || {};
+    const container = document.getElementById('a4PaperContainer');
+    const modal = document.getElementById('memoPrintModal');
+    if (!container || !modal) return;
+
+    const isInspected = m.WorkStatus === 'Inspected & Approved';
+    const isPaid = m.PaymentStatus === 'Paid';
+    const photos = Array.isArray(m.InspectionPhotos) ? m.InspectionPhotos : [];
+
+    container.innerHTML = `
+      <!-- Top Official Header with Authentic TWPP Emblem -->
+      <div class="flex items-center gap-3 pb-2 mb-2 border-b-2 border-slate-900">
+        <div class="flex-shrink-0 flex items-center justify-center p-1 bg-white rounded border border-slate-300 shadow-sm" style="width: 52px; height: 46px;">
+          <img src="logo-cropped.png" alt="TWPP Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        </div>
+        <div class="flex-1 min-w-0 pr-2">
+          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FMMS ENTERPRISE • PILOT PROJECT CERTIFICATE (DATA MA TWPP)</div>
+          <h1 class="doc-title" style="font-size: 13.5pt; font-weight: 700; color: #000000; line-height: 1.15; margin: 1px 0;">
+            ใบรับรองการตรวจรับงานจ้างและอนุมัติเบิกจ่ายประจำงวด (INTERIM PAYMENT CERTIFICATE - IPC)
+          </h1>
+          <div class="doc-subheading text-slate-800" style="font-size: 11pt; font-weight: 700;">${escapeHtml(state.config.orgName || 'บริษัทบริหารจัดการอาคารและวิศวกรรม ทวพ. จำกัด')}</div>
+        </div>
+        <div class="text-right font-mono-code border border-slate-500 p-1.5 rounded flex-shrink-0 bg-slate-50" style="font-size: 9.5pt; min-width: 175px; line-height: 1.3;">
+          <div><strong>งวดงาน:</strong> ${escapeHtml(m.MilestoneID || '-')}</div>
+          <div><strong>เลขที่สัญญา:</strong> ${escapeHtml(p.ContractNo || '-')}</div>
+          <div><strong>วันที่ตรวจรับ:</strong> ${m.InspectionDate ? formatThaiDateOnly(m.InspectionDate) : '-'}</div>
+          <div class="${isPaid ? 'text-emerald-800 font-bold' : isInspected ? 'text-teal-800 font-bold' : 'text-slate-600 font-bold'}">
+            สถานะ: ${isPaid ? '💳 เบิกจ่ายแล้ว' : isInspected ? '✓ ผ่านตรวจรับ' : '⏳ รอตรวจรับ'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Contract & Milestone Metadata Grid -->
+      <div class="space-y-1 text-xs mb-2 bg-slate-50 p-2 rounded border border-slate-200">
+        <div class="grid grid-cols-12">
+          <span class="col-span-2 font-bold text-slate-600">โครงการ / สัญญา:</span>
+          <span class="col-span-10 font-bold text-slate-900">${escapeHtml(p.ContractTitle || '-')}</span>
+        </div>
+        <div class="grid grid-cols-12">
+          <span class="col-span-2 font-bold text-slate-600">ชื่องวดงานที่ ${m.MilestoneNo}:</span>
+          <span class="col-span-10 font-bold text-slate-900">${escapeHtml(m.MilestoneTitle)}</span>
+        </div>
+        <div class="grid grid-cols-12">
+          <span class="col-span-2 font-bold text-slate-600">ผู้รับเหมาคู่สัญญา:</span>
+          <span class="col-span-4 text-slate-800">👷 ${escapeHtml(p.ContractorName || '-')}</span>
+          <span class="col-span-2 font-bold text-slate-600">เบอร์ติดต่อ:</span>
+          <span class="col-span-4 text-slate-800 font-mono-code">${escapeHtml(p.ContractorPhone || '-')}</span>
+        </div>
+      </div>
+
+      <!-- Section 1: Financial & Retention Calculation Table -->
+      <div class="mb-2">
+        <h3 style="font-size: 11pt; font-weight: 700;" class="mb-0.5 text-slate-900">สรุปการคำนวณค่างวดงานและการหักเงินประกันผลงาน (Financial Breakdown)</h3>
+        <table class="w-full border-collapse border border-slate-400 text-xs">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700">
+              <th class="border border-slate-400 py-1 px-2 text-left">รายการเบิกจ่ายงวดงาน</th>
+              <th class="border border-slate-400 py-1 px-2 text-right">สัดส่วน (%)</th>
+              <th class="border border-slate-400 py-1 px-2 text-right">ยอดค่างวดเต็ม</th>
+              <th class="border border-slate-400 py-1 px-2 text-right">หักเงินประกันผลงาน (${Number(p.RetentionPercent || 5)}%)</th>
+              <th class="border border-slate-400 py-1 px-2 text-right">ยอดสั่งจ่ายสุทธิ (Net Payout)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="border border-slate-400 py-1 px-2 font-medium">ค่างวดที่ ${m.MilestoneNo}: ${escapeHtml(m.MilestoneTitle)}</td>
+              <td class="border border-slate-400 py-1 px-2 text-right font-mono-code">${Number(m.Percentage || 0)}%</td>
+              <td class="border border-slate-400 py-1 px-2 text-right font-mono-code font-bold">฿${formatCurrency(m.Amount)}</td>
+              <td class="border border-slate-400 py-1 px-2 text-right font-mono-code font-bold text-amber-700">- ฿${formatCurrency(m.RetentionDeducted)}</td>
+              <td class="border border-slate-400 py-1 px-2 text-right font-mono-code font-bold text-emerald-800">฿${formatCurrency(m.NetPayable)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Section 2: Inspection Notes -->
+      <div class="mb-2 border border-slate-300 rounded p-2 bg-white text-xs space-y-1">
+        <div><strong class="text-slate-800">ความเห็นและผลการตรวจรับของวิศวกรผู้ควบคุมงาน:</strong> ${escapeHtml(m.InspectorNotes || 'งานแล้วเสร็จถูกต้องตามแบบรูปรายการและมาตรฐานวิศวกรรมอาคาร')}</div>
+        ${isPaid ? `<div><strong class="text-slate-800">ข้อมูลการจ่ายเงินโดยฝ่ายบัญชี:</strong> ใบสำคัญจ่ายเลขที่ <span class="font-mono-code font-bold text-emerald-800">${escapeHtml(m.PaymentVoucherNo || '-')}</span> โอนเมื่อวันที่ ${formatThaiDateOnly(m.PaymentDate)} โดย ${escapeHtml(m.PaidBy || '-')}</div>` : ''}
+      </div>
+
+      <!-- Section 3: Evidence Photos (Up to 5 Photos) -->
+      <div class="mb-2 space-y-1.5">
+        <h3 style="font-size: 11pt; font-weight: 700;" class="text-slate-900">หลักฐานภาพถ่ายการตรวจรับงานงวดนี้ (Field Milestone Evidence)</h3>
+        <div class="border border-slate-300 p-1.5 rounded bg-slate-50">
+          ${photos.length > 0 ? `
+            <div class="grid grid-cols-5 gap-1">
+              ${photos.map(function(url, idx) {
+                return `
+                  <div class="border border-slate-200 bg-white p-0.5 text-center rounded">
+                    <div class="evidence-img-container" style="height: 52px;">
+                      <img src="${url}" onerror="this.style.opacity='0.4';" class="w-full h-full object-cover rounded">
+                    </div>
+                    <div class="text-[8px] font-mono-code text-slate-500 mt-0.5">ภาพงวด #${idx+1}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : '<div class="py-2 text-center text-slate-400 text-xs">ไม่มีภาพถ่ายตรวจรับ</div>'}
+        </div>
+      </div>
+
+      <!-- Section 4: 3-Party Digital Sign-off -->
+      <div class="grid grid-cols-3 gap-2 pt-2 border-t-2 border-slate-800 text-center text-xs mt-auto">
+        <div class="border border-slate-300 p-1.5 rounded bg-white">
+          <div class="font-bold text-slate-800 mb-1.5">1. ผู้ส่งมอบงาน / ผู้รับเหมา</div>
+          <div class="font-bold text-slate-900">${escapeHtml(p.ContractorName || 'ผู้รับเหมาคู่สัญญา')}</div>
+          <div class="text-[10px] text-slate-500">ผู้รับจ้างดำเนินงานตามสัญญา</div>
+          <div class="font-mono-code text-[9px] text-slate-400 mt-0.5">${m.DueDate ? formatThaiDateOnly(m.DueDate) : '-'}</div>
+        </div>
+
+        <div class="border border-slate-300 p-1.5 rounded bg-white">
+          <div class="font-bold text-slate-800 mb-1.5">2. ผู้ตรวจรับงาน / วิศวกรควบคุม</div>
+          <div class="font-bold text-slate-900">${escapeHtml(m.InspectorName || 'วิศวกรผู้ควบคุมงาน')}</div>
+          <div class="text-[10px] text-slate-500">ผู้มีอำนาจตรวจรับผลงาน</div>
+          <div class="font-mono-code text-[9px] ${isInspected ? 'text-teal-700 font-bold' : 'text-slate-400'} mt-0.5">
+            ${isInspected ? '✓ ตรวจรับ: ' + formatThaiDateTime(m.InspectionDate) : '(รอการตรวจรับ)'}
+          </div>
+        </div>
+
+        <div class="border-2 ${isPaid ? 'border-emerald-600 bg-emerald-50/30' : 'border-slate-300 bg-white'} p-1.5 rounded relative overflow-hidden">
+          ${isPaid ? `
+            <div class="absolute -right-2 -bottom-2 border-2 border-emerald-600/30 rounded-full w-14 h-14 flex items-center justify-center font-bold text-emerald-800/30 font-mono-code text-[8px] transform -rotate-12 pointer-events-none select-none">
+              PAID
+            </div>
+          ` : ''}
+          <div class="font-bold text-slate-800 mb-1.5">3. ผู้สั่งจ่าย / ฝ่ายบัญชี & บริหาร</div>
+          <div class="font-bold ${isPaid ? 'text-emerald-900' : 'text-slate-400'}">${isPaid ? escapeHtml(m.PaidBy || 'ฝ่ายบัญชีและการเงิน') : '(รออนุมัติจ่าย)'}</div>
+          <div class="text-[10px] text-slate-500">ผู้มีอำนาจสั่งจ่ายงวดเงิน</div>
+          <div class="font-mono-code text-[9px] ${isPaid ? 'text-emerald-700 font-bold' : 'text-slate-400'} mt-0.5">
+            ${isPaid ? '💳 โอนเงิน: ' + formatThaiDateTime(m.PaymentDate) : '-'}
+          </div>
+        </div>
+      </div>
+    `;
+
+    currentMemoZoom = 1.0;
+    updateMemoZoomDisplay();
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  function UtilitiesDateYear() {
+    return new Date().getFullYear();
+  }
+
+  function UtilitiesDateToday() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+    return {
     fillLoginPreset: fillLoginPreset,
     handleLoginSubmit: handleLoginSubmit,
     logout: logout,
@@ -6363,7 +7649,43 @@ const FMMS = (function() {
     filterExecutiveCards: filterExecutiveCards,
     init: init,
     getState: function() { return state; },
-    persistDatabase: persistDatabase
+    persistDatabase: persistDatabase,
+    initLivePresenceEngine: initLivePresenceEngine,
+    updateLivePresence: updateLivePresence,
+    openOnlineUsersModal: openOnlineUsersModal,
+    closeOnlineUsersModal: closeOnlineUsersModal,
+    acquireItemLock: acquireItemLock,
+    releaseItemLock: releaseItemLock,
+    closeItemLockWarningModal: closeItemLockWarningModal,
+    initIdleAutoSaveDetector: initIdleAutoSaveDetector,
+    autoSaveActiveDraft: autoSaveActiveDraft,
+    renderPilotViews: renderPilotViews,
+    switchPilotSubTab: switchPilotSubTab,
+    renderPilotProjectsTable: renderPilotProjectsTable,
+    calculateProjectRetentionPreview: calculateProjectRetentionPreview,
+    handleRetentionPresetChange: handleRetentionPresetChange,
+    openCreateProjectModal: openCreateProjectModal,
+    editPilotProject: editPilotProject,
+    closePilotProjectModal: closePilotProjectModal,
+    handleSavePilotProjectSubmit: handleSavePilotProjectSubmit,
+    deletePilotProject: deletePilotProject,
+    populateActiveProjectDropdown: populateActiveProjectDropdown,
+    handleSelectActiveProject: handleSelectActiveProject,
+    renderPilotMilestonesTable: renderPilotMilestonesTable,
+    openAddMilestoneModal: openAddMilestoneModal,
+    openMilestoneInspectionModal: openMilestoneInspectionModal,
+    closeMilestoneInspectionModal: closeMilestoneInspectionModal,
+    handleMilestonePhotoUpload: handleMilestonePhotoUpload,
+    removeMilestoneInspectionPhoto: removeMilestoneInspectionPhoto,
+    handleMilestoneInspectionSubmit: handleMilestoneInspectionSubmit,
+    openMilestonePaymentModal: openMilestonePaymentModal,
+    closeMilestonePaymentModal: closeMilestonePaymentModal,
+    handlePaymentSlipUpload: handlePaymentSlipUpload,
+    removePaymentSlip: removePaymentSlip,
+    handleMilestonePaymentSubmit: handleMilestonePaymentSubmit,
+    renderPilotRetentionTable: renderPilotRetentionTable,
+    exportPilotFinancialsToCSV: exportPilotFinancialsToCSV,
+    openMilestonePrintModal: openMilestonePrintModal
   };
 })();
 

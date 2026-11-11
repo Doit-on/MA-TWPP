@@ -24,7 +24,7 @@ const CONFIG = {
   SPREADSHEET_ID: '1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ',
   DRIVE_FOLDER_ID: '1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx',
   SYSTEM_NAME: 'FMMS - Data MA TWPP',
-  VERSION: '2.9.2-ENT',
+  VERSION: '2.9.3-ENT',
   TIMEZONE: 'Asia/Bangkok',
   SHEETS: {
     USERS: 'Users',
@@ -34,7 +34,9 @@ const CONFIG = {
     COST_REFS: 'Cost_References',
     DOC_REVISIONS: 'Document_Revisions',
     LOGS: 'System_Logs',
-    SETTINGS: 'System_Settings'
+    SETTINGS: 'System_Settings',
+    PROJECTS: 'Pilot_Projects',
+    MILESTONES: 'Project_Milestones'
   }
 };
 
@@ -82,6 +84,19 @@ const SCHEMAS = {
   ],
   System_Settings: [
     'SettingKey', 'SettingValue', 'Description', 'UpdatedAt', 'UpdatedBy', 'OperatorName'
+  ],
+  Pilot_Projects: [
+    'ProjectID', 'DocVersion', 'ContractNo', 'ContractTitle', 'Category', 'Location',
+    'ContractorName', 'ContractorPhone', 'TotalBudget', 'RetentionPercent', 'RetentionAmount',
+    'PaymentMode', 'StartDate', 'EndDate', 'WarrantyMonths', 'ContractFileURL', 'Status',
+    'CreatedAt', 'CreatedBy', 'UpdatedAt', 'UpdatedBy'
+  ],
+  Project_Milestones: [
+    'MilestoneID', 'ProjectID', 'MilestoneNo', 'MilestoneTitle', 'Description',
+    'Percentage', 'Amount', 'RetentionDeducted', 'NetPayable', 'DueDate',
+    'WorkStatus', 'PaymentStatus', 'InspectionDate', 'InspectorName', 'InspectorNotes',
+    'InspectionPhotosJSON', 'PaymentDate', 'PaidBy', 'PaymentSlipURL', 'PaymentVoucherNo',
+    'UpdatedAt', 'UpdatedBy'
   ]
 };
 
@@ -197,6 +212,21 @@ function doPost(e) {
         break;
       case 'verifyIdIntegrity':
         result = handleVerifyIntegrity(payload, actor);
+        break;
+      case 'savePilotProject':
+        result = handleSavePilotProject(payload, actor);
+        break;
+      case 'deletePilotProject':
+        result = handleDeletePilotProject(payload, actor);
+        break;
+      case 'saveProjectMilestones':
+        result = handleSaveProjectMilestones(payload, actor);
+        break;
+      case 'inspectMilestone':
+        result = handleInspectMilestone(payload, actor);
+        break;
+      case 'payoutMilestone':
+        result = handlePayoutMilestone(payload, actor);
         break;
       default:
         throw new Error('Unknown API action: ' + action);
@@ -341,6 +371,9 @@ function handleBootstrap(params, startTime) {
   const logs = sheetToObjects(ss.getSheetByName(CONFIG.SHEETS.LOGS)).slice(-150).reverse();
   const settings = sheetToObjects(ss.getSheetByName(CONFIG.SHEETS.SETTINGS));
 
+  const projects = sheetToObjects(ss.getSheetByName(CONFIG.SHEETS.PROJECTS));
+  const milestones = sheetToObjects(ss.getSheetByName(CONFIG.SHEETS.MILESTONES));
+
   return {
     ok: true,
     version: CONFIG.VERSION,
@@ -352,7 +385,9 @@ function handleBootstrap(params, startTime) {
       costRefs: costRefs,
       docRevisions: docRevisions,
       logs: logs,
-      settings: settings
+      settings: settings,
+      projects: projects,
+      milestones: milestones
     },
     resources: {
       spreadsheetId: CONFIG.SPREADSHEET_ID,
@@ -1477,4 +1512,389 @@ function formatISO(dateObj) {
 
 function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * ============================================================================
+ * PILOT PROJECTS & MILESTONE CONTRACT WORKFLOW ENGINE
+ * ============================================================================
+ */
+
+function handleSavePilotProject(payload, actor) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const role = Number(actor.roleLevel || 1);
+    // Role 2.5 (Accounting), Role 3 (Admin / Executive) can create or update
+    if (role < 2.5) {
+      throw new Error('เฉพาะฝ่ายบัญชี (ระดับ 2.5) หรือผู้บริหาร/Admin (ระดับ 3) เท่านั้นที่จัดการข้อมูลสัญญาและโครงการได้');
+    }
+
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(CONFIG.SHEETS.PROJECTS);
+    const rows = sheetToObjects(sheet);
+    const p = payload.project || {};
+    const now = formatISO(new Date());
+    const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
+
+    let projectId = p.ProjectID;
+    let existingIndex = -1;
+    let beforeObj = null;
+
+    if (projectId) {
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].ProjectID === projectId) {
+          existingIndex = i + 2;
+          beforeObj = rows[i];
+          break;
+        }
+      }
+    }
+
+    if (existingIndex !== -1 && beforeObj) {
+      // Update existing project
+      const newVersion = incrementDocVersion(beforeObj.DocVersion);
+      const updatedRow = [
+        beforeObj.ProjectID,
+        newVersion,
+        p.ContractNo || beforeObj.ContractNo,
+        p.ContractTitle || beforeObj.ContractTitle,
+        p.Category || beforeObj.Category || 'ปรับปรุงอาคาร',
+        p.Location || beforeObj.Location || 'ทั่วไป',
+        p.ContractorName || beforeObj.ContractorName,
+        p.ContractorPhone || beforeObj.ContractorPhone || '-',
+        Number(p.TotalBudget || beforeObj.TotalBudget || 0),
+        Number(p.RetentionPercent !== undefined ? p.RetentionPercent : (beforeObj.RetentionPercent || 5)),
+        Number(p.RetentionAmount !== undefined ? p.RetentionAmount : (beforeObj.RetentionAmount || 0)),
+        p.PaymentMode || beforeObj.PaymentMode || 'MILESTONE_INSTALLMENTS',
+        p.StartDate || beforeObj.StartDate || '',
+        p.EndDate || beforeObj.EndDate || '',
+        Number(p.WarrantyMonths || beforeObj.WarrantyMonths || 12),
+        p.ContractFileURL || beforeObj.ContractFileURL || '',
+        p.Status || beforeObj.Status || 'In Progress',
+        beforeObj.CreatedAt,
+        beforeObj.CreatedBy,
+        now,
+        operatorStamp
+      ];
+      sheet.getRange(existingIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
+
+      writeAuditLog({
+        userId: actor.userId,
+        operatorName: actor.fullName,
+        roleLevel: actor.roleLevel,
+        action: 'UPDATE_PILOT_PROJECT',
+        targetId: projectId,
+        docVersion: newVersion,
+        details: 'แก้ไขข้อมูลโครงการ/สัญญา ' + projectId + ' โดย ' + operatorStamp,
+        beforeState: JSON.stringify(beforeObj),
+        afterState: JSON.stringify(p)
+      });
+
+      return { ok: true, projectId: projectId, version: newVersion, message: 'บันทึกการแก้ไขโครงการเรียบร้อย' };
+    } else {
+      // Create new project
+      const prefix = 'PRJ-' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy');
+      projectId = generateUniqueDocId(CONFIG.SHEETS.PROJECTS, 1, prefix);
+      const newRow = [
+        projectId,
+        'v1.0',
+        p.ContractNo || ('CNT-' + Date.now().toString(36).toUpperCase()),
+        p.ContractTitle || 'โครงการปรับปรุงงานระบบและอาคาร',
+        p.Category || 'ปรับปรุงอาคาร',
+        p.Location || 'พื้นที่โครงการ',
+        p.ContractorName || 'ผู้รับเหมาโครงการ',
+        p.ContractorPhone || '-',
+        Number(p.TotalBudget || 0),
+        Number(p.RetentionPercent !== undefined ? p.RetentionPercent : 5),
+        Number(p.RetentionAmount || 0),
+        p.PaymentMode || 'MILESTONE_INSTALLMENTS',
+        p.StartDate || Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd'),
+        p.EndDate || '',
+        Number(p.WarrantyMonths || 12),
+        p.ContractFileURL || '',
+        p.Status || 'Contract Signed',
+        now,
+        operatorStamp,
+        now,
+        operatorStamp
+      ];
+      sheet.appendRow(newRow);
+
+      writeAuditLog({
+        userId: actor.userId,
+        operatorName: actor.fullName,
+        roleLevel: actor.roleLevel,
+        action: 'CREATE_PILOT_PROJECT',
+        targetId: projectId,
+        docVersion: 'v1.0',
+        details: 'สร้างโครงการนำร่องใหม่ ' + projectId + ' สัญญา: ' + (p.ContractNo || '-') + ' วงเงิน ฿' + Number(p.TotalBudget || 0),
+        beforeState: 'NONE',
+        afterState: JSON.stringify(p)
+      });
+
+      return { ok: true, projectId: projectId, version: 'v1.0', message: 'สร้างโครงการใหม่สำเร็จ' };
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleDeletePilotProject(payload, actor) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    if (Number(actor.roleLevel || 1) < 3) {
+      throw new Error('เฉพาะ Admin หรือผู้บริหาร (ระดับ 3) เท่านั้นที่สามารถลบโครงการได้');
+    }
+    const ss = getSpreadsheet();
+    const prjSheet = ss.getSheetByName(CONFIG.SHEETS.PROJECTS);
+    const msSheet = ss.getSheetByName(CONFIG.SHEETS.MILESTONES);
+    const projectId = payload.projectId;
+    if (!projectId) throw new Error('ไม่ระบุรหัสโครงการที่ต้องการลบ');
+
+    const prjRows = sheetToObjects(prjSheet);
+    for (let i = prjRows.length - 1; i >= 0; i--) {
+      if (prjRows[i].ProjectID === projectId) {
+        prjSheet.deleteRow(i + 2);
+      }
+    }
+
+    if (msSheet) {
+      const msRows = sheetToObjects(msSheet);
+      for (let j = msRows.length - 1; j >= 0; j--) {
+        if (msRows[j].ProjectID === projectId) {
+          msSheet.deleteRow(j + 2);
+        }
+      }
+    }
+
+    writeAuditLog({
+      userId: actor.userId,
+      operatorName: actor.fullName,
+      roleLevel: actor.roleLevel,
+      action: 'DELETE_PILOT_PROJECT',
+      targetId: projectId,
+      docVersion: '-',
+      details: 'ลบโครงการ ' + projectId + ' และงวดงานที่เกี่ยวข้องทั้งหมดออกจากระบบ',
+      beforeState: 'ACTIVE',
+      afterState: 'DELETED'
+    });
+
+    return { ok: true, projectId: projectId, message: 'ลบโครงการเรียบร้อยแล้ว' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleSaveProjectMilestones(payload, actor) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const role = Number(actor.roleLevel || 1);
+    if (role < 2.5) {
+      throw new Error('เฉพาะฝ่ายบัญชี (ระดับ 2.5) หรือผู้บริหาร/Admin (ระดับ 3) เท่านั้นที่กำหนดงวดงานได้');
+    }
+
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(CONFIG.SHEETS.MILESTONES);
+    const projectId = payload.projectId;
+    const milestones = payload.milestones || [];
+    const now = formatISO(new Date());
+    const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
+
+    if (!projectId) throw new Error('ไม่ระบุ ProjectID สำหรับงวดงาน');
+
+    // Remove existing milestones for this project to rewrite cleanly
+    const existing = sheetToObjects(sheet);
+    for (let i = existing.length - 1; i >= 0; i--) {
+      if (existing[i].ProjectID === projectId) {
+        sheet.deleteRow(i + 2);
+      }
+    }
+
+    // Append new milestone rows
+    milestones.forEach(function(m, idx) {
+      const msId = m.MilestoneID || (projectId + '-MS' + String(idx + 1).padStart(2, '0'));
+      const row = [
+        msId,
+        projectId,
+        Number(m.MilestoneNo || (idx + 1)),
+        m.MilestoneTitle || ('งวดที่ ' + (idx + 1)),
+        m.Description || '',
+        Number(m.Percentage || 0),
+        Number(m.Amount || 0),
+        Number(m.RetentionDeducted || 0),
+        Number(m.NetPayable || 0),
+        m.DueDate || '',
+        m.WorkStatus || 'Pending',
+        m.PaymentStatus || 'Unpaid',
+        m.InspectionDate || '',
+        m.InspectorName || '',
+        m.InspectorNotes || '',
+        typeof m.InspectionPhotosJSON === 'string' ? m.InspectionPhotosJSON : JSON.stringify(m.InspectionPhotos || []),
+        m.PaymentDate || '',
+        m.PaidBy || '',
+        m.PaymentSlipURL || '',
+        m.PaymentVoucherNo || '',
+        now,
+        operatorStamp
+      ];
+      sheet.appendRow(row);
+    });
+
+    writeAuditLog({
+      userId: actor.userId,
+      operatorName: actor.fullName,
+      roleLevel: actor.roleLevel,
+      action: 'UPDATE_PROJECT_MILESTONES',
+      targetId: projectId,
+      docVersion: '-',
+      details: 'บันทึกงวดงานโครงการ ' + projectId + ' รวม ' + milestones.length + ' งวดงาน',
+      beforeState: 'PREVIOUS_MILESTONES',
+      afterState: JSON.stringify(milestones)
+    });
+
+    return { ok: true, projectId: projectId, count: milestones.length, message: 'บันทึกงวดงาน ' + milestones.length + ' งวดสำเร็จ' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleInspectMilestone(payload, actor) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const role = Number(actor.roleLevel || 1);
+    if (role < 2) {
+      throw new Error('เฉพาะวิศวกรผู้ควบคุมงาน (ระดับ 2) หรือผู้บริหาร (ระดับ 3) เท่านั้นที่ตรวจรับงานได้');
+    }
+
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(CONFIG.SHEETS.MILESTONES);
+    const rows = sheetToObjects(sheet);
+    const msId = payload.milestoneId;
+    const insp = payload.inspection || {};
+    const now = formatISO(new Date());
+    const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
+
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].MilestoneID === msId) {
+        const r = rows[i];
+        const updatedRow = [
+          r.MilestoneID,
+          r.ProjectID,
+          r.MilestoneNo,
+          r.MilestoneTitle,
+          r.Description,
+          r.Percentage,
+          r.Amount,
+          r.RetentionDeducted,
+          r.NetPayable,
+          r.DueDate,
+          insp.WorkStatus || 'Inspected & Approved',
+          insp.WorkStatus === 'Inspected & Approved' ? 'Pending Executive Approval' : 'Unpaid',
+          insp.InspectionDate || now,
+          insp.InspectorName || actor.fullName,
+          insp.InspectorNotes || '',
+          typeof insp.InspectionPhotosJSON === 'string' ? insp.InspectionPhotosJSON : JSON.stringify(insp.InspectionPhotos || []),
+          r.PaymentDate || '',
+          r.PaidBy || '',
+          r.PaymentSlipURL || '',
+          r.PaymentVoucherNo || '',
+          now,
+          operatorStamp
+        ];
+        sheet.getRange(i + 2, 1, 1, updatedRow.length).setValues([updatedRow]);
+
+        writeAuditLog({
+          userId: actor.userId,
+          operatorName: actor.fullName,
+          roleLevel: actor.roleLevel,
+          action: 'INSPECT_MILESTONE',
+          targetId: msId,
+          docVersion: '-',
+          details: 'ตรวจรับงวดงาน ' + msId + ' ผล: ' + (insp.WorkStatus || 'ผ่านการตรวจรับ'),
+          beforeState: r.WorkStatus,
+          afterState: insp.WorkStatus || 'Inspected & Approved'
+        });
+
+        return { ok: true, milestoneId: msId, message: 'บันทึกการตรวจรับงวดงานสำเร็จ' };
+      }
+    }
+    throw new Error('ไม่พบรหัสงวดงาน ' + msId);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handlePayoutMilestone(payload, actor) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const role = Number(actor.roleLevel || 1);
+    if (role < 2.5) {
+      throw new Error('เฉพาะฝ่ายบัญชี (ระดับ 2.5) หรือผู้บริหาร/Admin (ระดับ 3) เท่านั้นที่สั่งจ่ายเงินงวดได้');
+    }
+
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(CONFIG.SHEETS.MILESTONES);
+    const rows = sheetToObjects(sheet);
+    const msId = payload.milestoneId;
+    const payout = payload.payout || {};
+    const now = formatISO(new Date());
+    const operatorStamp = actor.userId + ' (' + actor.fullName + ')';
+
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].MilestoneID === msId) {
+        const r = rows[i];
+        if (r.WorkStatus !== 'Inspected & Approved') {
+          throw new Error('ไม่สามารถสั่งจ่ายได้: งวดงานยังไม่ผ่านการตรวจรับจากวิศวกรผู้ควบคุมงาน (3-Way Match Failed)');
+        }
+
+        const updatedRow = [
+          r.MilestoneID,
+          r.ProjectID,
+          r.MilestoneNo,
+          r.MilestoneTitle,
+          r.Description,
+          r.Percentage,
+          r.Amount,
+          r.RetentionDeducted,
+          r.NetPayable,
+          r.DueDate,
+          r.WorkStatus,
+          'Paid',
+          r.InspectionDate,
+          r.InspectorName,
+          r.InspectorNotes,
+          r.InspectionPhotosJSON,
+          payout.PaymentDate || now,
+          payout.PaidBy || operatorStamp,
+          payout.PaymentSlipURL || '',
+          payout.PaymentVoucherNo || ('PV-' + Date.now().toString(36).toUpperCase()),
+          now,
+          operatorStamp
+        ];
+        sheet.getRange(i + 2, 1, 1, updatedRow.length).setValues([updatedRow]);
+
+        writeAuditLog({
+          userId: actor.userId,
+          operatorName: actor.fullName,
+          roleLevel: actor.roleLevel,
+          action: 'PAYOUT_MILESTONE',
+          targetId: msId,
+          docVersion: '-',
+          details: 'จ่ายเงินงวดงาน ' + msId + ' ยอดสุทธิ ฿' + Number(r.NetPayable || 0) + ' เลขที่ใบสำคัญ: ' + (payout.PaymentVoucherNo || '-'),
+          beforeState: r.PaymentStatus,
+          afterState: 'Paid'
+        });
+
+        return { ok: true, milestoneId: msId, message: 'บันทึกการสั่งจ่ายและแนบสลิปสำเร็จ' };
+      }
+    }
+    throw new Error('ไม่พบรหัสงวดงาน ' + msId);
+  } finally {
+    lock.releaseLock();
+  }
 }
