@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (FMMS Enterprise v2.9.3-ENT)
+ * Facility Maintenance Management System (FMMS Enterprise v2.9.1-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -44,13 +44,6 @@ const FMMS = (function() {
     },
     executiveSubTab: 'cards',
     deletedTaskIds: [],
-    deletedUserIds: [],
-    selectedProjectId: null,
-    pilotSubTab: 'projects',
-    activeEditingItem: null,
-    activeEditingPhotos: [],
-    activePaymentSlip: null,
-    lastUserActivity: Date.now(),
     compressedImages: {
       beforeImages: [],
       afterImages: [],
@@ -64,9 +57,7 @@ const FMMS = (function() {
       schedules: [],
       memos: [],
       costs: [],
-      logs: [],
-      projects: [],
-      milestones: []
+      logs: []
     }
   };
 
@@ -79,9 +70,9 @@ const FMMS = (function() {
   function init() {
     try {
       const hV = document.getElementById('headerSysVersion');
-      if (hV) hV.textContent = 'v2.9.3-ENT';
+      if (hV) hV.textContent = 'v2.9.1-ENT';
       const lV = document.getElementById('landingBuildVer');
-      if (lV) lV.textContent = 'v2.9.3-ENT';
+      if (lV) lV.textContent = 'v2.9.1-ENT';
     } catch (_) {}
     try {
       // Clear legacy permanent deletion blocklist so live Google Sheet records are never suppressed
@@ -101,8 +92,6 @@ const FMMS = (function() {
     try { pingConnection(false); } catch (e) { console.warn('pingConnection error:', e); }
     // Immediately sync latest data from Google Sheets upon application startup
     try { syncFromGasBackend(false); } catch (e) { console.warn('Initial sync error:', e); }
-    try { initLivePresenceEngine(); } catch (e) { console.warn('Presence engine error:', e); }
-    try { initIdleAutoSaveDetector(); } catch (e) { console.warn('Idle detector error:', e); }
 
     try {
       window.addEventListener('online', function() {
@@ -229,57 +218,371 @@ const FMMS = (function() {
   }
 
   function loadOrSeedDatabase() {
-    const MOCK_TASK_IDS = ['CM-202610-0045', 'CM-202610-0041', 'CM-202610-0042', 'PM-202610-0043', 'PM-202610-0044'];
-    const MOCK_MEMO_IDS = ['MEMO-2026-0018', 'MEMO-2026-0017'];
-
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.DB_STATE);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed) {
+        if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
           state.db = parsed;
-          // Filter out legacy mock data if cached in localStorage so user's real task is preserved cleanly
-          if (Array.isArray(state.db.tasks)) {
-            state.db.tasks = state.db.tasks.filter(function(t) { return !MOCK_TASK_IDS.includes(t.TaskID); });
-          }
-          if (Array.isArray(state.db.memos)) {
-            state.db.memos = state.db.memos.filter(function(m) { return !MOCK_MEMO_IDS.includes(m.MemoID); });
-          }
-          if (!Array.isArray(state.db.projects)) state.db.projects = [];
-          if (!Array.isArray(state.db.milestones)) state.db.milestones = [];
           reconcileMemoAndTaskStatuses();
-          ensureDefaultUsers();
           return;
         }
       }
     } catch (e) {
-      console.warn('Database load warning', e);
+      console.warn('Seeding fresh database state', e);
     }
 
+    
     const defaultCosts = [
       { CostID: 'COST-001', ItemCode: 'MAT-HVAC-001', Category: 'แอร์/เครื่องกล', ItemName: 'คอยล์โซลินอยด์วาล์วน้ำเย็น 24VAC (AHU)', Spec: 'Danfoss / Honeywell', Unit: 'ชุด', UnitPrice: 8500, LaborRate: 2500, PreferredVendor: 'หจก. ไทยคูลลิ่ง เอ็นจิเนียริ่ง' },
       { CostID: 'COST-002', ItemCode: 'MAT-PLUMB-002', Category: 'ประปา/สุขาภิบาล', ItemName: 'ชุดแมคคานิคอลซีล Booster Pump SIC/SIC', Spec: 'Grundfos / Ebara', Unit: 'ชุด', UnitPrice: 16500, LaborRate: 4500, PreferredVendor: 'บจก. สยามเมคคานิคอล ซัพพลาย' },
-      { CostID: 'COST-003', ItemCode: 'MAT-ELEC-003', Category: 'ไฟฟ้า', ItemName: 'สเปรย์ทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner', Spec: 'CRC ElectroX 400g', Unit: 'กระป๋อง', UnitPrice: 650, LaborRate: 500, PreferredVendor: 'บจก. ไฟฟ้าธนบุรี เอ็นจิเนียริ่ง' }
+      { CostID: 'COST-003', ItemCode: 'MAT-ELEC-003', Category: 'ไฟฟ้า', ItemName: 'สเปรย์ทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner', Spec: 'CRC ElectroX 400g', Unit: 'กระป๋อง', UnitPrice: 650, LaborRate: 500, PreferredVendor: 'บจก. ไฟฟ้าธนบุรี เอ็นจิเนียริ่ง' },
+      { CostID: 'COST-004', ItemCode: 'MAT-FIRE-004', Category: 'ความปลอดภัย/ดับเพลิง', ItemName: 'น้ำกลั่นและแบตเตอรี่ตู้คอนโทรลปั๊มดับเพลิง', Spec: 'GS Battery 12V 100Ah', Unit: 'ชุด', UnitPrice: 4200, LaborRate: 800, PreferredVendor: 'บจก. ไฟร์เซฟตี้ แอนด์ เทค' }
     ];
-
+    const DEFAULT_5_BEFORE_PHOTOS = [
+      'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092162384-8987c1d64718?auto=format&fit=crop&w=600&q=75'
+    ];
+    const DEFAULT_5_AFTER_PHOTOS = [
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=600&q=75',
+      'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=600&q=75'
+    ];
+    const now = getIsoNow();
     state.db = {
       costs: defaultCosts,
-      users: [],
-      tasks: [], // Clean start - User's real task from Google Sheets or localStorage only
-      schedules: [],
-      memos: [],
-      logs: [],
-      projects: [],
-      milestones: []
+      users: [
+        {
+          UserID: 'USR-2026-0001',
+          Username: 'admin',
+          PasswordPlain: 'admin123',
+          FullName: 'คุณนิพนธ์ (Executive & System Admin)',
+          RoleLevel: 3,
+          Department: 'บริหารจัดการอาคารและวิศวกรรม',
+          Phone: '081-900-1001',
+          Status: 'Active',
+          CreatedAt: '2026-10-01T08:30:00+07:00',
+          CreatedBy: 'SYSTEM_INIT (Root)',
+          UpdatedAt: now,
+          UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+          LastLoginAt: now
+        },
+        {
+          UserID: 'USR-2026-0002',
+          Username: 'supervisor',
+          PasswordPlain: 'sup123',
+          FullName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          RoleLevel: 2,
+          Department: 'วิศวกรรมซ่อมบำรุง (MEP Control)',
+          Phone: '081-900-1002',
+          Status: 'Active',
+          CreatedAt: '2026-10-01T09:00:00+07:00',
+          CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+          UpdatedAt: now,
+          UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+          LastLoginAt: now
+        },
+        {
+          UserID: 'USR-2026-0003',
+          Username: 'tech01',
+          PasswordPlain: 'tech123',
+          FullName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          RoleLevel: 1,
+          Department: 'ทีมปฏิบัติการภาคสนาม ชุดที่ 1',
+          Phone: '089-455-2211',
+          Status: 'Active',
+          CreatedAt: '2026-10-02T10:15:00+07:00',
+          CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+          UpdatedAt: now,
+          UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+          LastLoginAt: now
+        }
+      ],
+      tasks: [
+        {
+          TaskID: 'CM-202610-0045',
+          Type: 'CM',
+          Category: 'ประปา/สุขาภิบาล',
+          Title: 'ท่อน้ำดีแตก รั่วซึมเข้าฝ้าเพดานห้องประชุมชั้น 3',
+          Location: 'อาคาร B ชั้น 3 ห้องประชุมย่อย 2',
+          Description: 'ท่อ PPR ขนาด 1 นิ้วแตก ทำให้น้ำรั่วซึมหยดลงฝ้าทีบาร์และพรมห้องประชุม',
+          InitialAnalysis: 'ต้องตัดต่อท่อ PPR 1 นิ้วใหม่ และเปลี่ยนแผ่นฝ้าทีบาร์ 4 แผ่น',
+          MaterialsRequired: 'ท่อ PPR 1 นิ้ว 1 เส้น, ข้อต่อตรง PPR 2 ตัว, แผ่นฝ้า Gyproc 4 แผ่น',
+          Priority: 'High',
+          Status: 'Pending Level 2 Approval',
+          AssignedContractorID: 'USR-2026-0003',
+          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          SupervisorID: 'USR-2026-0002',
+          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          EstCost: 8500,
+          ActualCost: 0,
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: [],
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: '',
+          CreatedAt: '2026-10-27T08:00:00+07:00',
+          CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
+          UpdatedAt: '2026-10-27T08:00:00+07:00',
+          UpdatedBy: 'USR-2026-0003 (นายช่าง สมชาย)'
+        },
+        {
+          TaskID: 'CM-202610-0041',
+          Type: 'CM',
+          Category: 'แอร์/เครื่องกล',
+          Title: 'เครื่องส่งลมเย็น AHU-03 ห้องประชุมใหญ่ชั้น 2 ไม่ทำความเย็น',
+          Location: 'อาคาร A ชั้น 2 ห้องประชุมใหญ่',
+          Description: 'อุณหภูมิห้องสูง 28.5°C พัดลมทำงานปกติแต่โซลินอยด์วาล์วน้ำเย็นไม่เปิด',
+          InitialAnalysis: 'คอยล์โซลินอยด์วาล์ว 24VAC ขาด และต้องล้างสเตรนเนอร์น้ำเย็น',
+          MaterialsRequired: 'Solenoid Coil 24VAC 1 ตัว, ปะเก็นยาง EPDM 2 ชิ้น',
+          Priority: 'High',
+          Status: 'In Progress',
+          AssignedContractorID: 'USR-2026-0003',
+          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          SupervisorID: 'USR-2026-0002',
+          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          EstCost: 14500,
+          ActualCost: 13800,
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: DEFAULT_5_AFTER_PHOTOS,
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
+          CreatedAt: '2026-10-24T09:20:00+07:00',
+          CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
+          UpdatedAt: '2026-10-25T14:10:00+07:00',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        },
+        {
+          TaskID: 'CM-202610-0042',
+          Type: 'CM',
+          Category: 'ประปา/สุขาภิบาล',
+          Title: 'ปั๊มน้ำแรงดันสูง Booster Pump ตัวที่ 2 มีเสียงดังและแรงดันตก',
+          Location: 'ห้องเครื่องดาดฟ้า อาคารหลัก',
+          Description: 'แรงดันน้ำในระบบลดลงเหลือ 2.1 Bar มอเตอร์มีเสียงดังที่ชุดตลับลูกปืนและซีลกันรั่วซึม',
+          InitialAnalysis: 'Mechanical Seal สึกหรอและลูกปืนเพลาหลักชำรุด ต้องถอดโอเวอร์ฮอล',
+          MaterialsRequired: 'ชุด Mechanical Seal SIC/SIC 1 ชุด, ตลับลูกปืน SKF 6306 จำนวน 2 ตลับ',
+          Priority: 'Critical',
+          Status: 'Pending Level 3 Approval',
+          AssignedContractorID: 'USR-2026-0003',
+          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          SupervisorID: 'USR-2026-0002',
+          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          EstCost: 38500,
+          ActualCost: 0,
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: [],
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: '',
+          CreatedAt: '2026-10-25T11:05:00+07:00',
+          CreatedBy: 'USR-2026-0003 (นายช่าง สมชาย)',
+          UpdatedAt: '2026-10-26T10:30:00+07:00',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        },
+        {
+          TaskID: 'PM-202610-0043',
+          Type: 'PM',
+          Category: 'ไฟฟ้า',
+          Title: 'ตรวจเช็กตู้ควบคุมไฟฟ้าหลัก MDB และส่องกล้องความร้อน (Thermoscan) ประจำไตรมาส',
+          Location: 'ห้องไฟฟ้าหลัก ชั้น G',
+          Description: 'ตรวจสอบจุดต่อทางไฟฟ้า Busbar, ACB, MCCB และวัดค่าโหลดกระแสไฟทั้ง 3 เฟส',
+          InitialAnalysis: 'จุดต่อทุกจุดอุณหภูมิปกติ ไม่เกิน 45°C ขันทอร์คเรียบร้อย',
+          MaterialsRequired: 'น้ำยาทำความสะอาดหน้าสัมผัสทางไฟฟ้า Contact Cleaner 3 กระป๋อง',
+          Priority: 'Normal',
+          Status: 'Closed',
+          AssignedContractorID: 'USR-2026-0003',
+          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          SupervisorID: 'USR-2026-0002',
+          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          EstCost: 12000,
+          ActualCost: 12000,
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: DEFAULT_5_AFTER_PHOTOS,
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
+          CreatedAt: '2026-10-18T08:45:00+07:00',
+          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)',
+          UpdatedAt: '2026-10-20T17:00:00+07:00',
+          UpdatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        },
+        {
+          TaskID: 'PM-202610-0044',
+          Type: 'PM',
+          Category: 'ความปลอดภัย/ดับเพลิง',
+          Title: 'ทดสอบเดินเครื่องสูบน้ำดับเพลิง (Fire Pump & Jockey Pump) ประจำเดือน',
+          Location: 'ห้องปั๊มดับเพลิง อาคารจอดรถ ชั้น B1',
+          Description: 'ทดสอบแรงดันท่อเมนดับเพลิง ตรวจสอบแบตเตอรี่ตู้ควบคุม และระดับน้ำมันดีเซล',
+          InitialAnalysis: 'ระบบทำงานอัตโนมัติตามเกณฑ์ NFPA-20 แรงดันคงที่ 8.5 Bar',
+          MaterialsRequired: 'น้ำกลั่นเติมแบตเตอรี่ 4 ขวด',
+          Priority: 'Normal',
+          Status: 'Completed',
+          AssignedContractorID: 'USR-2026-0003',
+          AssignedContractorName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          SupervisorID: 'USR-2026-0002',
+          SupervisorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          EstCost: 4500,
+          ActualCost: 4200,
+          BeforeImages: DEFAULT_5_BEFORE_PHOTOS,
+          AfterImages: DEFAULT_5_AFTER_PHOTOS,
+          BeforeImgURL: JSON.stringify(DEFAULT_5_BEFORE_PHOTOS),
+          AfterImgURL: JSON.stringify(DEFAULT_5_AFTER_PHOTOS),
+          CreatedAt: '2026-10-22T09:00:00+07:00',
+          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)',
+          UpdatedAt: '2026-10-26T16:15:00+07:00',
+          UpdatedBy: 'USR-2026-0003 (นายช่าง สมชาย)'
+        }
+      ],
+      schedules: [
+        {
+          ScheduleID: 'SCH-2026-0001',
+          EquipmentCode: 'AHU-A2-03',
+          EquipmentName: 'เครื่องส่งลมเย็น AHU ห้องประชุมชั้น 2',
+          Category: 'แอร์/เครื่องกล',
+          Location: 'อาคาร A ชั้น 2',
+          Frequency: 'Monthly',
+          NextDueDate: '2026-11-15',
+          AssignedTeam: 'ทีมปรับอากาศ',
+          ChecklistItems: 'ล้างฟิลเตอร์, วัดกระแสไฟมอเตอร์, ตรวจสายพาน, ล้างถาดน้ำทิ้ง',
+          Status: 'Active',
+          CreatedAt: '2026-10-01T10:00:00+07:00',
+          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        },
+        {
+          ScheduleID: 'SCH-2026-0002',
+          EquipmentCode: 'MDB-MAIN-01',
+          EquipmentName: 'ตู้สวิตช์บอร์ดไฟฟ้าหลัก MDB อาคาร A',
+          Category: 'ไฟฟ้า',
+          Location: 'ห้องไฟฟ้า ชั้น G',
+          Frequency: 'Quarterly',
+          NextDueDate: '2026-12-01',
+          AssignedTeam: 'ทีมวิศวกรรมไฟฟ้า',
+          ChecklistItems: 'ส่องกล้อง Thermoscan, วัดค่าแรงดันและกระแส 3 เฟส, ทดสอบระบบป้องกัน Ground Fault',
+          Status: 'Active',
+          CreatedAt: '2026-10-01T10:30:00+07:00',
+          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        },
+        {
+          ScheduleID: 'SCH-2026-0003',
+          EquipmentCode: 'FP-B1-01',
+          EquipmentName: 'ชุดเครื่องสูบน้ำดับเพลิง Fire Pump 500 GPM',
+          Category: 'ความปลอดภัย/ดับเพลิง',
+          Location: 'ห้องปั๊มน้ำ ชั้น B1',
+          Frequency: 'Weekly',
+          NextDueDate: '2026-11-02',
+          AssignedTeam: 'ทีมเครื่องกลและดับเพลิง',
+          ChecklistItems: 'ทดสอบสตาร์ทเครื่องยนต์ 15 นาที, ตรวจแรงดันท่อเมน, ตรวจโวลต์แบตเตอรี่ 2 ชุด',
+          Status: 'Active',
+          CreatedAt: '2026-10-05T11:00:00+07:00',
+          CreatedBy: 'USR-2026-0002 (วิศวกร พรเทพ)'
+        }
+      ],
+      memos: [
+        {
+          MemoID: 'MEMO-2026-0018',
+          TaskID: 'CM-202610-0042',
+          DocReference: 'ทวพ./ซบร./2569/0018',
+          Subject: 'ขออนุมัติงบประมาณซ่อมบำรุงชุดปั๊มน้ำแรงดันสูง Booster Pump ตัวที่ 2 (เร่งด่วน)',
+          EstimatedBudget: 38500,
+          ReasonRationale: 'เนื่องจากชุด Mechanical Seal และตลับลูกปืนของ Booster Pump ตัวที่ 2 ชำรุดเสียหาย ทำให้แรงดันน้ำในอาคารตกและเสี่ยงต่อการที่มอเตอร์ไหม้ จึงจำเป็นต้องเปลี่ยนอะไหล่เร่งด่วนเพื่อความต่อเนื่องของระบบประปาอาคาร',
+          VendorName: 'บริษัท สยามเมคคานิคอล ซัพพลาย จำกัด',
+          VendorQuotationURL: 'QT-2026-8841',
+          SupervisorRemark: 'ตรวจสอบราคาเทียบ 3 รายแล้ว เป็นราคาที่เหมาะสมและมีอะไหล่พร้อมติดตั้งภายใน 24 ชม.',
+          RequestedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
+          RequestedAt: '2026-10-26T10:30:00+07:00',
+          ApprovedBy: '-',
+          ApproverName: '-',
+          ApprovalDate: '-',
+          ApprovalStatus: 'Pending Approval',
+          ExecutiveComment: '-'
+        },
+        {
+          MemoID: 'MEMO-2026-0017',
+          TaskID: 'CM-202610-0041',
+          DocReference: 'ทวพ./ซบร./2569/0017',
+          Subject: 'ขออนุมัติเปลี่ยนคอยล์โซลินอยด์วาล์วน้ำเย็นและล้างสเตรนเนอร์ AHU-03',
+          EstimatedBudget: 14500,
+          ReasonRationale: 'เพื่อแก้ไขปัญหาระบบปรับอากาศห้องประชุมใหญ่ชั้น 2 ไม่ทำความเย็น รองรับการประชุมผู้บริหาร',
+          VendorName: 'หจก. ไทยคูลลิ่ง เอ็นจิเนียริ่ง',
+          VendorQuotationURL: 'QT-2026-7712',
+          SupervisorRemark: 'เห็นควรอนุมัติดำเนินการ',
+          RequestedBy: 'USR-2026-0002 (วิศวกร พรเทพ ใจดี)',
+          RequestedAt: '2026-10-24T13:15:00+07:00',
+          ApprovedBy: 'USR-2026-0001',
+          ApproverName: 'คุณนิพนธ์ (Executive & System Admin)',
+          ApprovalDate: '2026-10-24T16:40:00+07:00',
+          ApprovalStatus: 'Approved',
+          ExecutiveComment: 'อนุมัติให้ดำเนินการตามเสนอ เน้นย้ำตรวจสอบความเรียบร้อยหลังซ่อม'
+        }
+      ],
+      logs: [
+        {
+          LogID: 'LOG-20261026-0004',
+          Timestamp: '2026-10-26T10:30:12+07:00',
+          UserID: 'USR-2026-0002',
+          OperatorName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+          RoleLevel: 2,
+          Action: 'REQUEST_APPROVAL_MEMO',
+          TargetID: 'MEMO-2026-0018',
+          Details: 'ออกบันทึกขออนุมัติงบซ่อม Booster Pump อ้างอิงใบงาน CM-202610-0042 วงเงิน 38,500 บาท',
+          BeforeState: 'Task Status: In Progress',
+          AfterState: 'Memo Status: Pending Approval',
+          ClientInfo: 'Desktop Chrome Win11',
+          Status: 'SUCCESS'
+        },
+        {
+          LogID: 'LOG-20261025-0003',
+          Timestamp: '2026-10-25T11:05:44+07:00',
+          UserID: 'USR-2026-0003',
+          OperatorName: 'นายช่าง สมชาย สายลุย (Contractor)',
+          RoleLevel: 1,
+          Action: 'CREATE_TASK',
+          TargetID: 'CM-202610-0042',
+          Details: 'เปิดใบงานซ่อมเฉพาะจุด (CM): ปั๊มน้ำแรงดันสูง Booster Pump ตัวที่ 2 พร้อมแนบภาพถ่ายหน้างาน',
+          BeforeState: 'NONE',
+          AfterState: 'TaskID: CM-202610-0042 (Mutex Verified)',
+          ClientInfo: 'Mobile Safari iOS',
+          Status: 'SUCCESS'
+        },
+        {
+          LogID: 'LOG-20261024-0002',
+          Timestamp: '2026-10-24T16:40:05+07:00',
+          UserID: 'USR-2026-0001',
+          OperatorName: 'คุณนิพนธ์ (Executive & System Admin)',
+          RoleLevel: 3,
+          Action: 'EXECUTIVE_DECISION',
+          TargetID: 'MEMO-2026-0017',
+          Details: 'ผู้บริหารอนุมัติบันทึกข้อความ MEMO-2026-0017 (ใบงาน CM-202610-0041)',
+          BeforeState: 'Pending Approval',
+          AfterState: 'Approved (฿14,500)',
+          ClientInfo: 'Desktop Edge Win11',
+          Status: 'SUCCESS'
+        },
+        {
+          LogID: 'LOG-20261002-0001',
+          Timestamp: '2026-10-02T10:15:00+07:00',
+          UserID: 'USR-2026-0001',
+          OperatorName: 'คุณนิพนธ์ (Executive & System Admin)',
+          RoleLevel: 3,
+          Action: 'USER_MANAGEMENT_CREATE',
+          TargetID: 'USR-2026-0003',
+          Details: 'Admin สร้างบัญชีผู้ใช้งาน tech01 กำหนดสิทธิ์ระดับ 1 (ช่างหน้างาน)',
+          BeforeState: 'NONE',
+          AfterState: 'RoleLevel: 1, Status: Active',
+          ClientInfo: 'Admin Console',
+          Status: 'SUCCESS'
+        }
+      ]
     };
-    ensureDefaultUsers();
+
     persistDatabase();
   }
 
   function persistDatabase() {
     try {
       localStorage.setItem(STORAGE_KEYS.DB_STATE, JSON.stringify(state.db));
-      localStorage.setItem('FMMS_ENT_DELETED_USERS_V2', JSON.stringify(state.deletedUserIds || []));
     } catch (e) {
       console.warn('localStorage persist warning (storage quota exceeded, saving lightweight copy):', e);
       try {
@@ -310,7 +613,6 @@ const FMMS = (function() {
     }
     updateNextTaskIdPreview();
   }
-
 
   /**
    * ==========================================================================
@@ -526,37 +828,11 @@ const FMMS = (function() {
 
         reconcileMemoAndTaskStatuses();
         if (json.data.users && json.data.users.length > 0) {
-          const blacklist = state.deletedUserIds || [];
-          state.db.users = json.data.users.filter(function(u) {
-            const uid = String(u.UserID || '').trim();
-            const uname = String(u.Username || '').trim().toLowerCase();
-            if (uid === 'USR-2026-0001') return true;
-            return !blacklist.includes(uid) && !blacklist.includes(uname);
-          });
+          state.db.users = json.data.users;
           ensureDefaultUsers();
         }
         if (json.data.schedules && json.data.schedules.length > 0) state.db.schedules = json.data.schedules;
         if (json.data.logs && json.data.logs.length > 0) state.db.logs = json.data.logs;
-        if (json.data.projects && Array.isArray(json.data.projects)) {
-          state.db.projects = json.data.projects;
-        }
-        if (json.data.milestones && Array.isArray(json.data.milestones)) {
-          state.db.milestones = json.data.milestones;
-        }
-        if (json.data.costRefs && json.data.costRefs.length > 0) {
-          state.db.costs = json.data.costRefs.map(function(cr) {
-            return {
-              CostID: cr.CostRefID || cr.CostID || ('COST-' + Math.random().toString(36).slice(2, 6)),
-              ItemCode: cr.ItemCode || '-',
-              ItemName: cr.ItemName || '-',
-              Category: cr.Category || 'ทั่วไป',
-              UnitPrice: Number(cr.StandardUnitPrice || cr.UnitPrice || 0),
-              LaborRate: Number(cr.LaborRate || 0),
-              EffectiveDate: cr.EffectiveDate || cr.UpdatedAt || getIsoNow(),
-              PreferredVendor: cr.PreferredVendor || cr.Vendor || '-'
-            };
-          });
-        }
         persistDatabase();
         renderAllViews();
         updateApprovalAlertBadge();
@@ -644,70 +920,109 @@ const FMMS = (function() {
   function ensureDefaultUsers() {
     if (!state.db) state.db = {};
     if (!Array.isArray(state.db.users)) state.db.users = [];
+    const defaults = [
+      {
+        UserID: 'USR-2026-0001',
+        Username: 'admin',
+        PasswordPlain: 'admin123',
+        FullName: 'คุณนิพนธ์ (Executive & System Admin)',
+        RoleLevel: 3,
+        Department: 'บริหารจัดการอาคารและวิศวกรรม',
+        Phone: '081-900-1001',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T08:30:00+07:00',
+        CreatedBy: 'SYSTEM_INIT (Root)',
+        UpdatedAt: '2026-10-01T08:30:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-01T08:30:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0002',
+        Username: 'supervisor',
+        PasswordPlain: 'sup123',
+        FullName: 'วิศวกร พรเทพ ใจดี (Supervisor)',
+        RoleLevel: 2,
+        Department: 'วิศวกรรมซ่อมบำรุง (MEP Control)',
+        Phone: '081-900-1002',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T09:00:00+07:00',
+        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        UpdatedAt: '2026-10-01T09:00:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-01T09:00:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0003',
+        Username: 'tech01',
+        PasswordPlain: 'tech123',
+        FullName: 'นายช่าง สมชาย สายลุย (Contractor)',
+        RoleLevel: 1,
+        Department: 'ทีมปฏิบัติการภาคสนาม ชุดที่ 1',
+        Phone: '089-455-2211',
+        Status: 'Active',
+        CreatedAt: '2026-10-02T10:15:00+07:00',
+        CreatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        UpdatedAt: '2026-10-02T10:15:00+07:00',
+        UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
+        LastLoginAt: '2026-10-02T10:15:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0004',
+        Username: 'tech1',
+        PasswordPlain: 'tech123',
+        FullName: 'นายช่าง สมชาย สายลุย (ช่างเทคนิค)',
+        RoleLevel: 1,
+        Department: 'ทีมปฏิบัติการภาคสนาม',
+        Phone: '089-455-2211',
+        Status: 'Active',
+        CreatedAt: '2026-10-02T10:15:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-02T10:15:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-02T10:15:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0005',
+        Username: 'super1',
+        PasswordPlain: 'super123',
+        FullName: 'วิศวกร พรเทพ ใจดี (ผู้ควบคุมงาน)',
+        RoleLevel: 2,
+        Department: 'วิศวกรรมซ่อมบำรุง',
+        Phone: '081-900-1002',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T09:00:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-01T09:00:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-01T09:00:00+07:00'
+      },
+      {
+        UserID: 'USR-2026-0006',
+        Username: 'exec1',
+        PasswordPlain: 'exec123',
+        FullName: 'ผู้บริหารระดับสูง (Executive Director)',
+        RoleLevel: 3,
+        Department: 'ฝ่ายบริหารจัดการอาคาร',
+        Phone: '081-900-1001',
+        Status: 'Active',
+        CreatedAt: '2026-10-01T08:30:00+07:00',
+        CreatedBy: 'SYSTEM_INIT',
+        UpdatedAt: '2026-10-01T08:30:00+07:00',
+        UpdatedBy: 'SYSTEM_INIT',
+        LastLoginAt: '2026-10-01T08:30:00+07:00'
+      }
+    ];
 
-    // Load persisted deletedUserIds from localStorage if empty
-    if (!state.deletedUserIds || state.deletedUserIds.length === 0) {
-      try {
-        const raw = localStorage.getItem('FMMS_ENT_DELETED_USERS_V2');
-        if (raw) state.deletedUserIds = JSON.parse(raw);
-      } catch (_) {}
-    }
-    const blacklist = state.deletedUserIds || [];
-
-    // ONLY USR-2026-0001 (Super Admin) is mandatory so the system is NEVER locked out
-    const adminUser = {
-      UserID: 'USR-2026-0001',
-      Username: 'admin',
-      PasswordPlain: 'admin123',
-      FullName: 'คุณนิพนธ์ (Executive & System Admin)',
-      RoleLevel: 3,
-      Department: 'บริหารจัดการอาคารและวิศวกรรม',
-      Phone: '081-900-1001',
-      Status: 'Active',
-      CreatedAt: '2026-10-01T08:30:00+07:00',
-      CreatedBy: 'SYSTEM_INIT (Root)',
-      UpdatedAt: '2026-10-01T08:30:00+07:00',
-      UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-      LastLoginAt: '2026-10-01T08:30:00+07:00'
-    };
-
-    const hasAdmin = state.db.users.find(function(u) {
-      return u.UserID === 'USR-2026-0001' || String(u.Username || '').toLowerCase() === 'admin';
-    });
-    if (!hasAdmin) {
-      state.db.users.unshift(adminUser);
-    }
-
-    // Role 2.5: Dedicated Accounting & Finance Officer
-    const accountUser = {
-      UserID: 'USR-2026-0004',
-      Username: 'account',
-      PasswordPlain: 'acc123',
-      FullName: 'ฝ่ายบัญชีและการเงิน (Accounting & Finance)',
-      RoleLevel: 2.5,
-      Department: 'การเงินและบัญชี',
-      Phone: '081-900-1004',
-      Status: 'Active',
-      CreatedAt: '2026-10-01T08:30:00+07:00',
-      CreatedBy: 'SYSTEM_INIT (Root)',
-      UpdatedAt: '2026-10-01T08:30:00+07:00',
-      UpdatedBy: 'USR-2026-0001 (คุณนิพนธ์)',
-      LastLoginAt: '2026-10-01T08:30:00+07:00'
-    };
-
-    const hasAccount = state.db.users.find(function(u) {
-      return u.UserID === 'USR-2026-0004' || String(u.Username || '').toLowerCase() === 'account';
-    });
-    if (!hasAccount && !blacklist.includes('USR-2026-0004') && !blacklist.includes('account')) {
-      state.db.users.push(accountUser);
-    }
-
-    // Filter out ANY user that is in the deleted blacklist so they can NEVER bounce back
-    state.db.users = state.db.users.filter(function(u) {
-      const uid = String(u.UserID || '').trim();
-      const uname = String(u.Username || '').trim().toLowerCase();
-      if (uid === 'USR-2026-0001') return true;
-      return !blacklist.includes(uid) && !blacklist.includes(uname);
+    defaults.forEach(function(d) {
+      const exists = state.db.users.find(function(u) {
+        return String(u.Username || '').toLowerCase() === d.Username.toLowerCase();
+      });
+      if (!exists) {
+        state.db.users.push(d);
+      } else {
+        if (!exists.PasswordPlain) exists.PasswordPlain = d.PasswordPlain;
+        if (!exists.RoleLevel) exists.RoleLevel = d.RoleLevel;
+      }
     });
   }
 
@@ -726,42 +1041,35 @@ const FMMS = (function() {
     el.style.display = 'none';
   }
 
+  function selectRoleForLogin(username) {
+    // Clear any previous session so user MUST authenticate
+    state.session = null;
+    try { localStorage.removeItem(STORAGE_KEYS.SESSION); } catch (_) {}
+
+    openLoginModal(username);
+  }
+
+  function quickLogin(username) {
+    selectRoleForLogin(username);
+  }
+
   function fillLoginPreset(username, password) {
-    setVal('loginUsername', username);
-    setVal('loginPassword', password);
+    setVal('loginUsername', username || '');
+    setVal('loginPassword', password || '');
   }
 
-  function quickLogin(username, password) {
-    fillLoginPreset(username, password);
-    handleLoginSubmit();
-  }
-
-  function openLoginModal() {
+  function openLoginModal(prefilledUsername) {
     hideOverlay('landingOverlay');
     showOverlay('authOverlay', 'flex');
 
     const errBox = document.getElementById('loginErrorBox');
     if (errBox) errBox.classList.add('hidden');
 
+    // Never show bypass banner - password is ALWAYS required!
     const sessionBanner = document.getElementById('loginActiveSessionNotice');
     if (sessionBanner) {
-      if (state.session && state.session.userId) {
-        sessionBanner.innerHTML = `
-          <div class="p-2.5 bg-teal-50 border border-teal-200 rounded-lg text-xs text-teal-900 flex items-center justify-between">
-            <div>
-              <div class="font-bold text-teal-800">เข้าใช้งานล่าสุด: ${escapeHtml(state.session.fullName)}</div>
-              <div class="text-[11px] text-teal-600 font-mono">ระดับสิทธิ์ที่ ${state.session.roleLevel} | ${escapeHtml(state.session.userId)}</div>
-            </div>
-            <button type="button" onclick="FMMS.applySessionToUI()" class="bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs px-2.5 py-1.5 rounded shadow cursor-pointer transition">
-              เข้าใช้งานต่อ →
-            </button>
-          </div>
-        `;
-        sessionBanner.classList.remove('hidden');
-      } else {
-        sessionBanner.classList.add('hidden');
-        sessionBanner.innerHTML = '';
-      }
+      sessionBanner.classList.add('hidden');
+      sessionBanner.innerHTML = '';
     }
 
     const passwordInput = document.getElementById('loginPassword');
@@ -769,15 +1077,24 @@ const FMMS = (function() {
 
     const usernameInput = document.getElementById('loginUsername');
     if (usernameInput) {
-      usernameInput.value = '';
-      setTimeout(function() {
-        try { usernameInput.focus(); } catch (_) {}
-      }, 100);
+      usernameInput.value = prefilledUsername || '';
     }
+
+    setTimeout(function() {
+      try {
+        if (prefilledUsername && passwordInput) {
+          passwordInput.focus();
+        } else if (usernameInput) {
+          usernameInput.focus();
+        }
+      } catch (_) {}
+    }, 150);
   }
 
   function enterLoginFromLanding() {
-    openLoginModal();
+    state.session = null;
+    try { localStorage.removeItem(STORAGE_KEYS.SESSION); } catch (_) {}
+    openLoginModal('');
   }
 
   function showLandingPage() {
@@ -793,12 +1110,31 @@ const FMMS = (function() {
     const errBox = document.getElementById('loginErrorBox');
     if (errBox) errBox.classList.add('hidden');
 
+    if (!rawUsername) {
+      if (errBox) {
+        errBox.textContent = 'กรุณาระบุชื่อผู้ใช้งาน';
+        errBox.classList.remove('hidden');
+      }
+      return;
+    }
+
+    // STRICT SECURITY: Password is ALWAYS required!
+    if (!password) {
+      if (errBox) {
+        errBox.textContent = 'กรุณาระบุรหัสผ่านตามที่กำหนด เพื่อความปลอดภัยของระบบ';
+        errBox.classList.remove('hidden');
+      }
+      const pwInput = document.getElementById('loginPassword');
+      if (pwInput) pwInput.focus();
+      return;
+    }
+
     ensureDefaultUsers();
 
     // Flexible username aliases
     let alias = username;
-    if (username === 'tech' || username === 'technician') alias = 'tech1';
-    if (username === 'super' || username === 'supervisor') alias = 'super1';
+    if (username === 'tech' || username === 'technician' || username === 'tech01') alias = 'tech1';
+    if (username === 'super' || username === 'supervisor' || username === 'supervisors') alias = 'super1';
     if (username === 'exec' || username === 'executive') alias = 'exec1';
     if (username === 'admin' || username === 'administrator') alias = 'admin';
     if (username === 'account' || username === 'acc' || username === 'finance' || username === 'accounting') alias = 'account';
@@ -808,28 +1144,57 @@ const FMMS = (function() {
       return uName === username || uName === alias;
     });
 
-    // Fallback: If still not found, check UserID (e.g. USR-2026-0001)
+    // Fallback 1: match by UserID (e.g. USR-2026-0001)
     if (!user) {
       user = state.db.users.find(function(u) {
         return String(u.UserID || '').toLowerCase() === username;
       });
     }
 
-    const isMatchPreset =
-      ((alias === 'admin') && (password === 'admin123' || password === 'admin' || password === '1234')) ||
-      ((alias === 'account') && (password === 'acc123' || password === 'account123' || password === 'acc' || password === '1234')) ||
-      ((alias === 'exec1') && (password === 'exec123' || password === 'exec' || password === '1234')) ||
-      ((alias === 'super1') && (password === 'super123' || password === 'sup123' || password === 'super' || password === '1234')) ||
-      ((alias === 'tech1' || alias === 'tech01') && (password === 'tech123' || password === 'tech' || password === '1234'));
+    // Fallback 2: match role-based if username was alias
+    if (!user && (alias === 'super1' || username.includes('super'))) {
+      user = state.db.users.find(function(u) { return Number(u.RoleLevel) === 2; });
+    }
+    if (!user && (alias === 'tech1' || username.includes('tech'))) {
+      user = state.db.users.find(function(u) { return Number(u.RoleLevel) === 1; });
+    }
+    if (!user && (alias === 'exec1' || username.includes('exec'))) {
+      user = state.db.users.find(function(u) { return Number(u.RoleLevel) === 3; });
+    }
+    if (!user && (alias === 'account' || username.includes('acc'))) {
+      user = state.db.users.find(function(u) { return Number(u.RoleLevel) === 2.5; });
+    }
 
-    const isPasswordValid = user && (user.PasswordPlain === password || isMatchPreset || (!user.PasswordPlain) || password === '1234');
+    // Strict Password Verification
+    let expectedPassword = user ? user.PasswordPlain : '';
+    if (!expectedPassword) {
+      if (alias === 'admin') expectedPassword = 'admin123';
+      else if (alias === 'account') expectedPassword = 'acc123';
+      else if (alias === 'super1') expectedPassword = 'super123';
+      else if (alias === 'tech1') expectedPassword = 'tech123';
+      else if (alias === 'exec1') expectedPassword = 'exec123';
+    }
+
+    const isPasswordValid = user && password && (
+      (password === expectedPassword) ||
+      (alias === 'admin' && (password === 'admin123' || password === user.PasswordPlain)) ||
+      (alias === 'account' && (password === 'acc123' || password === user.PasswordPlain)) ||
+      (alias === 'super1' && (password === 'super123' || password === 'sup123' || password === user.PasswordPlain)) ||
+      (alias === 'tech1' && (password === 'tech123' || password === user.PasswordPlain)) ||
+      (alias === 'exec1' && (password === 'exec123' || password === user.PasswordPlain))
+    );
 
     if (!user || !isPasswordValid) {
       if (errBox) {
-        errBox.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาเลือกบทบาทจากปุ่มด่วนด้านล่าง หรือตรวจสอบชื่อผู้ใช้';
+        errBox.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาระบุรหัสผ่านที่กำหนดให้ถูกต้อง';
         errBox.classList.remove('hidden');
       }
-      recordAuditLog('LOGIN_FAILED', username || 'UNKNOWN', 'พยายามเข้าสู่ระบบไม่สำเร็จ', '-', 'Denied', 'DENIED');
+      const pwInput = document.getElementById('loginPassword');
+      if (pwInput) {
+        pwInput.value = '';
+        pwInput.focus();
+      }
+      recordAuditLog('LOGIN_FAILED', username || 'UNKNOWN', 'ระบุรหัสผ่านไม่ถูกต้อง', '-', 'Denied', 'DENIED');
       return;
     }
 
@@ -963,12 +1328,6 @@ const FMMS = (function() {
   }
 
   function logout() {
-    if (state.activeEditingItem) {
-      try {
-        autoSaveActiveDraft();
-        releaseItemLock(state.activeEditingItem.targetId);
-      } catch (_) {}
-    }
     if (state.session) {
       recordAuditLog('LOGOUT', state.session.userId, 'ผู้ใช้งานออกจากระบบ', 'Active', 'Logged Out', 'SUCCESS');
     }
@@ -976,14 +1335,13 @@ const FMMS = (function() {
     localStorage.removeItem(STORAGE_KEYS.SESSION);
     hideOverlay('authOverlay');
     showLandingPage();
-    showToast('ออกจากระบบ', 'ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว', 'info');
+    showToast('ออกจากระบบแล้ว', 'ระบบกลับสู่หน้าแรก (Landing Page) เรียบร้อยแล้ว', 'info');
   }
 
   function showAccessDeniedModal(currentRole, targetViewKey, reasonText) {
     const roleNames = {
       1: 'ระดับ 1: ช่างหน้างาน (Field Contractor / Technician)',
       2: 'ระดับ 2: ผู้ควบคุมงาน (Engineering Supervisor)',
-      2.5: 'ระดับ 2.5: ฝ่ายบัญชีและการเงิน (Accounting & Finance)',
       3: 'ระดับ 3: ผู้บริหารระดับสูง (Executive & System Admin)'
     };
     const targetNames = {
@@ -1059,25 +1417,32 @@ const FMMS = (function() {
   }
 
   function switchView(viewKey) {
-    const role = state.session ? Number(state.session.roleLevel) : 0;
+    // CRITICAL SECURITY GUARD: Unauthenticated users CANNOT access any view without login!
+    if (!state.session || !state.session.userId || Number(state.session.roleLevel) <= 0) {
+      openLoginModal();
+      showToast('กรุณาระบุรหัสผ่าน', 'คุณต้องลงชื่อเข้าใช้ด้วยรหัสผ่านก่อนเข้าใช้งานส่วนนี้', 'warning');
+      return;
+    }
+
+    const role = Number(state.session.roleLevel);
 
     // Strict Access Control Guard with Formal Denial Popup:
-    // Level 1: Can only access role1 or view pilot
+    // Level 1: CANNOT access role2, role3, admin
     if (role === 1 && viewKey !== 'role1' && viewKey !== 'pilot') {
       showAccessDeniedModal(
         1,
         viewKey,
-        'ระดับ 1 (ช่างหน้างาน) ไม่มีสิทธิ์เข้าถึงส่วนควบคุมงานวิศวกรรมและการตั้งค่าระบบ เพื่อรักษาความปลอดภัย'
+        'ระดับ 1 (ช่างหน้างาน) ไม่มีสิทธิ์เข้าถึงหรือมองเห็นข้อมูลของระดับ 2 (ผู้ควบคุมงาน) และระดับ 3 (ผู้บริหาร) เพื่อรักษาความปลอดภัยของระบบ'
       );
       return;
     }
 
-    // Level 2: CANNOT access role3 or admin
+    // Level 2: CANNOT access role3, admin
     if (role === 2 && (viewKey === 'role3' || viewKey === 'admin')) {
       showAccessDeniedModal(
         2,
         viewKey,
-        'ระดับ 2 (ผู้ควบคุมงาน) ไม่มีสิทธิ์เข้าถึงหน้าจอผู้บริหารระดับ 3 และส่วนการตั้งค่าระบบ'
+        'ระดับ 2 (ผู้ควบคุมงาน) ไม่มีสิทธิ์เข้าถึงหน้าจอผู้บริหารระดับ 3 และส่วนการตั้งค่าระบบ เนื่องจากสิทธิ์การใช้งานไม่ถึงเกณฑ์'
       );
       return;
     }
@@ -1092,7 +1457,17 @@ const FMMS = (function() {
       return;
     }
 
-    // Level 3: "ส่วนระดับ 3 เห็นได้หมด" - Has complete clearance to switch to ANY view!
+    // Level 3 Only for Admin Settings: ONLY System Admin has clearance!
+    if (viewKey === 'admin' && role !== 3) {
+      showAccessDeniedModal(
+        role,
+        viewKey,
+        'เฉพาะผู้ดูแลระบบและผู้บริหารระดับ 3 เท่านั้นที่มีสิทธิ์เข้าถึงส่วนการตั้งค่าระบบ'
+      );
+      return;
+    }
+
+    // Clearance verified
     state.currentView = viewKey;
     const views = {
       role1: document.getElementById('viewRole1'),
@@ -3335,7 +3710,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // FMMS Engineering Performance Scorecard (v2.9.3-ENT)
+    // FMMS Engineering Performance Scorecard (v2.9.1-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -3533,43 +3908,6 @@ const FMMS = (function() {
   // A4 MEMO & WORK REPORT PRINT PREVIEW CONTROLLER (DS APP STANDARD)
   // ==========================================================================
   let currentMemoZoom = 1.0;
-  let memoViewMode = 'a4'; // 'a4' or 'mobile_card'
-
-  function calculateFitZoom() {
-    const screenWidth = window.innerWidth;
-    if (screenWidth < 850) {
-      // 794px is A4 width at 96 DPI. Provide 20px padding
-      const availableWidth = screenWidth - 20;
-      const ratio = availableWidth / 794;
-      return Math.min(1.0, Math.max(0.35, Number(ratio.toFixed(2))));
-    }
-    return 1.0;
-  }
-
-  function fitMemoToScreen() {
-    currentMemoZoom = calculateFitZoom();
-    updateMemoZoomDisplay();
-    const viewport = document.querySelector('.memo-viewport-container');
-    if (viewport) viewport.scrollTop = 0;
-  }
-
-  function toggleMemoViewMode() {
-    memoViewMode = memoViewMode === 'a4' ? 'mobile_card' : 'a4';
-    const a4Wrapper = document.getElementById('memoZoomWrapper');
-    const mobileCard = document.getElementById('memoMobileCardContainer');
-    const btn = document.getElementById('memoViewModeToggleBtn');
-    
-    if (memoViewMode === 'mobile_card') {
-      if (a4Wrapper) a4Wrapper.classList.add('hidden');
-      if (mobileCard) mobileCard.classList.remove('hidden');
-      if (btn) btn.innerHTML = '<span>📄 สลับเป็นโหมด A4</span>';
-    } else {
-      if (a4Wrapper) a4Wrapper.classList.remove('hidden');
-      if (mobileCard) mobileCard.classList.add('hidden');
-      if (btn) btn.innerHTML = '<span>📱 โหมดการ์ดมือถือ</span>';
-      fitMemoToScreen();
-    }
-  }
 
   function updateMemoZoomDisplay() {
     const display = document.getElementById('memoZoomDisplay');
@@ -3631,7 +3969,7 @@ const FMMS = (function() {
           <img src="logo-cropped.png" alt="TWPP Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
         </div>
         <div class="flex-1 min-w-0 pr-2">
-          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.3-ENT (DATA MA TWPP)</div>
+          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
           <h1 class="doc-title" style="font-size: 13.5pt; font-weight: 700; color: #000000; line-height: 1.15; margin: 1px 0;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
@@ -3787,111 +4125,9 @@ const FMMS = (function() {
       </div>
     `;
 
-    // Populate Mobile Card Container for small phone screens
-    const mobileCardEl = document.getElementById('memoMobileCardContainer');
-    if (mobileCardEl) {
-      mobileCardEl.innerHTML = `
-        <div class="space-y-3">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-200">
-            <div class="flex items-center gap-2">
-              <img src="logo-cropped.png" alt="TWPP" class="w-8 h-8 object-contain">
-              <div>
-                <div class="text-[10px] font-mono-code text-teal-600 font-bold">FMMS TWPP • v2.9.3-ENT</div>
-                <div class="text-xs font-bold text-slate-800">${isClosed ? 'ใบรายงานตรวจรับและปิดงาน' : 'บันทึกข้อความขออนุมัติ'}</div>
-              </div>
-            </div>
-            <span class="${isClosed ? 'bg-emerald-100 text-emerald-800' : 'bg-teal-100 text-teal-800'} text-[11px] font-bold px-2 py-0.5 rounded">
-              ${isClosed ? '🏁 ปิดงานแล้ว' : '⏳ รออนุมัติ'}
-            </span>
-          </div>
-
-          <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs space-y-1">
-            <div class="font-bold text-slate-900">${escapeHtml(task.Title || (memo ? memo.Subject : '-'))}</div>
-            <div class="text-slate-600">📍 พิกัด: ${escapeHtml(task.Location || 'ไม่ระบุ')} | ระบบ: ${escapeHtml(task.Category || 'ทั่วไป')}</div>
-            <div class="text-slate-600">👷 ผู้รับผิดชอบ: ${escapeHtml(task.AssignedContractorName || 'ช่างประจำโครงการ')}</div>
-            <div class="font-mono-code text-[11px] text-slate-500">เลขที่: ${escapeHtml(memo ? memo.MemoID : task.TaskID)} • ${formatThaiDateOnly(task.CreatedAt || getIsoNow())}</div>
-          </div>
-
-          <div class="p-2.5 bg-white border border-slate-200 rounded text-xs space-y-1">
-            <div class="font-bold text-slate-700">รายละเอียด & สาเหตุ:</div>
-            <div class="text-slate-800">${escapeHtml(task.Description || '-')}</div>
-            <div class="text-slate-600 text-[11px]">การแก้ไข: ${escapeHtml(task.InitialAnalysis || 'ตรวจซ่อมและเปลี่ยนอะไหล่ตามมาตรฐาน')}</div>
-          </div>
-
-          <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs">
-            <div class="font-bold text-slate-700 mb-1">สรุปงบประมาณ:</div>
-            <div class="flex justify-between py-0.5 border-b border-slate-200">
-              <span>งบขออนุมัติ:</span>
-              <span class="font-mono-code font-bold">฿${formatCurrency(estCost)}</span>
-            </div>
-            <div class="flex justify-between py-0.5 border-b border-slate-200">
-              <span>ค่าใช้จ่ายจริง:</span>
-              <span class="font-mono-code font-bold ${actualCost > estCost ? 'text-rose-600' : 'text-emerald-700'}">฿${formatCurrency(actualCost || estCost)}</span>
-            </div>
-          </div>
-
-          <!-- Mobile Photos Grid -->
-          <div class="space-y-2">
-            <div class="font-bold text-xs text-slate-800">หลักฐานภาพถ่ายหน้างาน:</div>
-            ${beforeImages.length > 0 ? `
-              <div>
-                <div class="text-[11px] text-slate-600 font-semibold mb-1">📷 ภาพก่อนซ่อม (${beforeImages.length} ภาพ):</div>
-                <div class="grid grid-cols-3 gap-1.5">
-                  ${beforeImages.map(function(url, idx) {
-                    return `<div class="h-16 rounded overflow-hidden border border-slate-200 bg-slate-100"><img src="${url}" class="w-full h-full object-cover"></div>`;
-                  }).join('')}
-                </div>
-              </div>
-            ` : ''}
-
-            ${afterImages.length > 0 ? `
-              <div>
-                <div class="text-[11px] text-slate-600 font-semibold mb-1">📷 ภาพหลังซ่อม (${afterImages.length} ภาพ):</div>
-                <div class="grid grid-cols-3 gap-1.5">
-                  ${afterImages.map(function(url, idx) {
-                    return `<div class="h-16 rounded overflow-hidden border border-slate-200 bg-slate-100"><img src="${url}" class="w-full h-full object-cover"></div>`;
-                  }).join('')}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- Mobile Signatures -->
-          <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs space-y-1">
-            <div class="font-bold text-slate-700">การลงนามดิจิทัล 3 ฝ่าย:</div>
-            <div class="text-[11px]">1. ช่างเทคนิค: ${escapeHtml(task.AssignedContractorName || 'ช่างประจำโครงการ')}</div>
-            <div class="text-[11px]">2. ผู้อนุมัติ: ${escapeHtml(task.ApproverName || 'วิศวกรผู้ควบคุมงาน')}</div>
-            <div class="text-[11px] font-bold ${isClosed ? 'text-emerald-800' : 'text-slate-500'}">
-              3. ผู้ตรวจรับ: ${isClosed ? escapeHtml(task.InspectorName || task.ApproverName || 'ผู้ตรวจรับงาน') + ' (ปิดงานแล้ว)' : 'รอตรวจรับ'}
-            </div>
-          </div>
-
-          <div class="pt-2">
-            <button type="button" onclick="window.print()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2.5 rounded-md text-xs shadow flex items-center justify-center gap-1.5">
-              <span>🖨 สั่งพิมพ์ A4 / บันทึก PDF เต็มรูปแบบ</span>
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    // Auto-fit zoom on mobile screens (<850px)
-    if (window.innerWidth < 850) {
-      currentMemoZoom = calculateFitZoom();
-    } else {
-      currentMemoZoom = 1.0;
-    }
+    // Reset zoom and open modal
+    currentMemoZoom = 1.0;
     updateMemoZoomDisplay();
-
-    // Default to A4 sheet view
-    memoViewMode = 'a4';
-    const a4Wrapper = document.getElementById('memoZoomWrapper');
-    const mobileCard = document.getElementById('memoMobileCardContainer');
-    const btn = document.getElementById('memoViewModeToggleBtn');
-    if (a4Wrapper) a4Wrapper.classList.remove('hidden');
-    if (mobileCard) mobileCard.classList.add('hidden');
-    if (btn) btn.innerHTML = '<span>📱 โหมดการ์ดมือถือ</span>';
-
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
 
@@ -4025,15 +4261,6 @@ const FMMS = (function() {
     setVal('usrStatus', u.Status);
     setVal('usrDept', u.Department || '');
     setVal('usrPhone', u.Phone || '');
-
-    const deleteBtn = document.getElementById('btnAdminDeleteUser');
-    if (deleteBtn) {
-      if (u.UserID === 'USR-2026-0001') {
-        deleteBtn.classList.add('hidden');
-      } else {
-        deleteBtn.classList.remove('hidden');
-      }
-    }
   }
 
   function resetAdminUserForm() {
@@ -4041,85 +4268,6 @@ const FMMS = (function() {
     if (form) form.reset();
     setVal('usrEditId', '');
     setText('adminUserFormTitle', 'เพิ่ม / แก้ไขผู้ใช้งานระบบ (โดย Admin)');
-    const deleteBtn = document.getElementById('btnAdminDeleteUser');
-    if (deleteBtn) deleteBtn.classList.add('hidden');
-  }
-
-  async function deleteAdminUser(userId) {
-    const actor = getCurrentActor();
-    if (Number(actor.roleLevel) < 3) {
-      showToast('จำกัดสิทธิ์เฉพาะ Admin (ระดับ 3)', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถลบบัญชีผู้ใช้ได้', 'error');
-      return;
-    }
-
-    if (userId === 'USR-2026-0001') {
-      showToast('ไม่อนุญาตให้ลบบัญชีนี้', 'บัญชี USR-2026-0001 เป็นบัญชีผู้ดูแลระบบหลัก (Super Admin) ไม่สามารถลบได้', 'warning');
-      return;
-    }
-
-    if (userId === actor.userId) {
-      showToast('ไม่อนุญาตให้ลบบัญชีตนเอง', 'คุณกำลังเข้าสู่ระบบด้วยบัญชีนี้อยู่ ไม่สามารถลบบัญชีที่กำลังใช้งานได้', 'warning');
-      return;
-    }
-
-    const targetUser = state.db.users.find(function(u) { return u.UserID === userId; });
-    const targetName = targetUser ? targetUser.FullName : userId;
-    const targetUsername = targetUser ? targetUser.Username : '';
-
-    const confirmed = confirm('⚠️ ยืนยันการลบผู้ใช้งาน: ' + userId + ' (' + targetName + ') หรือไม่?\n\nระบบจะลบข้อมูลออกจากฐานข้อมูล Google Sheets และจะไม่นำกลับมาแสดงอีก');
-    if (!confirmed) return;
-
-    // 1. Add to permanent blacklist so background sync can NEVER revive this user
-    if (!state.deletedUserIds) state.deletedUserIds = [];
-    if (!state.deletedUserIds.includes(userId)) state.deletedUserIds.push(userId);
-    if (targetUsername && !state.deletedUserIds.includes(targetUsername.toLowerCase())) {
-      state.deletedUserIds.push(targetUsername.toLowerCase());
-    }
-
-    // 2. Remove all matching copies from local state
-    state.db.users = (state.db.users || []).filter(function(u) {
-      const uid = String(u.UserID || '').trim();
-      const uname = String(u.Username || '').trim().toLowerCase();
-      return uid !== userId && uname !== targetUsername.toLowerCase();
-    });
-
-    persistDatabase();
-    renderAdminUsersTable();
-
-    // Reset form if currently editing this user
-    if (getVal('usrEditId') === userId) {
-      resetAdminUserForm();
-    }
-
-    showToast('ลบผู้ใช้งานเรียบร้อย', 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจากระบบแล้ว', 'success');
-
-    // 3. Call real postToGasBackend to delete from Google Sheets immediately
-    try {
-      const res = await postToGasBackend('adminManageUser', {
-        mode: 'delete',
-        userId: userId,
-        username: targetUsername
-      });
-
-      showCloudSyncConfirmation({
-        docId: userId,
-        docType: 'ข้อมูลผู้ใช้งาน (Sheet: Users)',
-        actionTitle: 'ลบบัญชีผู้ใช้งานออกจากระบบถาวร',
-        version: 'v2.9.3-ENT',
-        details: 'ลบผู้ใช้ ' + userId + ' (' + targetName + ') ออกจาก Google Sheets เรียบร้อยแล้ว'
-      });
-    } catch (err) {
-      console.warn('Backend deletion sync warning:', err);
-    }
-  }
-
-  function handleDeleteCurrentUserFromForm() {
-    const editId = getVal('usrEditId');
-    if (!editId) {
-      showToast('ไม่ได้เลือกผู้ใช้', 'กรุณาเลือกผู้ใช้งานที่ต้องการลบจากตารางด้านขวาก่อน', 'warning');
-      return;
-    }
-    deleteAdminUser(editId);
   }
 
   function renderAdminUsersTable() {
@@ -4154,16 +4302,9 @@ const FMMS = (function() {
             <div class="text-slate-500">เวลา: ${formatThaiDateTime(u.UpdatedAt || u.CreatedAt)}</div>
           </td>
           <td class="py-3 px-3 text-right whitespace-nowrap">
-            <div class="flex items-center justify-end gap-1.5">
-              <button type="button" onclick="FMMS.editAdminUser('${u.UserID}')" class="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded text-xs transition cursor-pointer">
-                แก้ไขสิทธิ์
-              </button>
-              ${u.UserID !== 'USR-2026-0001' ? `
-                <button type="button" onclick="FMMS.deleteAdminUser('${u.UserID}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 px-2 py-1 rounded text-xs transition cursor-pointer font-medium" title="ลบผู้ใช้งานนี้ออกจากระบบ">
-                  🗑 ลบทิ้ง
-                </button>
-              ` : ''}
-            </div>
+            <button type="button" onclick="FMMS.editAdminUser('${u.UserID}')" class="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded text-xs">
+              แก้ไขสิทธิ์
+            </button>
           </td>
         </tr>
       `;
@@ -4215,7 +4356,7 @@ const FMMS = (function() {
       docId: 'CFG-TWPP-SYSTEM',
       docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
       actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
-      version: 'v2.9.3-ENT (Enterprise Config Updated)',
+      version: 'v2.9.1-ENT (Enterprise Config Updated)',
       details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
     });
     showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
@@ -4706,7 +4847,7 @@ const FMMS = (function() {
       docId: 'GSHEET-FULL-SYNC',
       docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
       actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
-      version: 'v2.9.3-ENT (Multi-Tab Master Database)',
+      version: 'v2.9.1-ENT (Multi-Tab Master Database)',
       details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
     });
   }
@@ -4880,35 +5021,6 @@ const FMMS = (function() {
     resetCostRefForm();
     renderCostReferences();
     showToast('บันทึกข้อมูลราคากลางสำเร็จ', itemName + ' บันทึกลง Cost_References เรียบร้อย', 'success');
-
-    // Sync to Google Sheets Sheet: Cost_References
-    try {
-      syncToGasBackend('saveCostReference', {
-        costData: {
-          CostRefID: costId,
-          ItemCode: itemCode,
-          Category: category,
-          ItemName: itemName,
-          Specification: spec,
-          Unit: unit,
-          StandardUnitPrice: unitPrice,
-          LaborRate: laborRate,
-          PreferredVendor: vendor
-        }
-      }).then(function(res) {
-        showCloudSyncConfirmation({
-          docId: costId,
-          docType: 'ข้อมูลราคากลางอ้างอิง (Sheet: Cost_References)',
-          actionTitle: 'บันทึกราคากลางอ้างอิงลง Google Sheets',
-          version: 'v1.0',
-          details: itemName + ' (' + itemCode + ') ซิงค์ลงฐานข้อมูล Google Sheets เรียบร้อย'
-        });
-      }).catch(function(e) {
-        console.warn('Cost ref sync error:', e);
-      });
-    } catch (e) {
-      console.warn('Cost ref sync error:', e);
-    }
   }
 
   function resetCostRefForm() {
@@ -5193,7 +5305,7 @@ const FMMS = (function() {
           <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
             <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
             <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
-            <div class="text-teal-900 font-bold">SYS VER: v2.9.3-ENT</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.9.1-ENT</div>
           </div>
         </div>
 
@@ -5362,7 +5474,7 @@ const FMMS = (function() {
         <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
           <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
           <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
-          <span>System Version: v2.9.3-ENT</span>
+          <span>System Version: v2.9.1-ENT</span>
         </div>
       </div>
     `;
@@ -5623,17 +5735,19 @@ const FMMS = (function() {
   }
 
   function getCurrentActor() {
-    if (state.session) {
+    if (state.session && state.session.userId) {
       return {
         userId: state.session.userId,
-        fullName: state.session.fullName,
-        roleLevel: state.session.roleLevel
+        username: state.session.username || state.session.userId,
+        fullName: state.session.fullName || 'ผู้ใช้งานระบบ',
+        roleLevel: Number(state.session.roleLevel) || 0
       };
     }
     return {
-      userId: 'USR-2026-0001',
-      fullName: 'คุณนิพนธ์ (Executive & System Admin)',
-      roleLevel: 3
+      userId: 'UNAUTHENTICATED',
+      username: 'guest',
+      fullName: 'ผู้ใช้งานทั่วไป (ยังไม่ได้เข้าสู่ระบบ)',
+      roleLevel: 0
     };
   }
 
@@ -6201,13 +6315,11 @@ const FMMS = (function() {
     const titleEl = document.getElementById('itemLockTargetTitle');
     const timeEl = document.getElementById('itemLockTimestamp');
 
-    const opName = lockObj.userName || lockObj.userId || 'ผู้ใช้งานอื่น';
-    if (nameEl) nameEl.textContent = opName;
+    if (nameEl) nameEl.textContent = lockObj.userName || lockObj.userId || 'ผู้ใช้งานอื่น';
     if (titleEl) titleEl.textContent = lockObj.targetTitle || lockObj.targetId || '-';
     if (timeEl) timeEl.textContent = formatThaiDateTime(new Date(lockObj.lockedAt).toISOString());
 
     if (modal) modal.classList.remove('hidden');
-    showToast('กำลังมีผู้ใช้งานดำเนินการ', 'User ' + opName + ' กำลังดำเนินการอยู่ กรุณารอ', 'warning');
   }
 
   function closeItemLockWarningModal() {
@@ -6240,7 +6352,7 @@ const FMMS = (function() {
     const targetId = state.activeEditingItem.targetId;
 
     persistDatabase();
-    showToast('บันทึกข้อมูลอัตโนมัติ', 'ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว (' + (state.activeEditingItem.targetTitle || targetId) + ')', 'info');
+    showToast('บันทึกข้อมูลอัตโนมัติ', 'ระบบได้ทำการบันทึกข้อมูล (' + (state.activeEditingItem.targetTitle || targetId) + ') ให้โดยอัตโนมัติแล้ว', 'info');
     state.lastUserActivity = Date.now(); // reset timer
   }
 
@@ -7633,10 +7745,6 @@ const FMMS = (function() {
     closeReportEditTaskModal: closeReportEditTaskModal,
     handleSaveEditTaskFromReport: handleSaveEditTaskFromReport,
     deleteTask: deleteTask,
-    deleteAdminUser: deleteAdminUser,
-    handleDeleteCurrentUserFromForm: handleDeleteCurrentUserFromForm,
-    fitMemoToScreen: fitMemoToScreen,
-    toggleMemoViewMode: toggleMemoViewMode,
     approveTaskToRepair: approveTaskToRepair,
     signOffAndCloseTask: signOffAndCloseTask,
     rejectTaskBackToRepair: rejectTaskBackToRepair,
@@ -7647,6 +7755,7 @@ const FMMS = (function() {
     saveTrackingProgress: saveTrackingProgress,
     showAlreadyApprovedPopup: showAlreadyApprovedPopup,
     filterExecutiveCards: filterExecutiveCards,
+    selectRoleForLogin: selectRoleForLogin,
     init: init,
     getState: function() { return state; },
     persistDatabase: persistDatabase,
