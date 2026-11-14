@@ -24,7 +24,7 @@ const CONFIG = {
   SPREADSHEET_ID: '1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ',
   DRIVE_FOLDER_ID: '1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx',
   SYSTEM_NAME: 'FMMS - Data MA TWPP',
-  VERSION: '2.9.3-ENT',
+  VERSION: '2.9.4-ENT',
   TIMEZONE: 'Asia/Bangkok',
   SHEETS: {
     USERS: 'Users',
@@ -227,6 +227,9 @@ function doPost(e) {
         break;
       case 'payoutMilestone':
         result = handlePayoutMilestone(payload, actor);
+        break;
+      case 'testLineNotification':
+        result = handleTestLineNotification(payload, actor);
         break;
       default:
         throw new Error('Unknown API action: ' + action);
@@ -598,6 +601,22 @@ function handleCreateTask(payload, actor) {
       clientInfo: actor.clientInfo || '',
       status: 'SUCCESS'
     });
+
+    // Hook: LINE Notification on New Task
+    try {
+      const lineMsg = '📌 [มีงานใหม่เข้ามาในระบบ FMMS]\n' +
+        'รหัสใบงาน: ' + newTaskId + ' (' + initialVersion + ')\n' +
+        'หัวข้อ: ' + (taskData.Title || '-') + '\n' +
+        'ประเภท: ' + typePrefix + ' | หมวด: ' + (taskData.Category || 'ทั่วไป') + '\n' +
+        'สถานที่: ' + (taskData.Location || '-') + '\n' +
+        'ความเร่งด่วน: ' + (taskData.Priority || 'Normal') + '\n' +
+        'ประมาณการงบ: ' + Number(taskData.EstCost || 0).toLocaleString() + ' บาท\n' +
+        'ผู้แจ้งงาน: ' + actor.fullName + '\n' +
+        'สถานะ: ' + (taskData.Status || 'Pending Level 2 Approval');
+      sendLineNotification(lineMsg);
+    } catch (eLine1) {
+      Logger.log('Line notify on task create failed: ' + eLine1);
+    }
 
     return {
       ok: true,
@@ -1272,6 +1291,21 @@ function handleExecutiveApprove(payload, actor) {
       status: 'SUCCESS'
     });
 
+    // Hook: LINE Notification on Executive Decision
+    try {
+      const execDecisionIcon = (newTaskStatus === 'Approved') ? '✅ [อนุมัติงบประมาณเรียบร้อย]' :
+        (newTaskStatus === 'Closed' ? '🏁 [ผู้บริหารตรวจรับและปิดงานสมบูรณ์]' : '⚠️ [ใบงานถูกส่งกลับ/แก้ไข]');
+      const lineMsg = execDecisionIcon + '\n' +
+        'รหัสเอกสาร: ' + (targetTaskId || memoId) + '\n' +
+        'สถานะผลการพิจารณา: ' + newTaskStatus + '\n' +
+        'ผู้พิจารณา: ' + actor.fullName + ' (ระดับ 3 ผู้บริหาร)\n' +
+        'ความเห็น/คำสั่งการ: ' + comment + '\n' +
+        'เวลา: ' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'dd/MM/yyyy HH:mm:ss');
+      sendLineNotification(lineMsg);
+    } catch (eLine2) {
+      Logger.log('Line notify on exec approve failed: ' + eLine2);
+    }
+
     return { ok: true, taskId: targetTaskId, memoId: memoId, decision: newTaskStatus, approvedAt: now };
   } finally {
     lock.releaseLock();
@@ -1819,6 +1853,20 @@ function handleInspectMilestone(payload, actor) {
           afterState: insp.WorkStatus || 'Inspected & Approved'
         });
 
+        // Hook: LINE Notification on Milestone Inspection (Notify Accounting)
+        try {
+          const lineMsg = '🏗️ [ตรวจรับงวดงานโครงการเรียบร้อย]\n' +
+            'รหัสงวดงาน: ' + msId + ' (โครงการ: ' + r.ProjectID + ')\n' +
+            'ชื่องวดงาน: ' + r.MilestoneTitle + '\n' +
+            'ผลการตรวจรับ: ' + (insp.WorkStatus || 'ผ่านการตรวจรับ') + '\n' +
+            'ยอดเบิกจ่ายสุทธิ: ' + Number(r.NetPayable || 0).toLocaleString() + ' บาท\n' +
+            'ผู้ตรวจรับ: ' + actor.fullName + '\n' +
+            '📢 แจ้งฝ่ายบัญชีและการเงิน: สามารถเข้าสู่ระบบเพื่อดำเนินการสั่งจ่ายได้';
+          sendLineNotification(lineMsg);
+        } catch (eLine3) {
+          Logger.log('Line notify on milestone inspect failed: ' + eLine3);
+        }
+
         return { ok: true, milestoneId: msId, message: 'บันทึกการตรวจรับงวดงานสำเร็จ' };
       }
     }
@@ -1897,4 +1945,101 @@ function handlePayoutMilestone(payload, actor) {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+/**
+ * ============================================================================
+ * LINE MESSAGING API NOTIFICATION ENGINE (v2.9.4-ENT)
+ * Endpoint: https://api.line.me/v2/bot/message/push
+ * ============================================================================
+ */
+
+function getSystemSetting(key, defaultValue) {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(CONFIG.SHEETS.SETTINGS);
+    if (sheet) {
+      const rows = sheetToObjects(sheet);
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (rows[i].SettingKey === key && rows[i].SettingValue) {
+          return String(rows[i].SettingValue).trim();
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log('getSystemSetting sheet error: ' + e);
+  }
+  try {
+    const prop = PropertiesService.getScriptProperties().getProperty(key);
+    if (prop) return String(prop).trim();
+  } catch (_) {}
+  return defaultValue || '';
+}
+
+function sendLineNotification(messageText, customToken, customTargetId) {
+  try {
+    const token = (customToken && String(customToken).trim()) ? String(customToken).trim() : getSystemSetting('lineToken', '');
+    const targetId = (customTargetId && String(customTargetId).trim()) ? String(customTargetId).trim() : getSystemSetting('lineTargetId', '');
+
+    if (!token || !targetId) {
+      Logger.log('LINE Push Notification skipped: lineToken or lineTargetId is not configured.');
+      return { ok: false, skipped: true, reason: 'LINE token or targetId is empty' };
+    }
+
+    const url = 'https://api.line.me/v2/bot/message/push';
+    const payload = {
+      to: targetId,
+      messages: [
+        {
+          type: 'text',
+          text: messageText
+        }
+      ]
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': 'Bearer ' + token
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const respCode = response.getResponseCode();
+    const respText = response.getContentText();
+
+    if (respCode >= 200 && respCode < 300) {
+      Logger.log('LINE Push Success: ' + respCode);
+      return { ok: true, status: respCode, response: respText };
+    } else {
+      Logger.log('LINE Push API Error (' + respCode + '): ' + respText);
+      return { ok: false, status: respCode, error: respText };
+    }
+  } catch (err) {
+    Logger.log('LINE Push Exception: ' + err.toString());
+    return { ok: false, error: err.toString() };
+  }
+}
+
+function handleTestLineNotification(payload, actor) {
+  const customToken = (payload && payload.token) || '';
+  const customTargetId = (payload && payload.targetId) || '';
+  const testMsg = '🔔 [FMMS Test Alert v2.9.4-ENT]\n' +
+    '✅ ระบบแจ้งเตือนผ่าน LINE ทำงานสมบูรณ์!\n' +
+    '📅 เวลา: ' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'dd/MM/yyyy HH:mm:ss') + '\n' +
+    '👤 ผู้ทดสอบ: ' + actor.fullName + ' (' + actor.userId + ')\n' +
+    '🏢 ฐานข้อมูล: ' + CONFIG.SYSTEM_NAME + ' (' + CONFIG.VERSION + ')';
+
+  const result = sendLineNotification(testMsg, customToken, customTargetId);
+  if (!result.ok && !result.skipped) {
+    throw new Error('LINE API Error (' + result.status + '): ' + (result.error || 'ส่งข้อความไม่สำเร็จ'));
+  }
+  if (result.skipped) {
+    throw new Error('กรุณาระบุ Channel Access Token และ Target ID ให้ครบถ้วนก่อนทดสอบ');
+  }
+  return { ok: true, message: 'ส่งข้อความแจ้งเตือนทดสอบไปยัง LINE เรียบร้อยแล้ว' };
 }

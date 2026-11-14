@@ -31,9 +31,9 @@
     <div class="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
       <div class="flex items-center gap-2 text-xs font-mono-code text-slate-300">
         <span class="w-2 h-2 rounded-full bg-emerald-400 status-dot-live"></span>
-        <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.9.3-ENT</strong></span>
+        <span>SYSTEM BUILD: <strong class="text-teal-400" id="landingBuildVer">v2.9.4-ENT</strong></span>
         <span class="text-slate-600">|</span>
-        <span>FMMS ENTERPRISE VERSION: <strong class="text-teal-300">v2.9.3-ENT</strong></span>
+        <span>FMMS ENTERPRISE VERSION: <strong class="text-teal-300">v2.9.4-ENT</strong></span>
       </div>
       <div class="flex items-center gap-3 text-xs font-mono-code">
         <button type="button" onclick="FMMS.openQrScannerModal()" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition cursor-pointer">
@@ -63,7 +63,7 @@
         <!-- v2.6.0 Release Feature Highlights Pill -->
         <div class="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 text-teal-200 text-xs font-mono-code">
           <span class="w-2 h-2 rounded-full bg-teal-400"></span>
-          <span>RELEASE v2.9.3-ENT: ระบบพรีวิวเอกสาร A4 มาตรฐาน DS APP • รองรับจอมือถือ Auto-Fit Screen • ระบบลบผู้ใช้งานถาวรตัดวงจรลูป 100%</span>
+          <span>RELEASE v2.9.4-ENT: ระบบแจ้งเตือนงานค้างรายบุคคลเมื่อเข้าสู่ระบบ (Task Welcome Popup) • เชื่อมต่อ LINE Messaging API Alert อัตโนมัติ • ปรับปรุงความปลอดภัยและความโปร่งใส</span>
         </div>
       </div>
 
@@ -154,7 +154,7 @@
           FMMS ENTERPRISE
         </div>
         <div class="text-[11px] font-mono-code uppercase tracking-widest text-teal-700 mt-1">
-          DATA MA TWPP • SYS VER: v2.9.3-ENT
+          DATA MA TWPP • SYS VER: v2.9.4-ENT
         </div>
       </div>
 
@@ -245,7 +245,7 @@
         </span>
         <span class="text-slate-600">|</span>
         <span class="font-mono-code text-teal-300">
-          SYS VER: <strong id="headerSysVersion">v2.9.3-ENT</strong>
+          SYS VER: <strong id="headerSysVersion">v2.9.4-ENT</strong>
         </span>
         <span class="text-slate-600 hidden sm:inline">|</span>
         <span class="font-mono-code text-slate-400 hidden sm:inline">
@@ -1023,7 +1023,7 @@
           <div class="enterprise-card overflow-hidden">
             <div class="enterprise-panel-header px-5 py-3.5 flex items-center justify-between">
               <h3 class="text-sm font-bold text-slate-900">สรุปงบประมาณและปริมาณงานแยกตามหมวดวิศวกรรม (MEP Breakdown)</h3>
-              <span class="text-[11px] font-mono-code text-slate-500">SYS VER: v2.9.3-ENT</span>
+              <span class="text-[11px] font-mono-code text-slate-500">SYS VER: v2.9.4-ENT</span>
             </div>
             <div class="p-4 overflow-x-auto">
               <table class="w-full text-xs text-left border-collapse">
@@ -1141,7 +1141,7 @@
         </div>
       </div>
 
-      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & PERFORMANCE REPORT (SYS VER: v2.9.3-ENT) -->
+      <!-- TAB 3: OPTION 1 - DEEP EXECUTIVE ANALYTICS, BUDGET CONTROL & PERFORMANCE REPORT (SYS VER: v2.9.4-ENT) -->
       <div id="execSubViewReport" class="hidden space-y-6">
         <!-- Report Header & Actions -->
         <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
@@ -1151,7 +1151,7 @@
               <span class="text-xs text-slate-500">รายงานสรุปผลการบริหารงานซ่อมบำรุงและควบคุมต้นทุนวิศวกรรมอาคาร</span>
             </div>
             <h3 class="text-base font-bold text-slate-900 mt-1">รายงานสรุปผู้บริหารเชิงลึก (Executive Analytical & Financial Report)</h3>
-            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ ระบบบริหารงานซ่อมบำรุงวิศวกรรมอาคาร Version v2.9.3-ENT</p>
+            <p class="text-xs text-slate-500">เชื่อมโยงข้อมูล Data MA TWPP 8 แท็บ ระบบบริหารงานซ่อมบำรุงวิศวกรรมอาคาร Version v2.9.4-ENT</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button type="button" onclick="FMMS.printExecutiveReport()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow flex items-center gap-1.5 cursor-pointer">
@@ -1194,7 +1194,7 @@
               <h4 class="text-sm font-bold text-slate-900">การวิเคราะห์ต้นทุนและปริมาณงานแยกตาม 4 หมวดวิศวกรรมหลัก (MEP Breakdown)</h4>
               <p class="text-xs text-slate-500">HVAC (ปรับอากาศ) • Electrical (ไฟฟ้า) • Plumbing (สุขาภิบาล) • Fire & Safety (ดับเพลิง)</p>
             </div>
-            <span class="text-xs font-mono-code bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 font-semibold">SYS VER: v2.9.3-ENT</span>
+            <span class="text-xs font-mono-code bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 font-semibold">SYS VER: v2.9.4-ENT</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -1217,12 +1217,12 @@
           </div>
         </div>
 
-        <!-- Section 3: FMMS Engineering Performance Scorecards (v2.9.3-ENT) & Contractor Ledger -->
+        <!-- Section 3: FMMS Engineering Performance Scorecards (v2.9.4-ENT) & Contractor Ledger -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- FMMS Engineering Operational Health (v2.9.3-ENT) -->
+          <!-- FMMS Engineering Operational Health (v2.9.4-ENT) -->
           <div class="lg:col-span-5 enterprise-card overflow-hidden flex flex-col justify-between">
             <div class="enterprise-panel-header px-5 py-3.5">
-              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพงานวิศวกรรม (FMMS Performance Scorecard v2.9.3-ENT)</h4>
+              <h4 class="text-sm font-bold text-slate-900">ดัชนีชี้วัดประสิทธิภาพงานวิศวกรรม (FMMS Performance Scorecard v2.9.4-ENT)</h4>
               <p class="text-xs text-slate-500">เกณฑ์ประเมินการบำรุงรักษาเชิงป้องกันและประสิทธิผลงาน</p>
             </div>
             <div class="p-5 space-y-4 text-xs">
@@ -1337,7 +1337,7 @@
 
           <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500 font-mono-code">
             <div>พบข้อมูลในรายงาน: <strong id="repTasksCountText" class="text-slate-900">0</strong> รายการ</div>
-            <div>SYS VER: <strong class="text-teal-700">v2.9.3-ENT</strong> | FONT: TH Sarabun New (12pt / 14pt / 16pt)</div>
+            <div>SYS VER: <strong class="text-teal-700">v2.9.4-ENT</strong> | FONT: TH Sarabun New (12pt / 14pt / 16pt)</div>
           </div>
         </div>
       </div>
@@ -1405,6 +1405,42 @@
                   <option value="supervisor">ระดับ 2 - ผู้ควบคุมงาน (supervisor)</option>
                   <option value="admin">ระดับ 3 - ผู้บริหาร/Admin (admin)</option>
                 </select>
+              </div>
+            </div>
+
+
+            <!-- LINE Messaging API Alert System Section (v2.9.4-ENT) -->
+            <div class="border-t border-slate-200 pt-4 mt-2">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#06C755] text-white text-xs font-bold">L</span>
+                  <label class="font-bold text-slate-800 text-xs">LINE Messaging API Notification (ระบบแจ้งเตือนผ่าน LINE)</label>
+                </div>
+                <span class="text-[10px] font-mono-code bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded">PUSH API v2</span>
+              </div>
+              <p class="text-[11px] text-slate-500 mb-3">
+                แจ้งเตือนงานใหม่อัตโนมัติ, แจ้งเตือนเมื่อผู้บริหารอนุมัติงบ และแจ้งเตือนฝ่ายบัญชีเมื่อมีการตรวจรับงาน (LINE Messaging API มาตรฐานสากล)
+              </p>
+
+              <div class="space-y-3">
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">LINE Channel Access Token (Long-lived)</label>
+                  <input type="password" id="cfgLineToken" placeholder="คัดลอก Channel access token จาก LINE Developers Console"
+                    class="w-full border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">LINE Target ID (User ID / Group ID / Room ID)</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="cfgLineTargetId" placeholder="Uxxxxxxxx หรือ Cxxxxxxxx (Group ID)"
+                      class="flex-1 border border-slate-300 rounded-md px-3 py-2 font-mono-code text-xs">
+                    <button type="button" id="btnTestLineAlert" onclick="FMMS.testLineAlert()" class="bg-[#06C755] hover:bg-[#05b34c] text-white font-semibold px-3 py-2 rounded-md transition text-xs flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                      <span>🔔</span> ทดสอบส่งแจ้งเตือน LINE
+                    </button>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">
+                    * ระบบจะส่งข้อความแจ้งเตือนทันทีเมื่อมีการสร้างใบงานใหม่, เมื่อผู้บริหารอนุมัติงบ หรือเมื่อวิศวกรตรวจรับงวดงานโครงการ
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1831,7 +1867,7 @@
       <div class="memo-topbar-left">
         <span class="memo-badge">A4 STANDARD</span>
         <div class="memo-topbar-title">
-          พรีวิวเอกสารทางการ (A4 Standard Report) • FMMS <span class="text-teal-400 font-mono-code">v2.9.3-ENT</span>
+          พรีวิวเอกสารทางการ (A4 Standard Report) • FMMS <span class="text-teal-400 font-mono-code">v2.9.4-ENT</span>
         </div>
       </div>
 
@@ -2808,6 +2844,60 @@
     </div>
   </div>
 
-<script src="app.js?v=2.9.3-ENT"></script>
+<script src="app.js?v=2.9.4-ENT"></script>
+
+  <!-- ========================================================================= -->
+  <!-- PERSONAL TASK WELCOME MODAL (v2.9.4-ENT)                                  -->
+  <!-- ========================================================================= -->
+  <div id="userTaskWelcomeModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-fadeIn">
+      <!-- Header with user profile and role badge -->
+      <div class="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-5 text-white flex items-center justify-between border-b border-teal-500/30">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-teal-500/20 border border-teal-400/40 flex items-center justify-center text-2xl shadow-inner" id="welcomeUserAvatar">
+            👋
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white tracking-wide" id="welcomeUserGreeting">ยินดีต้อนรับ</h3>
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-teal-500 text-slate-950 font-mono-code" id="welcomeUserRoleBadge">ROLE</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5" id="welcomeUserSubtitle">สรุปรายการงานที่รอการดำเนินการในความรับผิดชอบของคุณ</p>
+          </div>
+        </div>
+        <button type="button" onclick="FMMS.closeUserTaskWelcomeModal()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-colors">
+          ✕
+        </button>
+      </div>
+
+      <!-- Summary Counter Strip -->
+      <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-700">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+          <span id="welcomeTaskCountLabel">รายการงานค้างดำเนินการ:</span>
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 font-mono-code" id="welcomePendingBadge">0 งาน</span>
+        </div>
+        <div class="text-[11px] text-slate-500 font-mono-code">
+          FMMS v2.9.4-ENT
+        </div>
+      </div>
+
+      <!-- Task List Container (Scrollable) -->
+      <div class="p-5 overflow-y-auto space-y-3 flex-1 max-h-[50vh]" id="welcomeTaskListContainer">
+        <!-- Dynamically injected items -->
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div class="bg-slate-50 p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <button type="button" onclick="FMMS.closeUserTaskWelcomeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition-colors">
+          ปิดหน้าต่างนี้
+        </button>
+        <div class="flex items-center gap-2" id="welcomeFooterQuickActions">
+          <!-- Injected quick buttons -->
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

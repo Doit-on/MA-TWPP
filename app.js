@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FMMS ENTERPRISE - CLIENT APPLICATION CONTROLLER (app.js)
- * Facility Maintenance Management System (FMMS Enterprise v2.9.1-ENT)
+ * Facility Maintenance Management System (FMMS Enterprise v2.9.4-ENT)
  * ============================================================================
  * Bound Resources:
  * - Google Sheets (Data MA TWPP): 1o3NRnjg4Rd-Yo8OdwE9A1_G56aEUi18VY_3esqyUGjQ
@@ -18,6 +18,8 @@ const FMMS = (function() {
     driveFolderId: '1zOFWOfPT5L1XuLjaXlt-RQ5-zUlkoEpx',
     orgName: 'ฝ่ายบริหารงานวิศวกรรมและซ่อมบำรุงอาคาร (Data MA TWPP)',
     defaultRoleUser: '',
+    lineToken: '',
+    lineTargetId: '',
     lastSavedBy: 'USR-2026-0001 (คุณนิพนธ์ - System Admin)',
     lastSavedAt: '2026-10-26T22:00:00+07:00'
   };
@@ -70,9 +72,9 @@ const FMMS = (function() {
   function init() {
     try {
       const hV = document.getElementById('headerSysVersion');
-      if (hV) hV.textContent = 'v2.9.1-ENT';
+      if (hV) hV.textContent = 'v2.9.4-ENT';
       const lV = document.getElementById('landingBuildVer');
-      if (lV) lV.textContent = 'v2.9.1-ENT';
+      if (lV) lV.textContent = 'v2.9.4-ENT';
     } catch (_) {}
     try {
       // Clear legacy permanent deletion blocklist so live Google Sheet records are never suppressed
@@ -211,6 +213,8 @@ const FMMS = (function() {
     setVal('cfgDriveId', state.config.driveFolderId || DEFAULT_CONFIG.driveFolderId);
     setVal('cfgOrgName', state.config.orgName || DEFAULT_CONFIG.orgName);
     setVal('cfgDefaultRoleUser', state.config.defaultRoleUser || '');
+    setVal('cfgLineToken', state.config.lineToken || '');
+    setVal('cfgLineTargetId', state.config.lineTargetId || '');
     setText('cfgLastSavedBy', state.config.lastSavedBy || DEFAULT_CONFIG.lastSavedBy);
     setText('cfgLastSavedAt', formatThaiDateTime(state.config.lastSavedAt));
     setText('loginSheetIdDisplay', state.config.spreadsheetId);
@@ -1285,6 +1289,7 @@ const FMMS = (function() {
     recordAuditLog('LOGIN', user.UserID, 'เข้าสู่ระบบสำเร็จจากอุปกรณ์ ' + state.deviceId, '-', 'Session Active', 'SUCCESS');
     applySessionToUI();
     showToast('ยินดีต้อนรับ ' + user.FullName, 'เข้าสู่ระบบในระดับสิทธิ์ที่ ' + user.RoleLevel + ' เรียบร้อยแล้ว', 'success');
+    showUserTaskWelcomePopup(user);
   }
 
   function restoreSessionOrShowLogin() {
@@ -3773,7 +3778,7 @@ const FMMS = (function() {
       }).join('');
     }
 
-    // FMMS Engineering Performance Scorecard (v2.9.1-ENT)
+    // FMMS Engineering Performance Scorecard (v2.9.4-ENT)
     const totalCount = tasks.length;
     const pmCount = tasks.filter(function(t) { return t.Type === 'PM'; }).length;
     const pmRatio = totalCount > 0 ? Math.round((pmCount / totalCount) * 100) : 65;
@@ -4032,7 +4037,7 @@ const FMMS = (function() {
           <img src="logo-cropped.png" alt="TWPP Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
         </div>
         <div class="flex-1 min-w-0 pr-2">
-          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.1-ENT (DATA MA TWPP)</div>
+          <div style="font-size: 8.5pt;" class="font-mono-code uppercase tracking-wider text-slate-600">FACILITY MAINTENANCE MANAGEMENT SYSTEM • SYS VER: v2.9.4-ENT (DATA MA TWPP)</div>
           <h1 class="doc-title" style="font-size: 13.5pt; font-weight: 700; color: #000000; line-height: 1.15; margin: 1px 0;">
             ${isClosed ? 'ใบรายงานตรวจรับและปิดงานซ่อมแซมสมบูรณ์แบบ (MAINTENANCE COMPLETION & HANDOVER REPORT)' : 'บันทึกข้อความขออนุมัติซ่อมและเบิกงบประมาณ (INTERNAL APPROVAL MEMORANDUM)'}
           </h1>
@@ -4391,6 +4396,8 @@ const FMMS = (function() {
     state.config.driveFolderId = String(getVal('cfgDriveId') || DEFAULT_CONFIG.driveFolderId).trim();
     state.config.orgName = String(getVal('cfgOrgName') || DEFAULT_CONFIG.orgName).trim();
     state.config.defaultRoleUser = String(getVal('cfgDefaultRoleUser') || '').trim();
+    state.config.lineToken = String(getVal('cfgLineToken') || '').trim();
+    state.config.lineTargetId = String(getVal('cfgLineTargetId') || '').trim();
     state.config.lastSavedBy = operatorStamp;
     state.config.lastSavedAt = now;
 
@@ -4419,7 +4426,7 @@ const FMMS = (function() {
       docId: 'CFG-TWPP-SYSTEM',
       docType: 'การตั้งค่าระบบและ URL การเชื่อมต่อ',
       actionTitle: 'บันทึกการตั้งค่าระบบส่วนกลาง & สร้าง QR Code ใหม่',
-      version: 'v2.9.1-ENT (Enterprise Config Updated)',
+      version: 'v2.9.4-ENT (Enterprise Config Updated)',
       details: 'อัปเดต Google Spreadsheet ID (' + state.config.spreadsheetId + ') และ Google Drive ID (' + state.config.driveFolderId + ') เรียบร้อยแล้ว พร้อมยืนยันข้อมูลทุกเครื่อง'
     });
     showToast('บันทึกการตั้งค่าระบบและสร้าง QR Code สำเร็จ', 'อัปเดต ID ของ Google Sheets และ Drive เรียบร้อย', 'success');
@@ -4910,7 +4917,7 @@ const FMMS = (function() {
       docId: 'GSHEET-FULL-SYNC',
       docType: 'ฐานข้อมูลระบบวิศวกรรมอาคาร FMMS (8 Tabs)',
       actionTitle: 'ส่งออกและยืนยันข้อมูลขึ้น Google Sheet Cloud สำเร็จ',
-      version: 'v2.9.1-ENT (Multi-Tab Master Database)',
+      version: 'v2.9.4-ENT (Multi-Tab Master Database)',
       details: 'ฐานข้อมูลทั้งหมด 8 แท็บ (Users, Tasks, Memos, Schedules, Costs, Vendors, Audits, Config) ถูกส่งไปยัง Google Sheet Data MA TWPP และได้รับการยืนยันข้อมูลทุกเครื่องเรียบร้อยแล้ว'
     });
   }
@@ -5368,7 +5375,7 @@ const FMMS = (function() {
           <div class="text-right border border-slate-500 p-2.5 rounded font-mono-code" style="font-size: 12pt; min-width: 190px;">
             <div><strong>รหัสเอกสาร:</strong> REP-${getYearMonthStr()}-01</div>
             <div><strong>วันที่พิมพ์:</strong> ${formatThaiDateOnly(getIsoNow())}</div>
-            <div class="text-teal-900 font-bold">SYS VER: v2.9.1-ENT</div>
+            <div class="text-teal-900 font-bold">SYS VER: v2.9.4-ENT</div>
           </div>
         </div>
 
@@ -5537,7 +5544,7 @@ const FMMS = (function() {
         <div class="pt-3 border-t border-slate-300 mt-3 flex justify-between text-slate-500 font-mono-code" style="font-size: 10pt;">
           <span>Google Sheet: Data MA TWPP (${escapeHtml(state.config.spreadsheetId)})</span>
           <span>Google Drive Storage ID: ${escapeHtml(state.config.driveFolderId)}</span>
-          <span>System Version: v2.9.1-ENT</span>
+          <span>System Version: v2.9.4-ENT</span>
         </div>
       </div>
     `;
@@ -7717,6 +7724,309 @@ const FMMS = (function() {
     return new Date().toISOString().split('T')[0];
   }
 
+
+  /**
+   * ==========================================================================
+   * LINE MESSAGING API ALERT ENGINE (v2.9.4-ENT)
+   * ==========================================================================
+   */
+  async function testLineAlert() {
+    const token = String(getVal('cfgLineToken') || state.config.lineToken || '').trim();
+    const targetId = String(getVal('cfgLineTargetId') || state.config.lineTargetId || '').trim();
+
+    if (!token || !targetId) {
+      showToast('กรุณาระบุข้อมูล LINE ให้ครบ', 'โปรดระบุ LINE Channel Access Token และ LINE Target ID', 'warning');
+      return;
+    }
+
+    const testBtn = document.getElementById('btnTestLineAlert');
+    if (testBtn) {
+      testBtn.disabled = true;
+      testBtn.innerHTML = '<span>⏳</span> กำลังส่งทดสอบ...';
+    }
+
+    showToast('กำลังส่งทดสอบ LINE...', 'กำลังเชื่อมต่อไปยัง LINE Messaging API Push Gateway', 'info');
+
+    try {
+      const res = await postToGasBackend('testLineNotification', {
+        token: token,
+        targetId: targetId
+      });
+
+      if (res && res.ok) {
+        showToast('ส่งแจ้งเตือน LINE สำเร็จ!', 'ระบบได้รับสัญญาณตอบรับจาก LINE เรียบร้อยแล้ว (200 OK)', 'success');
+      } else {
+        showToast('ส่งแจ้งเตือน LINE ไม่สำเร็จ', (res && res.message) || 'กรุณาตรวจสอบ Channel Access Token และ Target ID', 'error');
+      }
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ LINE', err.message || String(err), 'error');
+    } finally {
+      if (testBtn) {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<span>🔔</span> ทดสอบส่งแจ้งเตือน LINE';
+      }
+    }
+  }
+
+  /**
+   * ==========================================================================
+   * PERSONAL TASK WELCOME POPUP ENGINE (v2.9.4-ENT)
+   * ==========================================================================
+   */
+  function showUserTaskWelcomePopup(user) {
+    if (!user) {
+      user = state.session;
+    }
+    if (!user) return;
+    const modal = document.getElementById('userTaskWelcomeModal');
+    if (!modal) return;
+
+    const roleLevel = Number(user.RoleLevel || (state.session && state.session.roleLevel) || 1);
+    const userId = user.UserID || (state.session && state.session.userId) || '';
+    const userName = user.FullName || (state.session && state.session.fullName) || user.Username || '';
+
+    // Set Greeting & Role Badge
+    const greetingEl = document.getElementById('welcomeUserGreeting');
+    if (greetingEl) {
+      greetingEl.textContent = 'ยินดีต้อนรับ ' + userName;
+    }
+
+    const roleBadgeEl = document.getElementById('welcomeUserRoleBadge');
+    const avatarEl = document.getElementById('welcomeUserAvatar');
+    let roleTitle = 'ระดับ ' + roleLevel;
+    let avatarIcon = '👤';
+    let targetView = 'role1';
+
+    if (roleLevel === 1) {
+      roleTitle = 'ระดับ 1 - ช่างหน้างาน';
+      avatarIcon = '🔧';
+      targetView = 'role1';
+    } else if (roleLevel === 2) {
+      roleTitle = 'ระดับ 2 - วิศวกรผู้ควบคุม';
+      avatarIcon = '📐';
+      targetView = 'role2';
+    } else if (roleLevel === 2.5) {
+      roleTitle = 'ระดับ 2.5 - ฝ่ายบัญชีและการเงิน';
+      avatarIcon = '💼';
+      targetView = 'pilot';
+    } else if (roleLevel === 3) {
+      roleTitle = (user.Username === 'admin' || userId === 'USR-2026-0001') ? 'ระดับ 3 - ผู้ดูแลระบบ (Admin)' : 'ระดับ 3 - ผู้บริหารระดับสูง';
+      avatarIcon = '👑';
+      targetView = 'role3';
+    }
+
+    if (roleBadgeEl) roleBadgeEl.textContent = roleTitle;
+    if (avatarEl) avatarEl.textContent = avatarIcon;
+
+    // Filter pending items based on role
+    const tasks = (state.db && state.db.tasks) || [];
+    const memos = (state.db && state.db.memos) || [];
+    const milestones = (state.db && state.db.milestones) || [];
+    const deletedIds = state.deletedTaskIds || [];
+
+    const activeTasks = tasks.filter(function(t) { return !deletedIds.includes(t.TaskID); });
+
+    let pendingItems = [];
+
+    if (roleLevel === 1) {
+      // Role 1 Technician: Unclosed tasks assigned to them or unassigned
+      const techTasks = activeTasks.filter(function(t) {
+        if (t.Status === 'Closed') return false;
+        const isAssigned = (t.AssignedContractorID === userId) ||
+          (t.AssignedContractorName && t.AssignedContractorName.includes(userName)) ||
+          (user.Username === 'tech01');
+        return isAssigned;
+      });
+
+      const listToUse = (techTasks.length > 0) ? techTasks : activeTasks.filter(function(t) { return t.Status !== 'Closed'; });
+
+      listToUse.forEach(function(t) {
+        pendingItems.push({
+          type: 'TASK',
+          id: t.TaskID,
+          title: t.Title || 'ใบงานซ่อมบำรุง',
+          subtitle: 'สถานที่: ' + (t.Location || '-') + ' | ความเร่งด่วน: ' + (t.Priority || 'Normal'),
+          status: t.Status || 'In Progress',
+          actionText: 'ดูใบงาน & บันทึกผล',
+          actionFn: "FMMS.closeUserTaskWelcomeModal(); FMMS.openRepairTrackingModal('" + t.TaskID + "')"
+        });
+      });
+
+    } else if (roleLevel === 2) {
+      // Role 2 Supervisor: Tasks pending approval or completed awaiting sign-off, and uninspected milestones
+      const supTasks = activeTasks.filter(function(t) {
+        return (t.Status === 'Pending Level 2 Approval' || isTaskPendingBudget(t) || t.Status === 'Completed');
+      });
+
+      supTasks.forEach(function(t) {
+        const isCompl = (t.Status === 'Completed');
+        pendingItems.push({
+          type: 'TASK',
+          id: t.TaskID,
+          title: t.Title || 'ใบงานซ่อมบำรุง',
+          subtitle: (isCompl ? 'ช่างดำเนินการเสร็จสิ้นแล้ว - รอวิศวกรตรวจรับปิดงาน' : 'งบประมาณ: ฿' + formatCurrency(t.EstCost)) + ' | ' + (t.Location || '-'),
+          status: t.Status || 'รอตรวจสอบ',
+          actionText: isCompl ? 'ตรวจรับปิดงาน' : 'ตรวจสอบ/แก้ไข',
+          actionFn: "FMMS.closeUserTaskWelcomeModal(); FMMS.openRepairTrackingModal('" + t.TaskID + "')"
+        });
+      });
+
+      const uninspectedMilestones = milestones.filter(function(m) { return m.WorkStatus !== 'Inspected & Approved'; });
+      uninspectedMilestones.forEach(function(m) {
+        pendingItems.push({
+          type: 'MILESTONE',
+          id: m.MilestoneID,
+          title: 'งวดที่ ' + m.MilestoneNo + ': ' + m.MilestoneTitle,
+          subtitle: 'โครงการ: ' + m.ProjectID + ' | มูลค่า: ฿' + formatCurrency(m.Amount),
+          status: m.WorkStatus || 'รอตรวจรับงวดงาน',
+          actionText: 'ตรวจรับงวดงาน',
+          actionFn: "FMMS.closeUserTaskWelcomeModal(); FMMS.switchView('pilot'); FMMS.openMilestoneInspectionModal('" + m.MilestoneID + "')"
+        });
+      });
+
+    } else if (roleLevel === 2.5) {
+      // Role 2.5 Accounting: Inspected milestones awaiting payout
+      const payableMilestones = milestones.filter(function(m) {
+        return (m.WorkStatus === 'Inspected & Approved') && (m.PaymentStatus !== 'Paid');
+      });
+
+      payableMilestones.forEach(function(m) {
+        pendingItems.push({
+          type: 'PAYOUT',
+          id: m.MilestoneID,
+          title: 'เบิกจ่ายงวดที่ ' + m.MilestoneNo + ': ' + m.MilestoneTitle,
+          subtitle: 'โครงการ: ' + m.ProjectID + ' | สั่งจ่ายสุทธิ: ฿' + formatCurrency(m.NetPayable || m.Amount),
+          status: 'ผ่านการตรวจรับแล้ว (รอเบิกจ่าย)',
+          actionText: 'สั่งจ่ายเงินงวด',
+          actionFn: "FMMS.closeUserTaskWelcomeModal(); FMMS.switchView('pilot'); FMMS.openMilestonePaymentModal('" + m.MilestoneID + "')"
+        });
+      });
+
+    } else if (roleLevel === 3) {
+      // Role 3 Executive & Admin: Pending approval memos & high-priority items
+      const pendingMemos = memos.filter(function(m) { return m.ApprovalStatus === 'Pending Approval'; });
+      pendingMemos.forEach(function(m) {
+        pendingItems.push({
+          type: 'MEMO',
+          id: m.MemoID,
+          title: m.Subject || ('ขออนุมัติงบ: ' + m.TaskID),
+          subtitle: 'เสนอโดย: ' + (m.RequestedBy || '-') + ' | งบประมาณ: ฿' + formatCurrency(m.EstimatedBudget),
+          status: 'รอผู้บริหารลงนามอนุมัติ',
+          actionText: 'พิจารณาอนุมัติ',
+          actionFn: "FMMS.closeUserTaskWelcomeModal(); FMMS.switchView('role3'); FMMS.openMemoPrintModal('" + m.MemoID + "')"
+        });
+      });
+
+      // If Admin, also append any completed tasks awaiting final close
+      if (user.Username === 'admin' || userId === 'USR-2026-0001') {
+        const waitingTasks = activeTasks.filter(function(t) { return t.Status === 'Completed'; });
+        waitingTasks.forEach(function(t) {
+          pendingItems.push({
+            type: 'TASK',
+            id: t.TaskID,
+            title: t.Title,
+            subtitle: 'ช่างซ่อมเสร็จแล้ว - รอตรวจรับและปิดงาน | สถานที่: ' + (t.Location || '-'),
+            status: 'Completed (รอปิดงาน)',
+            actionText: 'ดูสถานะใบงาน',
+            actionFn: "FMMS.closeUserTaskWelcomeModal(); FMMS.openRepairTrackingModal('" + t.TaskID + "')"
+          });
+        });
+      }
+    }
+
+    // Update Counter Badges
+    const badgeEl = document.getElementById('welcomePendingBadge');
+    if (badgeEl) {
+      badgeEl.textContent = pendingItems.length + ' รายการ';
+      badgeEl.className = pendingItems.length > 0 ?
+        'px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 font-mono-code' :
+        'px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono-code';
+    }
+
+    // Populate Container
+    const container = document.getElementById('welcomeTaskListContainer');
+    if (container) {
+      if (pendingItems.length === 0) {
+        container.innerHTML = 
+          '<div class="text-center py-8 px-4 bg-emerald-50/60 rounded-xl border border-emerald-200">' +
+            '<div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl mb-3 shadow-sm">' +
+              '✨' +
+            '</div>' +
+            '<h4 class="text-sm font-bold text-emerald-900 mb-1">ยอดเยี่ยม! ไม่มีงานค้างในความรับผิดชอบของคุณในขณะนี้</h4>' +
+            '<p class="text-xs text-emerald-700 max-w-md mx-auto">' +
+              'ทุกรายการงานได้รับการประมวลผลเรียบร้อยแล้ว คุณสามารถเข้าสู่หน้าหลักเพื่อเริ่มสร้างงานใหม่หรือตรวจสอบรายงาน' +
+            '</p>' +
+          '</div>';
+      } else {
+        container.innerHTML = pendingItems.slice(0, 10).map(function(item) {
+          let badgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
+          let icon = '📋';
+          if (item.type === 'TASK') {
+            badgeColor = 'bg-blue-100 text-blue-800 border-blue-300';
+            icon = '🔧';
+          } else if (item.type === 'MEMO') {
+            badgeColor = 'bg-purple-100 text-purple-800 border-purple-300';
+            icon = '📝';
+          } else if (item.type === 'PAYOUT') {
+            badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+            icon = '💰';
+          } else if (item.type === 'MILESTONE') {
+            badgeColor = 'bg-teal-100 text-teal-800 border-teal-300';
+            icon = '🏗️';
+          }
+
+          return '<div class="bg-white p-3.5 rounded-xl border border-slate-200 hover:border-teal-400 hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">' +
+              '<div class="flex items-start gap-3 min-w-0">' +
+                '<div class="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-lg flex-shrink-0">' +
+                  icon +
+                '</div>' +
+                '<div class="min-w-0">' +
+                  '<div class="flex items-center gap-2 flex-wrap">' +
+                    '<span class="font-mono-code font-bold text-xs text-slate-900">' + item.id + '</span>' +
+                    '<span class="px-2 py-0.5 rounded text-[10px] font-semibold border ' + badgeColor + '">' +
+                      item.status +
+                    '</span>' +
+                  '</div>' +
+                  '<h5 class="text-xs font-bold text-slate-800 truncate mt-0.5">' + item.title + '</h5>' +
+                  '<p class="text-[11px] text-slate-500 truncate">' + item.subtitle + '</p>' +
+                '</div>' +
+              '</div>' +
+              '<button type="button" onclick="' + item.actionFn + '" class="w-full sm:w-auto px-3 py-1.5 bg-slate-900 hover:bg-teal-700 text-white rounded-lg text-xs font-semibold transition whitespace-nowrap shadow-sm flex items-center justify-center gap-1">' +
+                '<span>' + item.actionText + '</span>' +
+                '<span>→</span>' +
+              '</button>' +
+            '</div>';
+        }).join('');
+      }
+    }
+
+    // Footer quick actions button
+    const footerActions = document.getElementById('welcomeFooterQuickActions');
+    if (footerActions) {
+      let queueTitle = 'ไปยังคิวงานทั้งหมด';
+      if (roleLevel === 1) queueTitle = 'ไปยังหน้างานช่าง (Role 1)';
+      else if (roleLevel === 2) queueTitle = 'ไปยังคิวงานวิศวกร (Role 2)';
+      else if (roleLevel === 2.5) queueTitle = 'ไปยังส่วนงวดงาน & การเงิน (Pilot)';
+      else if (roleLevel === 3) queueTitle = 'ไปยังหน้าจอผู้บริหาร (Role 3)';
+
+      footerActions.innerHTML = 
+        '<button type="button" onclick="FMMS.closeUserTaskWelcomeModal(); FMMS.switchView(\'' + targetView + '\')" class="px-4 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow transition flex items-center gap-1.5">' +
+          '<span>' + queueTitle + '</span>' +
+          '<span>🚀</span>' +
+        '</button>';
+    }
+
+    // Show modal
+    modal.classList.remove('hidden');
+  }
+
+  function closeUserTaskWelcomeModal() {
+    const modal = document.getElementById('userTaskWelcomeModal');
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+  }
+
     return {
     fillLoginPreset: fillLoginPreset,
     handleLoginSubmit: handleLoginSubmit,
@@ -7857,7 +8167,12 @@ const FMMS = (function() {
     handleMilestonePaymentSubmit: handleMilestonePaymentSubmit,
     renderPilotRetentionTable: renderPilotRetentionTable,
     exportPilotFinancialsToCSV: exportPilotFinancialsToCSV,
-    openMilestonePrintModal: openMilestonePrintModal
+
+    exportPilotFinancialsToCSV: exportPilotFinancialsToCSV,
+    openMilestonePrintModal: openMilestonePrintModal,
+    testLineAlert: testLineAlert,
+    showUserTaskWelcomePopup: showUserTaskWelcomePopup,
+    closeUserTaskWelcomeModal: closeUserTaskWelcomeModal
   };
 })();
 
